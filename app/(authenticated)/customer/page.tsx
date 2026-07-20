@@ -71,7 +71,7 @@ export default function CustomerDashboardPage() {
 
       <motion.div variants={fadeUp} className="relative h-44 overflow-hidden rounded-xl border border-border-light shadow-sm">
         <img
-          src={`https://api.mapbox.com/styles/v1/mapbox/light-v11/static/pin-s+118B50(${location.lng},${location.lat})/${location.lng},${location.lat},14/600x200@2x?access_token=${mapToken}`}
+          src={`https://api.mapbox.com/styles/v1/mapbox/light-v11/static/pin-s+118B50(${location.lng},${location.lat})/${location.lng},${location.lat},10/600x200@2x?access_token=${mapToken}`}
           alt="Your location"
           className="h-full w-full object-cover"
         />

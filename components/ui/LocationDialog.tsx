@@ -40,7 +40,7 @@ export function LocationDialog({ open, onClose, lat: initialLat, lng: initialLng
           <Map
             mapboxAccessToken={token}
             mapStyle="mapbox://styles/mapbox/light-v11"
-            initialViewState={{ latitude: marker.lat, longitude: marker.lng, zoom: 14 }}
+            initialViewState={{ latitude: marker.lat, longitude: marker.lng, zoom: 12 }}
             style={{ width: "100%", height: "100%" }}
             onClick={(e) => setMarker({ lat: e.lngLat.lat, lng: e.lngLat.lng })}
             dragPan
