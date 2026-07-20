@@ -74,7 +74,7 @@ export function RiderMap({ deliveries, onUpdateIntent }: RiderMapProps) {
       <Map
         mapboxAccessToken={token}
         mapStyle={mapStyle}
-        initialViewState={{ latitude: 14.6, longitude: 121.0, zoom: 10 }}
+        initialViewState={{ latitude: 25.2, longitude: 55.3, zoom: 9 }}
         onLoad={(e) => { mapRef.current = e.target }}
         style={{ width: "100%", height: "100%" }}
       >

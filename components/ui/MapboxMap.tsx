@@ -96,9 +96,9 @@ export function MapboxMap({ markers, className = "" }: MapboxMapProps) {
         mapboxAccessToken={token}
         mapStyle={mapStyle}
         initialViewState={{
-          latitude: 14.6,
-          longitude: 121.0,
-          zoom: 10,
+          latitude: 25.2,
+          longitude: 55.3,
+          zoom: 9,
         }}
         style={{ width: "100%", height: "100%" }}
       >
