@@ -1,19 +1,19 @@
 "use client"
 
 import { useState } from "react"
-import { Search, Trash2 } from "lucide-react"
-import { Utensils, Users, Apple } from "lucide-react"
+import { Search, Trash2, Sun, Moon, Utensils, Users, Apple, Clock, Carrot, Ban, RefreshCw, Truck } from "lucide-react"
+import { CARB_OPTIONS, ROTATION_MODES } from "@/constants"
 import { ConfirmDialog } from "./ConfirmDialog"
 import type { Subscription } from "@/constants"
 
 const PER_PAGE = 5
 
-const DIET_ICONS: Record<string, typeof Utensils> = {
-  any: Utensils,
-  vegetarian: Apple,
-  vegan: Apple,
-  "high-protein": Utensils,
-  "low-carb": Utensils,
+const MEAL_TIME_ICONS: Record<string, typeof Clock> = {
+  breakfast: Sun,
+  "morning-snack": Apple,
+  lunch: Utensils,
+  "afternoon-snack": Apple,
+  dinner: Moon,
 }
 
 interface SubscriptionGalleryProps {
@@ -69,40 +69,52 @@ export function SubscriptionGallery({ subscriptions, onDelete }: SubscriptionGal
       <div className="space-y-px overflow-hidden rounded-xl border border-border-light bg-border-light">
         {paginated.map((sub) => {
           const detail = sub.details as Record<string, unknown>
-          const DietIcon = DIET_ICONS[detail.dietaryPreference as string] ?? Utensils
+          const mealTimes = (detail.mealTimes as string[]) ?? []
+          const restrictions = (detail.restrictions as string[]) ?? []
+          const carbLabel = CARB_OPTIONS.find((c) => c.value === detail.preferredCarb)?.label ?? ""
+          const rotationLabel = ROTATION_MODES.find((r) => r.value === detail.rotationMode)?.label ?? ""
           return (
-            <div key={sub.id} className="flex items-center justify-between bg-white px-4 py-3">
-              <div className="min-w-0 flex-1">
+            <div key={sub.id} className="bg-white px-4 py-3">
+              <div className="flex items-center justify-between">
                 <p className="font-medium text-brand-900">{sub.customerName}</p>
-                <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-secondary">
-                  <span className="inline-flex items-center gap-1">
-                    <Utensils size={12} />
-                    {String(detail.mealsPerWeek)} meals/wk
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <Users size={12} />
-                    {String(detail.servingsPerMeal)} servings
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <DietIcon size={12} />
-                    <span className="capitalize">{String(detail.dietaryPreference)}</span>
-                  </span>
+                <div className="flex shrink-0 items-center gap-3 text-xs text-text-secondary">
+                  <span>Since {sub.createdAt}</span>
+                  <button type="button" onClick={() => setDeleteTarget(sub.id)}
+                    className="rounded-lg border border-red-200 p-1.5 text-red-400 hover:border-red-400 hover:text-red-600"
+                    title="Delete subscription">
+                    <Trash2 size={16} />
+                  </button>
                 </div>
-                {String(detail.notes) && (
-                  <p className="mt-1 text-xs italic text-text-secondary">{String(detail.notes)}</p>
+              </div>
+              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-secondary">
+                <span className="inline-flex items-center gap-1"><Utensils size={12} />{String(detail.mealsPerWeek)}/wk</span>
+                <span className="inline-flex items-center gap-1"><Users size={12} />{String(detail.servingsPerMeal)} svgs</span>
+                <span className="inline-flex items-center gap-1 capitalize"><Apple size={12} />{String(detail.goal ?? "any")}</span>
+                {carbLabel && <span className="inline-flex items-center gap-1"><Carrot size={12} />{carbLabel}</span>}
+                <span className="inline-flex items-center gap-1"><RefreshCw size={12} />{rotationLabel}</span>
+                <span className="inline-flex items-center gap-1"><Truck size={12} />{String(detail.deliveryTime ?? "—")}</span>
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <div className="flex flex-wrap gap-1">
+                  {mealTimes.map((t: string) => {
+                    const Icon = MEAL_TIME_ICONS[t] ?? Clock
+                    const label = ({ breakfast: "BF", "morning-snack": "Snack1", lunch: "Lunch", "afternoon-snack": "Snack2", dinner: "Dinner" })[t] ?? t
+                    return (
+                      <span key={t} className="inline-flex items-center gap-0.5 rounded bg-brand-400/10 px-1.5 py-0.5 text-[10px] font-medium text-brand-900">
+                        <Icon size={9} />{label}
+                      </span>
+                    )
+                  })}
+                </div>
+                {restrictions.length > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-red-500">
+                    <Ban size={10} />{restrictions.length} restriction{restrictions.length > 1 ? "s" : ""}
+                  </span>
                 )}
               </div>
-              <div className="ml-4 flex shrink-0 items-center gap-3 text-right text-xs text-text-secondary">
-                <p>Since {sub.createdAt}</p>
-                <button
-                  type="button"
-                  onClick={() => setDeleteTarget(sub.id)}
-                  className="rounded-lg border border-red-200 p-1.5 text-red-400 transition-colors hover:border-red-400 hover:text-red-600"
-                  title="Delete subscription"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
+              {String(detail.notes) && (
+                <p className="mt-1 text-[10px] italic text-text-secondary">{String(detail.notes)}</p>
+              )}
             </div>
           )
         })}

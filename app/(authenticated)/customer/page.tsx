@@ -1,11 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo } from "react"
 import { motion } from "framer-motion"
-import { LocationDialog } from "@/components/ui"
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
 import { CUSTOMERS, SUBSCRIPTIONS, DELIVERIES } from "@/constants"
-import { Home, Utensils, Users, Apple, CalendarDays, ClipboardList, CheckCircle, Clock, XCircle, MapPin } from "lucide-react"
+import { RIDERS } from "@/constants/deliveries"
+import { Utensils, Users, CalendarDays, ClipboardList, CheckCircle, Clock, XCircle, Target, Carrot, Ban, RefreshCw, Truck, Flame, Navigation } from "lucide-react"
+import { MEAL_TIMES, CARB_OPTIONS, ROTATION_MODES, GOAL_MODIFICATIONS } from "@/constants"
 import type { DeliveryIntent } from "@/constants"
+import { getMenuByCategory, type MenuCategory } from "@/constants/menu"
 
 const INTENT_ICONS: Record<DeliveryIntent, typeof CheckCircle> = {
   today: Clock,
@@ -19,6 +22,14 @@ const INTENT_COLORS: Record<DeliveryIntent, string> = {
   delivered: "text-brand-900",
 }
 
+const GOAL_CALORIES: Record<string, number> = {
+  balanced: 2000,
+  "weight-loss": 1500,
+  "high-protein": 2200,
+  vegetarian: 1800,
+  customized: 2000,
+}
+
 const fadeUp = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0, transition: { duration: 0.3 } },
@@ -26,99 +37,218 @@ const fadeUp = {
 
 export default function CustomerDashboardPage() {
   const customer = CUSTOMERS[0]
-  const [location, setLocation] = useState(customer.location)
-  const [showMap, setShowMap] = useState(false)
-  const mapToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
   const subscription = SUBSCRIPTIONS.find((s) => s.customerId === customer.id)
   const detail = subscription?.details as Record<string, unknown> | undefined
   const deliveries = DELIVERIES.filter((d) => d.customerId === customer.id)
 
-  const stats = {
-    today: deliveries.filter((d) => d.intent === "today").length,
-    delivered: deliveries.filter((d) => d.intent === "delivered").length,
-  }
+  const allMeals = useMemo(() => {
+    const categories: MenuCategory[] = ["chicken", "beef", "seafood", "salad", "wrap", "breakfast", "pasta", "soup"]
+    return categories.flatMap((cat) => getMenuByCategory(cat))
+  }, [])
+
+  const avgMealCalories = useMemo(() => {
+    if (allMeals.length === 0) return 400
+    return Math.round(allMeals.reduce((s, m) => s + m.calories, 0) / allMeals.length)
+  }, [allMeals])
+
+  const goalKey = String(detail?.goal ?? "balanced")
+  const dailyTarget = detail?.goal === "customized" && (detail as Record<string, unknown>).customGoal
+    ? Number((detail as Record<string, unknown>).customGoal) || GOAL_CALORIES[goalKey]
+    : GOAL_CALORIES[goalKey] || 2000
+
+  const servingsPerMeal = Number(detail?.servingsPerMeal ?? 1)
+  const mealTimes = (detail?.mealTimes as string[]) ?? []
+  const mealsToday = mealTimes.length || 3
+  const todayCalories = Math.min(mealsToday * avgMealCalories, dailyTarget)
+  const spareCalories = dailyTarget - mealsToday * avgMealCalories
+
+  const gaugeData = [
+    { name: "Consumed", value: todayCalories },
+    { name: "Remaining", value: Math.max(dailyTarget - todayCalories, 0) },
+  ]
+
+  const upcomingDelivery = deliveries.find((d) => d.intent === "today")
+  const rider = upcomingDelivery
+    ? RIDERS.find((r) => r.id === upcomingDelivery.riderId)
+    : null
+  const includedMeals = (detail?.includedMeals as string[]) ?? []
+
+  const mealLookup = useMemo(() => {
+    const map = new Map<string, (typeof allMeals)[0]>()
+    for (const m of allMeals) map.set(m.name, m)
+    return map
+  }, [allMeals])
 
   return (
-    <div className="space-y-6">
-      <motion.div variants={fadeUp} initial="initial" animate="animate" className="flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-900 text-white">
-          <Home size={22} />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-brand-900">Welcome, {customer.name}</h1>
-          <p className="text-sm text-text-secondary">Here is your subscription overview.</p>
-        </div>
-      </motion.div>
-
-      <div className="grid grid-cols-2 gap-4">
-        {[
-          { label: "Upcoming", value: stats.today, icon: Clock, color: "text-blue-600" },
-          { label: "Delivered", value: stats.delivered, icon: CheckCircle, color: "text-brand-900" },
-        ].map((s) => (
-          <motion.div
-            key={s.label}
-            variants={fadeUp}
-            className="flex items-center gap-3 rounded-xl border border-border-light p-4 shadow-sm"
-          >
-            <s.icon size={22} className={s.color} />
-            <div>
-              <p className="text-2xl font-bold text-brand-900">{s.value}</p>
-              <p className="text-xs text-text-secondary">{s.label}</p>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-
-      <motion.div variants={fadeUp} className="relative h-44 overflow-hidden rounded-xl border border-border-light shadow-sm">
-        <img
-          src={`https://api.mapbox.com/styles/v1/mapbox/light-v11/static/pin-s+118B50(${location.lng},${location.lat})/${location.lng},${location.lat},10/600x200@2x?access_token=${mapToken}`}
-          alt="Your location"
-          className="h-full w-full object-cover"
-        />
-        <button
-          onClick={() => setShowMap(true)}
-          className="absolute bottom-2 right-2 z-10 rounded-lg bg-white/90 px-3 py-1.5 text-xs font-medium text-brand-900 shadow-sm backdrop-blur-sm hover:bg-white"
-        >
-          <MapPin size={12} className="inline" />
-          Change Location
-        </button>
-      </motion.div>
-
-      {subscription && detail && (
-        <motion.div variants={fadeUp} className="rounded-xl border border-border-light p-5 shadow-sm">
-          <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-brand-900">
-            <ClipboardList size={18} />
-            Your Meal Plan
-          </h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="flex items-center gap-2 rounded-lg bg-brand-400/10 px-4 py-3">
-              <CalendarDays size={18} className="text-brand-900" />
-              <div>
-                <p className="text-xs text-text-secondary">Meals per Week</p>
-                <p className="font-semibold text-brand-900">{String(detail.mealsPerWeek)}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 rounded-lg bg-brand-400/10 px-4 py-3">
-              <Users size={18} className="text-brand-900" />
-              <div>
-                <p className="text-xs text-text-secondary">Servings</p>
-                <p className="font-semibold text-brand-900">{String(detail.servingsPerMeal)}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 rounded-lg bg-brand-400/10 px-4 py-3">
-              <Apple size={18} className="text-brand-900" />
-              <div>
-                <p className="text-xs text-text-secondary">Diet</p>
-                <p className="font-semibold text-brand-900 capitalize">{String(detail.dietaryPreference)}</p>
-              </div>
+    <div className="space-y-8 py-8">
+      {/* Calorie Gauge */}
+      {detail && (
+        <motion.div variants={fadeUp} className="border-y border-black/5 px-2 py-8">
+          <div className="text-center">
+            <span className="font-nunito inline-flex items-center gap-2 text-3xl font-extrabold text-black">
+              <Flame size={28} className="text-orange-500" />
+              {dailyTarget.toLocaleString()} kcal
+            </span>
+            <p className="font-nunito mt-1 text-xs text-black/30">Daily Calorie Target</p>
+          </div>
+          <div className="relative mx-auto mt-1 flex max-w-[280px] items-center justify-center">
+            <ResponsiveContainer width="100%" height={160}>
+              <PieChart>
+                <Pie
+                  data={gaugeData}
+                  cx="50%"
+                  cy="100%"
+                  startAngle={180}
+                  endAngle={0}
+                  innerRadius={72}
+                  outerRadius={100}
+                  paddingAngle={0}
+                  dataKey="value"
+                  stroke="none"
+                >
+                  <Cell fill="#118B50" />
+                  <Cell fill="#00000008" />
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="absolute left-1/2 top-[62%] -translate-x-1/2 text-center">
+              <p className="font-nunito text-4xl font-extrabold text-black">{todayCalories.toLocaleString()}</p>
+              <p className="font-nunito text-xs text-black/30">kcal</p>
             </div>
           </div>
+          <p className="font-nunito mt-2 text-center text-sm font-bold text-black/70">
+            {spareCalories >= 0
+              ? `You have ${spareCalories.toLocaleString()} calories to spare today!`
+              : `You're ${Math.abs(spareCalories).toLocaleString()} calories over today's target!`}
+          </p>
+        </motion.div>
+      )}
+
+      {/* Upcoming Delivery */}
+      {upcomingDelivery && rider && detail && (
+        <motion.div variants={fadeUp} className="border-y border-black/5 px-2 py-8">
+          <div className="flex items-center gap-2">
+            <Truck size={16} className="text-brand-900" />
+            <h2 className="font-nunito text-sm font-semibold text-black">Upcoming Delivery</h2>
+          </div>
+          <div className="mt-5 space-y-4">
+            <div className="flex items-center gap-4">
+              <Clock size={20} className="text-brand-900" />
+              <div>
+                <p className="font-nunito text-xs text-black/30">Estimated Time</p>
+                <p className="font-nunito text-lg font-bold text-black">{String(detail.deliveryTime ?? "—")}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-900/10">
+                <Users size={20} className="text-brand-900" />
+              </div>
+              <div>
+                <p className="font-nunito text-xs text-black/30">Your Rider</p>
+                <p className="font-nunito text-base font-bold text-black">{rider.name}</p>
+              </div>
+            </div>
+            <a
+              href="/rider"
+              className="font-nunito inline-flex items-center gap-2 rounded-xl bg-brand-900 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-900/90"
+            >
+              <Navigation size={16} />
+              Track Rider
+            </a>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Today's Schedule */}
+      {detail && (
+        <motion.div variants={fadeUp} className="border-y border-black/5 px-2 py-8">
+          <div className="flex items-center gap-2">
+            <Clock size={16} className="text-brand-900" />
+            <h2 className="font-nunito text-sm font-semibold text-black">Today&apos;s Schedule</h2>
+          </div>
+          <div className="mt-6">
+            {includedMeals.map((meal: string, i: number) => {
+              const times = ["Breakfast", "Lunch", "Dinner"]
+              const filled = i === 0
+              const item = mealLookup.get(meal)
+              return (
+                <div key={meal} className="flex items-center gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className={`size-3 rounded-full border-2 ${filled ? "border-brand-900 bg-brand-900" : "border-black/20 bg-white"}`} />
+                    {i < includedMeals.length - 1 && <div className="h-10 w-px bg-black/10" />}
+                  </div>
+                  <div className={i < includedMeals.length - 1 ? "pb-8" : ""}>
+                    <p className="font-nunito text-sm font-semibold text-black">{times[i] ?? "Meal"}</p>
+                    <div className="mt-1 flex items-center gap-3">
+                      <img
+                        src={`https://picsum.photos/seed/${item?.id ?? meal}/64/64`}
+                        alt={meal}
+                        className="size-10 rounded-lg object-cover"
+                      />
+                      <div>
+                        <p className="font-nunito text-sm text-black/60">{meal}</p>
+                        <p className="font-nunito text-xs text-black/30">
+                          {servingsPerMeal} serving{servingsPerMeal > 1 ? "s" : ""} &middot; ~{item?.calories ?? avgMealCalories} kcal
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Meal Plan */}
+      {subscription && detail && (
+        <motion.div variants={fadeUp} className="border-b border-black/5 px-2 pb-8">
+          <h2 className="font-nunito flex items-center gap-2 text-sm font-semibold text-black">
+            <ClipboardList size={16} className="text-brand-900" />
+            Your Meal Plan
+          </h2>
+          <div className="mt-5 divide-y divide-black/5 border-y border-black/10">
+            {[
+              { icon: CalendarDays, label: "Meals / Week", value: String(detail.mealsPerWeek) },
+              { icon: Users, label: "Servings", value: String(detail.servingsPerMeal) },
+              { icon: Target, label: "Goal", value: String(detail.goal ?? "any"), capitalize: true },
+              { icon: Carrot, label: "Carb", value: CARB_OPTIONS.find((c) => c.value === detail.preferredCarb)?.label ?? "—" },
+              { icon: RefreshCw, label: "Rotation", value: ROTATION_MODES.find((r) => r.value === detail.rotationMode)?.label ?? "—" },
+              { icon: Truck, label: "Delivery Time", value: String(detail.deliveryTime ?? "—") },
+            ].map((row) => (
+              <div key={row.label} className="flex items-center justify-between py-3">
+                <div className="flex items-center gap-3">
+                  <row.icon size={15} className="text-brand-900" />
+                  <span className="font-nunito text-sm text-black/50">{row.label}</span>
+                </div>
+                <span className={`font-nunito text-sm font-semibold text-black ${row.capitalize ? "capitalize" : ""}`}>{row.value}</span>
+              </div>
+            ))}
+          </div>
+          <div className="font-nunito mt-4 flex flex-wrap items-center gap-3 text-sm text-black/40">
+            <p className="italic">{GOAL_MODIFICATIONS[detail.goal as keyof typeof GOAL_MODIFICATIONS] ?? ""}</p>
+            {Array.isArray(detail.restrictions) && (detail.restrictions as string[]).length > 0 && (
+              <span className="inline-flex items-center gap-1 text-red-500">
+                <Ban size={13} />{(detail.restrictions as string[]).length} restriction{(detail.restrictions as string[]).length > 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {((detail.mealTimes as string[]) ?? []).map((t: string) => {
+              const label = MEAL_TIMES.find((mt) => mt.value === t)?.label ?? t
+              return (
+                <span key={t} className="font-nunito rounded-full border border-brand-900/20 px-3 py-0.5 text-[11px] font-medium text-brand-900">
+                  {label}
+                </span>
+              )
+            })}
+          </div>
           {Array.isArray(detail.includedMeals) && (detail.includedMeals as string[]).length > 0 && (
-            <div className="mt-3">
-              <p className="mb-1.5 text-xs font-medium text-text-secondary">Included Meals</p>
-              <div className="flex flex-wrap gap-1.5">
+            <div className="mt-4">
+              <p className="font-nunito text-[11px] font-semibold uppercase tracking-wider text-black/30">Included Meals</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {(detail.includedMeals as string[]).map((meal) => (
-                  <span key={meal} className="rounded-full bg-brand-400/10 px-3 py-0.5 text-xs font-medium text-brand-900">
+                  <span key={meal} className="font-nunito rounded-full border border-black/10 px-3 py-1 text-xs font-medium text-black/60">
                     {meal}
                   </span>
                 ))}
@@ -126,45 +256,38 @@ export default function CustomerDashboardPage() {
             </div>
           )}
           {String(detail.notes) && (
-            <p className="mt-3 text-xs italic text-text-secondary">📝 {String(detail.notes)}</p>
+            <p className="font-nunito mt-3 text-sm italic text-black/40">{String(detail.notes)}</p>
           )}
         </motion.div>
       )}
 
-      <motion.div variants={fadeUp}>
-        <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-brand-900">
-          <Utensils size={18} />
+      {/* Recent Deliveries */}
+      <motion.div variants={fadeUp} className="px-2 pb-8">
+        <h2 className="font-nunito mb-4 flex items-center gap-2 text-sm font-semibold text-black">
+          <Utensils size={16} className="text-brand-900" />
           Recent Deliveries
         </h2>
-        <div className="divide-y divide-border-light rounded-xl border border-border-light shadow-sm">
+        <div className="divide-y divide-black/5 overflow-hidden rounded-xl border border-black/10">
           {deliveries.slice(0, 5).map((d) => {
             const Icon = INTENT_ICONS[d.intent]
             return (
-              <div key={d.id} className="flex items-center justify-between px-4 py-3">
+              <div key={d.id} className="flex items-center justify-between px-5 py-4">
                 <div>
-                  <p className="text-sm font-medium text-brand-900">{d.date}</p>
-                  <p className="text-xs text-text-secondary">{d.customerAddress}</p>
+                  <p className="font-nunito text-sm font-semibold text-black">{d.date}</p>
+                  <p className="font-nunito mt-0.5 text-xs text-black/40">{d.customerAddress}</p>
                 </div>
-                <span className={`inline-flex items-center gap-1 text-sm font-medium ${INTENT_COLORS[d.intent]}`}>
-                  <Icon size={14} />
+                <span className={`font-nunito inline-flex items-center gap-1.5 text-sm font-semibold ${INTENT_COLORS[d.intent]}`}>
+                  <Icon size={15} />
                   <span className="capitalize">{d.intent}</span>
                 </span>
               </div>
             )
           })}
           {deliveries.length === 0 && (
-            <p className="px-4 py-6 text-center text-sm text-text-secondary">No deliveries yet.</p>
+            <p className="font-nunito px-5 py-8 text-center text-sm text-black/40">No deliveries yet.</p>
           )}
         </div>
       </motion.div>
-
-      <LocationDialog
-        open={showMap}
-        onClose={() => setShowMap(false)}
-        lat={location.lat}
-        lng={location.lng}
-        onSave={(lat, lng) => setLocation({ lat, lng })}
-      />
     </div>
   )
 }

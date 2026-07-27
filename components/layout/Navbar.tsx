@@ -4,12 +4,14 @@ import { useState } from "react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { useAuth } from "@/hooks/AuthProvider"
+import { useTheme } from "@/hooks/useTheme"
 import { NAV_ITEMS } from "@/constants"
 import { Button } from "@/components/ui"
-import { Menu, X, LayoutDashboard, Users, ClipboardList, Truck, UserPlus, MapPin, UserCircle } from "lucide-react"
+import { Menu, X, LayoutDashboard, Users, ClipboardList, Truck, UserPlus, MapPin, UserCircle, Utensils, Sun, Moon } from "lucide-react"
 
 const iconMap: Record<string, typeof LayoutDashboard> = {
   Dashboard: LayoutDashboard,
+  Meals: Utensils,
   Customers: Users,
   Subscriptions: ClipboardList,
   Deliveries: Truck,
@@ -21,6 +23,7 @@ const iconMap: Record<string, typeof LayoutDashboard> = {
 
 export function Navbar() {
   const { user, signOut } = useAuth()
+  const { theme, toggle } = useTheme()
   const [open, setOpen] = useState(false)
 
   if (!user) return null
@@ -51,6 +54,13 @@ export function Navbar() {
           </div>
         </div>
         <div className="flex items-center gap-4">
+          <button
+            onClick={toggle}
+            className="rounded-full p-1.5 text-white/70 transition-all hover:bg-white/10 hover:text-white"
+            aria-label="Toggle theme"
+          >
+            {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
+          </button>
           <span className="hidden sm:inline text-sm text-white/60">{user.name}</span>
           <Button variant="ghost" size="sm" className="text-white/80 hover:text-white" onClick={signOut}>
             Sign Out

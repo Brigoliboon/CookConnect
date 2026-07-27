@@ -19,21 +19,30 @@ interface MarkerData {
   color?: string
 }
 
+type MapStyleKey = "streets" | "light" | "dark" | "satellite"
+
+const MAP_STYLES: { label: string; value: string; key: MapStyleKey }[] = [
+  { label: "Street", key: "streets", value: "mapbox://styles/mapbox/streets-v12" },
+  { label: "Light", key: "light", value: "mapbox://styles/mapbox/light-v11" },
+  { label: "Dark", key: "dark", value: "mapbox://styles/mapbox/dark-v11" },
+  { label: "Satellite", key: "satellite", value: "mapbox://styles/mapbox/satellite-streets-v12" },
+]
+
+const DEFAULT_STYLE: MapStyleKey = "light"
+
 interface MapboxMapProps {
   markers: MarkerData[]
   className?: string
+  height?: "default" | "full"
+  defaultStyle?: MapStyleKey
 }
 
-const MAP_STYLES = [
-  { label: "Street", value: "mapbox://styles/mapbox/streets-v12" },
-  { label: "Light", value: "mapbox://styles/mapbox/light-v11" },
-  { label: "Dark", value: "mapbox://styles/mapbox/dark-v11" },
-  { label: "Satellite", value: "mapbox://styles/mapbox/satellite-streets-v12" },
-]
-
-export function MapboxMap({ markers, className = "" }: MapboxMapProps) {
+export function MapboxMap({ markers, className = "", height = "default", defaultStyle = DEFAULT_STYLE }: MapboxMapProps) {
   const [popup, setPopup] = useState<MarkerData | null>(null)
-  const [mapStyle, setMapStyle] = useState(MAP_STYLES[1].value)
+  const [mapStyle, setMapStyle] = useState(() => {
+    const found = MAP_STYLES.find((s) => s.key === defaultStyle)
+    return found ? found.value : MAP_STYLES[1].value
+  })
   const [showStyle, setShowStyle] = useState(false)
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ""
 
@@ -59,7 +68,7 @@ export function MapboxMap({ markers, className = "" }: MapboxMapProps) {
   ]
 
   return (
-    <div className={`relative rounded-xl border border-border-light overflow-hidden h-96 ${className}`}>
+    <div className={`relative rounded-xl border border-border-light overflow-hidden ${height === "full" ? "flex-1 min-h-0" : "h-96"} ${className}`}>
       <div className="absolute left-3 top-3 z-10 flex items-center gap-3 rounded-lg bg-white/90 px-3 py-1.5 shadow-sm">
         {legendItems.map((item) => (
           <div key={item.type} className="flex items-center gap-1.5">

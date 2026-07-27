@@ -25,7 +25,7 @@ interface RiderMapProps {
 
 export function RiderMap({ deliveries, onUpdateIntent }: RiderMapProps) {
   const [popup, setPopup] = useState<Delivery | null>(null)
-  const [mapStyle, setMapStyle] = useState(MAP_STYLES[1].value)
+  const [mapStyle, setMapStyle] = useState(MAP_STYLES[0].value)
   const [showStyle, setShowStyle] = useState(false)
   const [riderPos, setRiderPos] = useState<{ lat: number; lng: number } | null>(null)
   const mapRef = useRef<{ flyTo: (opts: { center: [number, number]; zoom?: number; duration?: number }) => void } | null>(null)

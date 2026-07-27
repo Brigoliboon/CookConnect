@@ -3,18 +3,18 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { MapboxMap } from "@/components/ui/MapboxMap"
-import Link from "next/link"
 import { CUSTOMERS, SUBSCRIPTIONS, DELIVERIES } from "@/constants"
 import { Package, Truck, Users, UserPlus, ClipboardList, UserCheck, type LucideIcon } from "lucide-react"
-import { StatCard, StatusGallery } from "@/components/ui"
+import { StatCard, StatusGallery, WeeklyMenu, QuickActionCard } from "@/components/ui"
+import { PopularMealsChart, CarbPreferenceChart, RestrictionsChart, GoalsChart } from "@/components/charts"
 
 type MapFilter = "all" | "today" | "skip"
 
 const quickActions = [
-  { label: "New Subscription", href: "/employee/subscriptions/", icon: Package },
-  { label: "Deliveries", href: "/employee/deliveries", icon: Truck },
-  { label: "Create Account", href: "/employee/accounts", icon: UserPlus },
-  { label: "Customers", href: "/employee/customers", icon: Users },
+  { label: "New Subscription", href: "/employee/subscriptions/", icon: Package, from: "#059669", to: "#047857" },
+  { label: "Deliveries", href: "/employee/deliveries", icon: Truck, from: "#2563eb", to: "#1d4ed8" },
+  { label: "Create Account", href: "/employee/accounts", icon: UserPlus, from: "#7c3aed", to: "#6d28d9" },
+  { label: "Customers", href: "/employee/customers", icon: Users, from: "#d97706", to: "#b45309" },
 ]
 
 const FILTERS: { label: string; value: MapFilter }[] = [
@@ -70,45 +70,55 @@ export default function EmployeeDashboardPage() {
         </div>
       </motion.div>
 
-      <motion.div variants={itemVariants} className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-brand-900">Delivery Map</h2>
-          <div className="flex items-center gap-2">
-            {FILTERS.map((f) => (
-              <button
-                key={f.value}
-                onClick={() => setMapFilter(f.value)}
-                className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
-                  mapFilter === f.value
-                    ? "bg-brand-900 text-white"
-                    : "bg-white text-text-secondary border border-border-light hover:bg-brand-400/10"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <motion.div variants={itemVariants} className="lg:col-span-2 flex flex-col space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-brand-900">Delivery Map</h2>
+            <div className="flex items-center gap-2">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.value}
+                  onClick={() => setMapFilter(f.value)}
+                  className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
+                    mapFilter === f.value
+                      ? "bg-brand-900 text-white"
+                      : "bg-white text-text-secondary border border-border-light hover:bg-brand-400/10"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-        <MapboxMap markers={mapMarkers} />
-      </motion.div>
+          <MapboxMap markers={mapMarkers} height="full" defaultStyle="satellite" />
+        </motion.div>
+
+        <motion.div variants={itemVariants} className="space-y-6">
+          <PopularMealsChart subscriptions={SUBSCRIPTIONS} />
+          <CarbPreferenceChart subscriptions={SUBSCRIPTIONS} />
+        </motion.div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <motion.div variants={itemVariants}>
+          <GoalsChart subscriptions={SUBSCRIPTIONS} />
+        </motion.div>
+        <motion.div variants={itemVariants}>
+          <RestrictionsChart subscriptions={SUBSCRIPTIONS} />
+        </motion.div>
+      </div>
 
       <motion.div variants={itemVariants}>
         <h2 className="mb-4 text-lg font-semibold text-brand-900">Quick Actions</h2>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {quickActions.map((action) => {
-            const Icon = action.icon
-            return (
-              <Link
-                key={action.href}
-                href={action.href}
-                className="flex flex-col items-center gap-2 rounded-xl bg-brand-900 px-5 py-5 text-sm font-semibold text-white transition-all hover:bg-brand-900/90"
-              >
-                <Icon size={22} />
-                {action.label}
-              </Link>
-            )
-          })}
+          {quickActions.map((action) => (
+            <QuickActionCard key={action.href} {...action} />
+          ))}
         </div>
+      </motion.div>
+
+      <motion.div variants={itemVariants}>
+        <WeeklyMenu />
       </motion.div>
 
       <motion.div variants={itemVariants}>
