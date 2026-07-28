@@ -69,7 +69,7 @@ export function Hero() {
           </div>
 
           <motion.div variants={fadeUp} className="flex items-end justify-end max-sm:justify-center">
-            <img className="w-full max-w-lg object-contain max-sm:max-w-[180px]" src="/hero-menu.png" alt="Menu preview" />
+            <img className="w-full hidden sm:flex max-w-lg object-contain" src="/hero-menu.png" alt="Menu preview" />
           </motion.div>
         </motion.div>
 

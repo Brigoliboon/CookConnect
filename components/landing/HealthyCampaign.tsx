@@ -32,7 +32,7 @@ export function HealthyCampaign() {
   const visible = items.slice(start, start + ITEMS_PER_PAGE)
 
   return (
-    <section id="meals" className="overflow-hidden px-8 py-32">
+    <section id="meals" className="overflow-hidden px-8 py-32 max-sm:px-4 max-sm:py-16">
       <motion.div
         initial="hidden"
         whileInView="visible"
@@ -43,14 +43,14 @@ export function HealthyCampaign() {
           <img
             src="/logo-horizontal.png"
             alt="CookConnect"
-            className="h-20 object-contain opacity-90"
+            className="h-20 object-contain opacity-90 max-sm:h-14"
           />
         </motion.div>
 
         <motion.p
           variants={fadeUp}
           custom={1}
-          className="font-nunito mt-6 text-center text-base text-black/40"
+          className="font-nunito mt-6 text-center text-base text-black/40 max-sm:text-sm"
         >
           Fresh ingredients, vibrant meals — eat the rainbow every day.
         </motion.p>
@@ -58,15 +58,15 @@ export function HealthyCampaign() {
         <motion.div
           variants={fadeUp}
           custom={2}
-          className="relative mt-12 flex items-center overflow-visible rounded-[2rem] bg-gradient-to-br from-brand-900 to-[#0d6e3f] px-12 py-14"
+          className="relative mt-12 flex items-center overflow-visible rounded-[2rem] bg-gradient-to-br from-brand-900 to-[#0d6e3f] px-12 py-14 max-sm:px-6 max-sm:py-10"
         >
-          <div className="relative z-10 w-[55%]">
-            <h2 className="font-nunito text-3xl font-semibold leading-tight text-white sm:text-4xl lg:text-5xl">
+          <div className="relative z-10 w-[55%] max-sm:w-full">
+            <h2 className="font-nunito text-3xl font-semibold leading-tight text-white sm:text-4xl lg:text-5xl max-sm:text-2xl">
               Eat Healthy,
               <br />
               Stay Healthy.
             </h2>
-            <p className="font-nunito mt-4 max-w-sm text-base leading-relaxed text-white/60">
+            <p className="font-nunito mt-4 max-w-sm text-base leading-relaxed text-white/60 max-sm:text-sm">
               Every plate is built around fresh produce, lean proteins,
               and whole grains — because the best fuel comes from nature.
             </p>
@@ -78,16 +78,16 @@ export function HealthyCampaign() {
             </a>
           </div>
 
-          <div className="absolute bottom-0 right-0 top-0 z-0 flex w-[55%] items-end justify-end overflow-visible">
+          <div className="absolute bottom-0 right-0 top-0 z-0 flex w-[55%] items-end justify-end overflow-visible max-sm:hidden">
             <img
               src="/health-section.png"
               alt="Fresh salad bowl"
-              className="mr-[-10%] h-[130%] w-auto translate-y-[5%] object-contain drop-shadow-2xl"
+              className="mr-[-10%] h-[130%] w-auto translate-y-[5%] object-contain drop-shadow-2xl max-sm:mr-[-20%] max-sm:h-[100%]"
             />
           </div>
         </motion.div>
 
-        <div className="mt-16">
+        <div className="mt-16 max-sm:mt-10">
           <div className="flex gap-1 overflow-x-auto rounded-xl bg-neutral-100 p-1">
             {categories.map((cat) => {
               const label = MENU_CATEGORIES.find((c) => c.value === cat)!.label
@@ -96,7 +96,7 @@ export function HealthyCampaign() {
                 <button
                   key={cat}
                   onClick={() => { setActive(cat); setPage(0) }}
-                  className={`font-nunito shrink-0 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
+                  className={`font-nunito shrink-0 rounded-lg px-4 py-2 text-sm font-semibold transition-all max-sm:text-xs max-sm:px-3 max-sm:py-1.5 ${
                     isActive
                       ? "bg-brand-900 text-white shadow-sm"
                       : "text-black/40 hover:text-black/70"
@@ -114,20 +114,20 @@ export function HealthyCampaign() {
                 <button
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={page === 0}
-                  className="absolute -left-4 top-1/2 z-10 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-md transition-all hover:shadow-lg disabled:opacity-30"
+                  className="absolute -left-4 top-1/2 z-10 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-md transition-all hover:shadow-lg disabled:opacity-30 max-sm:-left-3 max-sm:size-8"
                 >
-                  <ChevronLeft size={18} className="text-black/60" />
+                  <ChevronLeft size={18} className="text-black/60 max-sm:size-4" />
                 </button>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={page >= totalPages - 1}
-                  className="absolute -right-4 top-1/2 z-10 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-md transition-all hover:shadow-lg disabled:opacity-30"
+                  className="absolute -right-4 top-1/2 z-10 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-md transition-all hover:shadow-lg disabled:opacity-30 max-sm:-right-3 max-sm:size-8"
                 >
-                  <ChevronRight size={18} className="text-black/60" />
+                  <ChevronRight size={18} className="text-black/60 max-sm:size-4" />
                 </button>
               </>
             )}
-            <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 max-sm:flex max-sm:gap-4 max-sm:overflow-x-auto max-sm:pb-2">
               <AnimatePresence mode="wait">
                 {visible.map((item) => (
                   <motion.div
@@ -136,6 +136,7 @@ export function HealthyCampaign() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -40 }}
                     transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                    className="flex justify-center max-sm:shrink-0"
                   >
                     <GalleryCard
                       name={item.name}
@@ -147,16 +148,17 @@ export function HealthyCampaign() {
                       description={item.description}
                       image={`https://picsum.photos/seed/${item.id}/400/280`}
                       onClick={() => setSelected(item)}
+                      className="h-[310px] w-full max-w-[241px]"
                     />
                   </motion.div>
                 ))}
               </AnimatePresence>
             </div>
           </div>
-          <div className="mt-10 flex justify-center">
+          <div className="mt-10 flex justify-center max-sm:mt-6">
             <Link
               href="/employee/meals"
-              className="font-nunito inline-flex items-center gap-2 rounded-xl border border-brand-900/30 px-6 py-3 text-sm font-semibold text-brand-900 drop-shadow-md transition-all hover:bg-brand-900/5"
+              className="font-nunito inline-flex items-center gap-2 rounded-xl border border-brand-900/30 px-6 py-3 text-sm font-semibold text-brand-900 drop-shadow-md transition-all hover:bg-brand-900/5 max-sm:px-5 max-sm:py-2.5 max-sm:text-xs"
             >
               View Full Menu
             </Link>
