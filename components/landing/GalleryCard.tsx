@@ -1,6 +1,6 @@
 "use client"
 
-import { ShoppingCart, Flame } from "lucide-react"
+import { ShoppingCart, Flame, Sun, Moon } from "lucide-react"
 
 interface GalleryCardProps {
   name: string
@@ -11,15 +11,18 @@ interface GalleryCardProps {
   fats: number
   description: string
   image: string
+  variant?: "order" | "display"
+  timeSlot?: "morning" | "night"
+  className?: string
   onClick?: () => void
 }
 
-export function GalleryCard({ name, price, calories, protein, carbs, fats, description, image, onClick }: GalleryCardProps) {
+export function GalleryCard({ name, price, calories, protein, carbs, fats, description, image, variant = "order", timeSlot, className, onClick }: GalleryCardProps) {
 
   return (
     <div
       onClick={onClick}
-      className="flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl bg-white drop-shadow-md transition-all duration-300 hover:drop-shadow-lg"
+      className={`flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl bg-white drop-shadow-md transition-all duration-300 hover:drop-shadow-lg ${className ?? ""}`}
     >
       <div className="overflow-hidden">
         <img
@@ -32,8 +35,16 @@ export function GalleryCard({ name, price, calories, protein, carbs, fats, descr
         <div>
           <div className="flex items-start justify-between gap-2">
             <p className="font-nunito text-sm font-semibold text-black">{name}</p>
-            <p className="font-nunito shrink-0 text-sm font-bold text-black">{price} AED</p>
+            {variant === "order" && (
+              <p className="font-nunito shrink-0 text-sm font-bold text-black">{price} AED</p>
+            )}
           </div>
+          {variant === "display" && timeSlot && (
+            <p className="font-nunito mt-1 inline-flex items-center gap-1 text-xs text-black/30">
+              {timeSlot === "morning" ? <Sun size={12} /> : <Moon size={12} />}
+              {timeSlot === "morning" ? "Morning" : "Night"}
+            </p>
+          )}
         </div>
         <div className="mt-2 flex items-center gap-3 text-[11px] text-black/30">
           <span className="font-nunito flex items-center gap-1 text-sm font-bold text-black"><Flame size={15} className="text-orange-500" /> {calories}</span>
@@ -50,10 +61,12 @@ export function GalleryCard({ name, price, calories, protein, carbs, fats, descr
             {fats}g
           </span>
         </div>
-        <button className="font-nunito mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-brand-900/30 py-2.5 text-xs font-semibold text-brand-900 drop-shadow-md transition-all hover:bg-brand-900/5">
-          <ShoppingCart size={13} />
-          Add to Order
-        </button>
+        {variant === "order" && (
+          <button className="font-nunito mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-brand-900/30 py-2.5 text-xs font-semibold text-brand-900 drop-shadow-md transition-all hover:bg-brand-900/5">
+            <ShoppingCart size={13} />
+            Add to Order
+          </button>
+        )}
       </div>
     </div>
   )

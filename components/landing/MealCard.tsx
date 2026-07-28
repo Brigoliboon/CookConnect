@@ -40,7 +40,7 @@ export function MealCard({ name, price, image, calories, protein, carbs, fats, d
   const shrunk = revealed && !imageHovered
 
   return (
-    <div ref={ref} className="relative shrink-0 w-72">
+    <div ref={ref} className="relative shrink-0 w-72 max-sm:w-48 h-full">
       <div className="relative z-10 flex justify-center">
         <motion.div
           animate={{ width: shrunk ? "70%" : "100%" }}
@@ -89,7 +89,7 @@ export function MealCard({ name, price, image, calories, protein, carbs, fats, d
 
         <p className="font-nunito mt-2 text-xs leading-relaxed text-white/70 line-clamp-2">{shortDesc}</p>
 
-        <div className="mt-3 opacity-0 transition-all duration-200 group-hover/detail:opacity-100">
+        <div className="mt-3 opacity-0 transition-all duration-200 group-hover/detail:opacity-100 max-sm:opacity-100">
           <button className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 py-2 text-xs font-semibold text-white transition-all hover:bg-white/10">
             <ShoppingCart size={14} />
             Add to Order

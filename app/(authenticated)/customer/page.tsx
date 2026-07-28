@@ -9,6 +9,7 @@ import { Utensils, Users, CalendarDays, ClipboardList, CheckCircle, Clock, XCirc
 import { MEAL_TIMES, CARB_OPTIONS, ROTATION_MODES, GOAL_MODIFICATIONS } from "@/constants"
 import type { DeliveryIntent } from "@/constants"
 import { getMenuByCategory, type MenuCategory } from "@/constants/menu"
+import { GalleryCard } from "@/components/landing/GalleryCard"
 
 const INTENT_ICONS: Record<DeliveryIntent, typeof CheckCircle> = {
   today: Clock,
@@ -159,41 +160,34 @@ export default function CustomerDashboardPage() {
         </motion.div>
       )}
 
-      {/* Today's Schedule */}
+      {/* Today's Meals */}
       {detail && (
-        <motion.div variants={fadeUp} className="border-y border-black/5 px-2 py-8">
-          <div className="flex items-center gap-2">
-            <Clock size={16} className="text-brand-900" />
-            <h2 className="font-nunito text-sm font-semibold text-black">Today&apos;s Schedule</h2>
-          </div>
-          <div className="mt-6">
+        <motion.div variants={fadeUp} className="px-2">
+          <h2 className="font-nunito mb-4 flex items-center gap-2 text-sm font-semibold text-black">
+            <Utensils size={16} className="text-brand-900" />
+            Today&apos;s Meals
+          </h2>
+          <div className="flex gap-4 overflow-x-auto pb-2">
             {includedMeals.map((meal: string, i: number) => {
-              const times = ["Breakfast", "Lunch", "Dinner"]
-              const filled = i === 0
               const item = mealLookup.get(meal)
+              if (!item) return null
+              const timeSlots = ["morning", undefined, "night"] as const
               return (
-                <div key={meal} className="flex items-center gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className={`size-3 rounded-full border-2 ${filled ? "border-brand-900 bg-brand-900" : "border-black/20 bg-white"}`} />
-                    {i < includedMeals.length - 1 && <div className="h-10 w-px bg-black/10" />}
-                  </div>
-                  <div className={i < includedMeals.length - 1 ? "pb-8" : ""}>
-                    <p className="font-nunito text-sm font-semibold text-black">{times[i] ?? "Meal"}</p>
-                    <div className="mt-1 flex items-center gap-3">
-                      <img
-                        src={`https://picsum.photos/seed/${item?.id ?? meal}/64/64`}
-                        alt={meal}
-                        className="size-10 rounded-lg object-cover"
-                      />
-                      <div>
-                        <p className="font-nunito text-sm text-black/60">{meal}</p>
-                        <p className="font-nunito text-xs text-black/30">
-                          {servingsPerMeal} serving{servingsPerMeal > 1 ? "s" : ""} &middot; ~{item?.calories ?? avgMealCalories} kcal
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              <div key={meal} className="w-[241px]">
+                <GalleryCard
+                  name={item.name}
+                  price={item.price}
+                  calories={item.calories}
+                  protein={item.protein}
+                  carbs={item.carbs}
+                  fats={item.fats}
+                  description={item.description}
+                  image={`https://picsum.photos/seed/${item.id}/400/280`}
+                  variant="display"
+                  timeSlot={timeSlots[i]}
+                  className="h-[310px]"
+                />
+              </div>
               )
             })}
           </div>

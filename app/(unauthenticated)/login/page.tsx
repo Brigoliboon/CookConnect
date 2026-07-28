@@ -48,7 +48,6 @@ function LoginForm() {
             <div className="mb-6 flex justify-center">
               <img src="/logo-horizontal.png" alt="CookConnect" className="h-14 object-contain opacity-90" />
             </div>
-            <p className="font-nunito text-sm text-black/40">Sign in to manage your meal plans</p>
           </div>
 
           <div className="mb-8 space-y-3">
