@@ -43,6 +43,10 @@
   --font-nunito: var(--font-nunito);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: var(--color-surface);
   color: var(--color-text-primary);
