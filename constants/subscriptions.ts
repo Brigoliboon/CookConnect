@@ -23,6 +23,66 @@ export interface MealPlanDetail {
   notes: string
 }
 
+export type PlanType = "standard" | "healthy"
+
+export interface SubscriptionPlan {
+  id: string
+  name: string
+  type: PlanType
+  durationDays: number
+  priceAED: number
+  description: string
+  features: string[]
+}
+
+export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
+  {
+    id: "standard-7",
+    name: "7-Day Meal Plan",
+    type: "standard",
+    durationDays: 7,
+    priceAED: 399,
+    description: "For individuals who want choice and flexibility.",
+    features: ["7-day meal plan", "Full menu access", "Macro preferences", "Priority support"],
+  },
+  {
+    id: "standard-14",
+    name: "14-Day Meal Plan",
+    type: "standard",
+    durationDays: 14,
+    priceAED: 699,
+    description: "For individuals who want choice and flexibility.",
+    features: ["14-day meal plan", "Full menu access", "Macro preferences", "Priority support"],
+  },
+  {
+    id: "healthy",
+    name: "Healthy Diet Plan",
+    type: "healthy",
+    durationDays: 30,
+    priceAED: 1099,
+    description: "Curated clean-eating meals for a healthier you.",
+    features: ["30-day meal plan", "Dietitian-approved menu", "Organic produce", "Macro-optimized meals", "Priority support"],
+  },
+  {
+    id: "standard-26",
+    name: "26-Day Meal Plan",
+    type: "standard",
+    durationDays: 26,
+    priceAED: 999,
+    description: "For individuals who want choice and flexibility.",
+    features: ["26-day meal plan", "Full menu access", "Macro preferences", "Priority support"],
+  },
+  {
+    id: "standard-30",
+    name: "30-Day Meal Plan",
+    type: "standard",
+    durationDays: 30,
+    priceAED: 1199,
+    description: "For individuals who want choice and flexibility.",
+    features: ["30-day meal plan", "Full menu access", "Macro preferences", "Priority support"],
+  },
+]
+
 export const SUBSCRIPTIONS: Subscription[] = [
   { id: "S-001", customerId: "C-001", customerName: "Maria Santos", details: { mealsPerWeek: 5, servingsPerMeal: 2, goal: "balanced", goalOption: "", customGoal: null, mealTimes: ["breakfast", "lunch", "dinner"], preferredCarb: "white-rice", restrictions: ["no-pork"], restrictionOther: "", rotationMode: "chefs-choice", deliveryTime: "08:00", includedMeals: ["Grilled Lemon Herb Chicken", "Caesar Salad", "Spaghetti Bolognese"], notes: "" }, createdAt: "2025-01-15", updatedAt: "2025-06-20" },
   { id: "S-002", customerId: "C-002", customerName: "Jose Garcia", details: { mealsPerWeek: 7, servingsPerMeal: 4, goal: "high-protein", goalOption: "", customGoal: null, mealTimes: ["breakfast", "lunch", "afternoon-snack", "dinner"], preferredCarb: "brown-rice", restrictions: [], restrictionOther: "", rotationMode: "pre-select", deliveryTime: "12:00", includedMeals: ["Butter Chicken", "Teriyaki Chicken", "Beef Stir Fry", "Grilled Salmon"], notes: "" }, createdAt: "2025-02-20", updatedAt: "2025-07-01" },

@@ -1,6 +1,7 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react"
+import { createClient } from "@/utils/supabase/client"
 import type { UserRole } from "@/constants"
 
 interface User {
@@ -10,42 +11,85 @@ interface User {
   role: UserRole
 }
 
-const MOCK_USERS: Record<string, User> = {
-  employee: { id: "E-001", name: "Juan Dela Cruz", email: "juan@cookconnect.ph", role: "employee" },
-  rider: { id: "R-001", name: "Kevin Ramos", email: "kevin@cookconnect.ph", role: "rider" },
-  customer: { id: "C-001", name: "Maria Santos", email: "maria@cookconnect.ph", role: "customer" },
-}
-
 interface AuthContextType {
   user: User | null
   loading: boolean
-  signIn: (email: string, password: string) => Promise<void>
-  signOut: () => void
-  mockLogin: (role: string) => void
+  signIn: (email: string, password: string) => Promise<UserRole>
+  signOut: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
+async function fetchProfile(id: string) {
+  const supabase = createClient()
+  const { data } = await supabase
+    .from("accounts")
+    .select("role, name")
+    .eq("id", id)
+    .single()
+  return data as { role: string; name: string | null } | null
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [loading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const supabase = createClient()
+
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const profile = await fetchProfile(session.user.id)
+        if (profile?.role) {
+          setUser({
+            id: session.user.id,
+            name: profile.name || session.user.email?.split("@")[0] || "",
+            email: session.user.email || "",
+            role: profile.role as UserRole,
+          })
+        }
+      }
+      setLoading(false)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const profile = await fetchProfile(session.user.id)
+        if (profile?.role) {
+          setUser({
+            id: session.user.id,
+            name: profile.name || session.user.email?.split("@")[0] || "",
+            email: session.user.email || "",
+            role: profile.role as UserRole,
+          })
+        } else {
+          setUser(null)
+        }
+      } else {
+        setUser(null)
+      }
+      setLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [supabase])
 
   const signIn = useCallback(async (email: string, password: string) => {
-    // TODO: Wire to Supabase Auth
-    console.log("signIn", email, password)
-  }, [])
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) throw error
 
-  const signOut = useCallback(() => {
+    const profile = await fetchProfile(data.user.id)
+    if (!profile?.role) throw new Error("No role assigned to this account")
+
+    return profile.role as UserRole
+  }, [supabase])
+
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut()
     setUser(null)
-  }, [])
-
-  const mockLogin = useCallback((role: string) => {
-    const u = MOCK_USERS[role]
-    if (u) setUser(u)
-  }, [])
+  }, [supabase])
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut, mockLogin }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   )

@@ -87,6 +87,66 @@ export function HealthyCampaign() {
           </div>
         </motion.div>
 
+        <motion.div variants={fadeUp} custom={3} className="mt-24 max-sm:mt-16">
+          <span className="font-nunito inline-block text-[11px] font-semibold uppercase tracking-[0.3em] text-black/30">
+            Health Bites
+          </span>
+          <h3 className="font-playfair mt-4 text-4xl font-medium leading-tight text-black sm:text-5xl max-sm:text-3xl">
+            Did You Know?
+          </h3>
+          <div className="mt-6 h-px w-12 bg-black/20" />
+          <div className="mt-10 flex flex-col gap-4">
+            <div className="flex items-center gap-6 rounded-xl p-4">
+              <img
+                src="https://picsum.photos/seed/leafy-greens/144/144"
+                alt=""
+                className="size-24 shrink-0 object-cover max-sm:size-20"
+              />
+              <p className="font-nunito text-xl leading-loose text-black/50 max-sm:text-lg">
+                Every plate at CookConnect starts with farm-fresh greens — crisp kale,
+                peppery arugula, and tender spinach harvested within 48 hours of your
+                delivery. Packed with iron and nitrates that boost oxygen flow, these
+                leafy foundations fuel natural energy without the afternoon crash.
+              </p>
+            </div>
+            <div className="flex items-center gap-6 rounded-xl p-4">
+              <img
+                src="https://picsum.photos/seed/light-meal/144/144"
+                alt=""
+                className="size-24 shrink-0 object-cover max-sm:size-20"
+              />
+              <p className="font-nunito text-xl leading-loose text-black/50 max-sm:text-lg">
+                Calorie-counting shouldn&apos;t mean flavour-counting. Our chef team
+                crafts each meal under 500 kcal using bold spices, citrus marinades,
+                and umami-rich reductions — so every bite hits hard while your
+                daily targets stay on track.
+              </p>
+            </div>
+            <div className="flex items-center gap-6 rounded-xl p-4">
+              <img
+                src="https://picsum.photos/seed/focus-energy/144/144"
+                alt=""
+                className="size-24 shrink-0 object-cover max-sm:size-20"
+              />
+              <p className="font-nunito text-xl leading-loose text-black/50 max-sm:text-lg">
+                Within your first week, subscribers tell us the fog lifts.
+                Omega-rich proteins, slow-burning carbs, and leafy micronutrients
+                stabilize blood sugar and feed the brain steadily — turning midday
+                slumps into sustained clarity, meeting after meeting.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div variants={fadeUp} custom={4} className="mt-24 max-sm:mt-16">
+          <span className="font-nunito inline-block text-[11px] font-semibold uppercase tracking-[0.3em] text-black/30">
+            The Fresh Pantry
+          </span>
+          <h3 className="font-playfair mt-4 text-4xl font-medium leading-tight text-black sm:text-5xl max-sm:text-3xl">
+            Real Ingredients, Real Results
+          </h3>
+        </motion.div>
+
         <div className="mt-16 max-sm:mt-10">
           <div className="flex gap-1 overflow-x-auto rounded-xl bg-neutral-100 p-1">
             {categories.map((cat) => {

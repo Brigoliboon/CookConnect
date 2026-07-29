@@ -16,28 +16,37 @@ const inputClass =
 
 function LoginForm() {
   const router = useRouter()
-  const { mockLogin } = useAuth()
+  const { signIn } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [logging, setLogging] = useState<string | null>(null)
+  const [error, setError] = useState("")
 
-  function handleQuickLogin(role: string, credEmail: string, credPassword: string) {
-    setEmail(credEmail)
-    setPassword(credPassword)
+  async function handleQuickLogin(role: string, credEmail: string, credPassword: string) {
+    setError("")
     setLogging(role)
-    setTimeout(() => {
-      mockLogin(role)
+    try {
+      await signIn(credEmail, credPassword)
       router.push(`/${role}`)
-    }, 400)
+    } catch (e) {
+      console.error("[LOGIN] Quick login error:", e)
+      setError(e instanceof Error ? e.message : "Login failed. Please try again.")
+      setLogging(null)
+    }
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setError("")
     setLogging("form")
-    setTimeout(() => {
-      mockLogin("rider")
-      router.push("/rider")
-    }, 500)
+    try {
+      const role = await signIn(email, password)
+      router.push(`/${role}`)
+    } catch (e) {
+      console.error("[LOGIN] Manual login error:", e)
+      setError(e instanceof Error ? e.message : "Invalid email or password.")
+      setLogging(null)
+    }
   }
 
   return (
@@ -97,6 +106,9 @@ function LoginForm() {
               <label className="font-nunito mb-1 block text-xs font-semibold uppercase tracking-wider text-black/30">Password</label>
               <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className={inputClass} />
             </div>
+            {error && (
+              <p className="font-nunito text-xs text-red-500">{error}</p>
+            )}
             <button
               type="submit"
               disabled={logging !== null}

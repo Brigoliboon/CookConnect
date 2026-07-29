@@ -2,22 +2,7 @@
 
 import Link from "next/link"
 import { motion } from "framer-motion"
-
-const tiers = [
-  {
-    name: "Standard",
-    price: "899",
-    desc: "For individuals who want choice and flexibility.",
-    features: ["10 meals per week", "Full menu access", "Macro preferences", "Priority support"],
-  },
-  {
-    name: "Healthy Plan",
-    price: "1,099",
-    desc: "Curated clean-eating meals for a healthier you.",
-    features: ["10 meals per week", "Dietitian-approved menu", "Organic produce", "Macro-optimized meals", "Priority support"],
-    healthy: true,
-  },
-]
+import { SUBSCRIPTION_PLANS } from "@/constants"
 
 const fadeUp = {
   hidden: { opacity: 0, y: 50 },
@@ -36,7 +21,7 @@ export function Subscription() {
       viewport={{ once: true, margin: "-80px" }}
       className="bg-neutral-50 px-6 py-32"
     >
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto max-w-8xl">
         <motion.div variants={fadeUp} custom={0} className="text-center">
           <span className="font-nunito inline-block text-[11px] font-semibold uppercase tracking-[0.3em] text-black/30">
             Pricing
@@ -50,15 +35,15 @@ export function Subscription() {
           </p>
         </motion.div>
 
-        <div className="mt-20 flex flex-col items-center gap-6 md:flex-row md:justify-center">
-          {tiers.map((tier, i) => {
-            const isHealthy = tier.healthy
+        <div className="mt-20 flex flex-wrap justify-center gap-6">
+          {SUBSCRIPTION_PLANS.map((plan, i) => {
+            const isHealthy = plan.type === "healthy"
             return (
               <motion.div
-                key={tier.name}
+                key={plan.id}
                 variants={fadeUp}
                 custom={i + 1}
-                className={`group relative flex flex-col rounded-3xl border p-10 transition-all duration-500 ${
+                className={`group relative flex w-72 flex-col rounded-3xl border p-8 transition-all duration-500 ${
                   isHealthy
                     ? "border-transparent bg-gradient-to-br from-brand-900 to-[#0d6e3f] text-white shadow-xl"
                     : "border-neutral-200 bg-white text-black hover:border-black/30 hover:shadow-lg"
@@ -69,21 +54,21 @@ export function Subscription() {
                     Recommended
                   </span>
                 )}
-                <p className="font-playfair text-3xl font-medium">{tier.name}</p>
-                <p className={`font-nunito mt-2 text-sm ${isHealthy ? "text-white/50" : "text-black/40"}`}>{tier.desc}</p>
-                <div className="mt-8 flex items-baseline gap-1">
-                  <span className="font-playfair text-5xl font-medium tracking-tight">{tier.price}</span>
-                  <span className={`font-nunito text-sm ${isHealthy ? "text-white/40" : "text-black/30"}`}>AED / month</span>
+                <p className="font-playfair text-3xl font-medium">{plan.name}</p>
+                <p className={`font-nunito mt-2 text-sm ${isHealthy ? "text-white/50" : "text-black/40"}`}>{plan.description}</p>
+                <div className="mt-6 flex items-baseline gap-2">
+                  <span className="font-playfair text-5xl font-medium tracking-tight">{plan.priceAED}</span>
+                  <span className={`font-nunito text-sm ${isHealthy ? "text-white/40" : "text-black/30"}`}>AED</span>
                 </div>
-                <ul className={`font-nunito mt-8 space-y-3 text-sm ${isHealthy ? "text-white/70" : "text-black/50"}`}>
-                  {tier.features.map((f) => (
+                <ul className={`font-nunito mt-6 space-y-3 text-sm ${isHealthy ? "text-white/70" : "text-black/50"}`}>
+                  {plan.features.map((f) => (
                     <li key={f} className="flex items-center gap-3">
                       <span className={`size-1 rounded-full ${isHealthy ? "bg-white/40" : "bg-black/30"}`} />
                       {f}
                     </li>
                   ))}
                 </ul>
-                <div className="mt-auto pt-10">
+                <div className="mt-auto pt-8">
                   <Link
                     href="/login"
                     className={`font-nunito flex w-full items-center justify-center rounded-xl py-3.5 text-sm font-semibold transition-all duration-300 ${
