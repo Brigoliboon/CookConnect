@@ -4,7 +4,7 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
   return (
     <>
       <Navbar />
-      <main className="flex-1 p-6">{children}</main>
+      <main className="flex-1 p-6 pt-16">{children}</main>
     </>
   )
 }

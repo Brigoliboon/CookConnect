@@ -3,14 +3,14 @@
 import { useState, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { CalendarDays, ChefHat } from "lucide-react"
-import { CURRENT_WEEKLY_MENU, type MenuItem } from "@/constants"
+import type { MenuItem, WeeklyMenu as WeeklyMenuType } from "@/constants"
 import { MealCard } from "./MealCard"
 import { MealDetailDialog } from "./MealDetailDialog"
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const
 
-function buildDailySchedule() {
-  const allItems = Object.values(CURRENT_WEEKLY_MENU.items).flat()
+function buildDailySchedule(data: WeeklyMenuType) {
+  const allItems = Object.values(data.items).flat()
   const perDay = Math.ceil(allItems.length / DAYS.length)
   return DAYS.map((day, i) => ({
     day,
@@ -25,11 +25,15 @@ const containerVariants = {
   },
 }
 
-export function WeeklyMenu() {
+interface WeeklyMenuProps {
+  data: WeeklyMenuType
+}
+
+export function WeeklyMenu({ data }: WeeklyMenuProps) {
   const [selectedDay, setSelectedDay] = useState(0)
   const [dialogItem, setDialogItem] = useState<MenuItem | null>(null)
 
-  const schedule = useMemo(() => buildDailySchedule(), [])
+  const schedule = useMemo(() => buildDailySchedule(data), [data])
   const currentDay = schedule[selectedDay]
 
   return (
@@ -38,7 +42,7 @@ export function WeeklyMenu() {
         <CalendarDays size={18} className="text-brand-900" />
         <h2 className="text-lg font-semibold text-brand-900">This Week&apos;s Menu</h2>
         <span className="ml-auto text-xs text-text-secondary">
-          {CURRENT_WEEKLY_MENU.weekOf}
+          {data.weekOf}
         </span>
       </div>
 

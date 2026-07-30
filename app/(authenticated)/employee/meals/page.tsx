@@ -78,7 +78,7 @@ export default function EmployeeMealsPage() {
       </motion.div>
 
       <motion.div variants={itemVariants}>
-        <WeeklyMenu />
+        <WeeklyMenu data={{ weekOf: "", items: { chicken: [], beef: [], seafood: [], salad: [], wrap: [], breakfast: [], pasta: [], soup: [] } }} />
       </motion.div>
 
       <motion.div variants={itemVariants}>
