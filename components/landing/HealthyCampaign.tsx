@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import type { MenuCategory, MenuItem } from "@/constants"
-import { getMenuByCategory, MENU_CATEGORIES } from "@/constants"
+import { MENU_CATEGORIES } from "@/constants"
 import { GalleryCard } from "@/components/landing/GalleryCard"
 import { MealDetailDialog } from "@/components/ui/MealDetailDialog"
 
@@ -23,10 +23,44 @@ const fadeUp = {
 const categories = MENU_CATEGORIES.map((c) => c.value)
 
 export function HealthyCampaign() {
+  const [allItems, setAllItems] = useState<MenuItem[]>([])
   const [active, setActive] = useState<MenuCategory>("chicken")
   const [page, setPage] = useState(0)
   const [selected, setSelected] = useState<MenuItem | null>(null)
-  const items = getMenuByCategory(active)
+
+  useEffect(() => {
+    fetch("/api/recipe")
+      .then(async (res) => {
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error ?? "Failed to fetch recipes")
+        return data as Record<string, unknown>[]
+      })
+      .then((data) => {
+        const items: MenuItem[] = data.map((r: Record<string, unknown>) => {
+          const n = r.nutrition as Record<string, unknown> | null
+          return {
+            id: r.id as string,
+            name: r.name as string,
+            category: (r.category as MenuCategory) ?? "chicken",
+            description: (r.description as string) ?? "",
+            price: (r.price as number) ?? 0,
+            calories: (r.calories as number) ?? 0,
+            protein: (n?.protein_g as number) ?? 0,
+            carbs: (n?.carbs_g as number) ?? 0,
+            fats: (n?.fats_g as number) ?? 0,
+            fiber: (n?.fiber_g as number) ?? 0,
+            sugar: (n?.sugar_g as number) ?? 0,
+            sodium: (n?.sodium_mg as number) ?? 0,
+            image_path: (r.image_path as string) ?? null,
+            ingredients: (r.ingredients as MenuItem["ingredients"]) ?? [],
+          }
+        })
+        setAllItems(items)
+      })
+      .catch((e) => console.error("[HEALTHY_CAMPAIGN] Failed to fetch recipes:", e.message || e))
+  }, [])
+
+  const items = allItems.filter((item) => item.category === active)
   const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE)
   const start = page * ITEMS_PER_PAGE
   const visible = items.slice(start, start + ITEMS_PER_PAGE)
@@ -189,29 +223,40 @@ export function HealthyCampaign() {
             )}
             <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 max-sm:flex max-sm:gap-4 max-sm:overflow-x-auto max-sm:pb-2">
               <AnimatePresence mode="wait">
-                {visible.map((item) => (
+                {visible.length > 0 ? (
+                  visible.map((item) => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, x: 40 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -40 }}
+                      transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                      className="flex justify-center max-sm:shrink-0"
+                    >
+                      <GalleryCard
+                        name={item.name}
+                        price={item.price}
+                        calories={item.calories}
+                        protein={item.protein}
+                        carbs={item.carbs}
+                        fats={item.fats}
+                        description={item.description}
+                        image={item.image_path ?? `https://picsum.photos/seed/${item.id}/400/280`}
+                        onClick={() => setSelected(item)}
+                        className="w-full max-w-[241px]"
+                      />
+                    </motion.div>
+                  ))
+                ) : (
                   <motion.div
-                    key={item.id}
-                    initial={{ opacity: 0, x: 40 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -40 }}
-                    transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                    className="flex justify-center max-sm:shrink-0"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="col-span-full flex h-[290px] flex-col items-center justify-center gap-3 text-black/30"
                   >
-                    <GalleryCard
-                      name={item.name}
-                      price={item.price}
-                      calories={item.calories}
-                      protein={item.protein}
-                      carbs={item.carbs}
-                      fats={item.fats}
-                      description={item.description}
-                      image={`https://picsum.photos/seed/${item.id}/400/280`}
-                      onClick={() => setSelected(item)}
-                      className="h-[310px] w-full max-w-[241px]"
-                    />
+                    <span className="text-4xl">🍽️</span>
+                    <p className="text-sm">No meals in this category yet.</p>
                   </motion.div>
-                ))}
+                )}
               </AnimatePresence>
             </div>
           </div>

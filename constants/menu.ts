@@ -11,8 +11,22 @@ export interface MenuItem {
   fiber: number
   sugar: number
   sodium: number
-  ingredients: string[]
-  image_path?: string | null
+  ingredients: {
+    name: string
+    quantity_g: number
+    unit: string | null
+    nutrition?: {
+      fats_g: number
+      carbs_g: number
+      fiber_g: number
+      sugar_g: number
+      protein_g: number
+      sodium_mg: number
+      calories_per_100g: number
+    } | null
+    fatsecret_id?: string | null
+  }[]
+  image_path: string | null
 }
 
 export type MenuCategory =

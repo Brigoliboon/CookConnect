@@ -1,0 +1,60 @@
+[
+  {
+    "id": "b5b48193-93bc-4571-90e9-cfbe77da042a",
+    "name": "Beef Steak",
+    "category": "beef",
+    "description": "This meal is a beef steak.",
+    "price": 200,
+    "calories": 790,
+    "is_active": true,
+    "nutrition": {
+      "fats_g": 76,
+      "carbs_g": 0,
+      "fiber_g": 0,
+      "sugar_g": 0,
+      "protein_g": 13,
+      "sodium_mg": 186
+    },
+    "image_path": "https://bzjgwyvchazazhgassxc.supabase.co/storage/v1/object/public/meal/1785422707154-1ki3v90biin.png",
+    "recipe_ingredients": [
+      {
+        "unit": "g",
+        "ingredient": {
+          "name": "Beef"
+        },
+        "quantity_g": 10
+      },
+      {
+        "unit": "g",
+        "ingredient": {
+          "name": "Butter"
+        },
+        "quantity_g": 80
+      },
+      {
+        "unit": "g",
+        "ingredient": {
+          "name": "Egg"
+        },
+        "quantity_g": 100
+      }
+    ],
+    "ingredients": [
+      {
+        "name": "Beef",
+        "quantity_g": 10,
+        "unit": "g"
+      },
+      {
+        "name": "Butter",
+        "quantity_g": 80,
+        "unit": "g"
+      },
+      {
+        "name": "Egg",
+        "quantity_g": 100,
+        "unit": "g"
+      }
+    ]
+  }
+]

@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, ImageIcon, Calculator, Trash2, Search, ChevronDown } from "lucide-react"
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
 } from "recharts"
-import { MENU_CATEGORIES } from "@/constants"
+import { MENU_CATEGORIES, type MenuItem } from "@/constants"
 
 const COLORS = {
   protein: "#FA6868",
@@ -57,7 +57,6 @@ interface FoodServing {
 
 interface IngredientItem {
   food_id: string
-  fatsecret_id: string
   name: string
   amount: number
   unit: string
@@ -79,12 +78,13 @@ function parseSearchDescription(desc: string) {
   return { calories: cal, fat, carbs, protein }
 }
 
-interface NewMealDialogProps {
+interface EditMealDialogProps {
   open: boolean
   onClose: () => void
+  item: MenuItem
 }
 
-export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
+export function EditMealDialog({ open, onClose, item }: EditMealDialogProps) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [imagePreview, setImagePreview] = useState("")
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -101,9 +101,57 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
   const [showResults, setShowResults] = useState(false)
   const [calculating, setCalculating] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [nutrition, setNutrition] = useState({
     calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0, sugar: 0, sodium: 0,
   })
+
+  useEffect(() => {
+    if (!open) return
+    setMealName(item.name)
+    setDescription(item.description)
+    setPrice(String(item.price))
+    setCategory(MENU_CATEGORIES.find((c) => c.value === item.category)?.label ?? item.category)
+    setNutrition({
+      calories: item.calories,
+      protein: item.protein,
+      carbs: item.carbs,
+      fats: item.fats,
+      fiber: item.fiber,
+      sugar: item.sugar,
+      sodium: item.sodium,
+    })
+    setImagePreview(item.image_path ?? "")
+    setShowResults(false)
+    setImageFile(null)
+    setSearchQuery("")
+    setSearchResults([])
+    setShowDropdown(false)
+    setCalculating(false)
+    if (item.ingredients?.length) {
+      setIngredients(item.ingredients.map((ing) => {
+        const nut = ing.nutrition ?? { calories_per_100g: 0, protein_g: 0, carbs_g: 0, fats_g: 0, fiber_g: 0, sugar_g: 0, sodium_mg: 0 }
+        const ratio = ing.quantity_g / 100
+        return {
+          food_id: ing.fatsecret_id ?? "",
+          name: ing.name,
+          amount: ing.quantity_g,
+          unit: ing.unit ?? "g",
+          servingDesc: `${ing.quantity_g} ${ing.unit ?? "g"}`,
+          calories: Math.round(nut.calories_per_100g * ratio),
+          protein: Math.round(nut.protein_g * ratio * 10) / 10,
+          carbs: Math.round(nut.carbs_g * ratio * 10) / 10,
+          fat: Math.round(nut.fats_g * ratio * 10) / 10,
+          fiber: Math.round(nut.fiber_g * ratio * 10) / 10,
+          sugar: Math.round(nut.sugar_g * ratio * 10) / 10,
+          sodium: Math.round(nut.sodium_mg * ratio * 10) / 10,
+        }
+      }))
+    } else {
+      setIngredients([])
+    }
+  }, [open, item])
 
   function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -160,7 +208,6 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
 
       const item: IngredientItem = {
         food_id: food.food_id,
-        fatsecret_id: food.food_id,
         name: food.food_name,
         amount: 100,
         unit: s.metric_serving_unit || "g",
@@ -175,11 +222,9 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
       }
       setIngredients((prev) => [...prev, item])
     } catch {
-      // fallback with parsed description
       const parsed = parseSearchDescription(food.food_description)
       const item: IngredientItem = {
         food_id: food.food_id,
-        fatsecret_id: food.food_id,
         name: food.food_name,
         amount: 100,
         unit: "g",
@@ -254,7 +299,7 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
     if (!mealName.trim()) return
     setSaving(true)
     try {
-      let imageUrl: string | null = null
+      let imageUrl: string | null = imagePreview && !imageFile ? imagePreview : null
       if (imageFile) {
         const formData = new FormData()
         formData.append("file", imageFile)
@@ -265,8 +310,8 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
         }
       }
 
-      const res = await fetch("/api/recipe", {
-        method: "POST",
+      const res = await fetch(`/api/recipe/${item.id}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: mealName.trim(),
@@ -284,7 +329,6 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
             sodium_mg: nutrition.sodium,
           },
           ingredients: ingredients.map((ing) => ({
-            fatsecret_id: ing.fatsecret_id,
             name: ing.name,
             quantity_g: ing.amount,
             unit: ing.unit,
@@ -302,14 +346,32 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
       })
       if (!res.ok) {
         const err = await res.json()
-        console.error("[NEW_MEAL] Save failed:", err.error)
+        console.error("[EDIT_MEAL] Save failed:", err.error)
         return
       }
       handleClose()
     } catch (e) {
-      console.error("[NEW_MEAL] Save error:", e)
+      console.error("[EDIT_MEAL] Save error:", e)
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleDelete() {
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/recipe/${item.id}`, { method: "DELETE" })
+      if (!res.ok) {
+        const err = await res.json()
+        console.error("[EDIT_MEAL] Delete failed:", err.error)
+        return
+      }
+      handleClose()
+    } catch (e) {
+      console.error("[EDIT_MEAL] Delete error:", e)
+    } finally {
+      setDeleting(false)
+      setShowDeleteConfirm(false)
     }
   }
 
@@ -356,10 +418,18 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
           >
             <div className="flex w-[500px] shrink-0 flex-col">
               <div className="flex items-center justify-between px-8 pt-7 pb-2">
-                <h2 className="text-2xl font-bold text-neutral-900">New Meal</h2>
-                <button onClick={handleClose} className="text-neutral-400 transition-colors hover:text-neutral-700">
-                  <X size={22} />
-                </button>
+                <h2 className="text-2xl font-bold text-neutral-900">Edit Meal</h2>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="text-red-400 transition-colors hover:text-red-600"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                  </button>
+                  <button onClick={handleClose} className="text-neutral-400 transition-colors hover:text-neutral-700">
+                    <X size={22} />
+                  </button>
+                </div>
               </div>
 
               <div className="flex-1 space-y-6 overflow-y-auto px-8 pb-3">
@@ -622,13 +692,6 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-2 pt-1">
-                  <span className="text-[10px] text-neutral-500">Nutrition data sourced from</span>
-                  <a href="https://www.fatsecret.com/" target="_blank" rel="noopener noreferrer">
-                    <img src="/fatsecret-logo.svg" alt="FatSecret" className="h-4" />
-                  </a>
-                </div>
-
                 <div className="flex justify-end gap-3 border-t border-neutral-200 pt-5">
                   <button onClick={handleClose} className="text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-700">
                     Cancel
@@ -638,11 +701,44 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
                     disabled={saving || !mealName.trim()}
                     className="rounded-xl bg-neutral-900 px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-neutral-800 disabled:opacity-50"
                   >
-                    {saving ? "Saving..." : "Save Meal"}
+                    {saving ? "Saving..." : "Update Meal"}
                   </button>
                 </div>
               </div>
             </motion.div>
+          </motion.div>
+        </motion.div>
+      )}
+      {showDeleteConfirm && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="flex w-full max-w-sm flex-col gap-6 rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-lg font-semibold text-neutral-900">Delete meal?</p>
+            <p className="text-sm text-neutral-500">This action cannot be undone.</p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="rounded-xl px-4 py-2 text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
           </motion.div>
         </motion.div>
       )}

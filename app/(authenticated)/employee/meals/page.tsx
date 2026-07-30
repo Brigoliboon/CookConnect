@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { Button, WeeklyMenu, MealGallery, NewMealDialog } from "@/components/ui"
+import { Button, WeeklyMenu, MealGallery, NewMealDialog, EditMealDialog } from "@/components/ui"
 import { MENU_CATEGORIES } from "@/constants"
 import type { MenuCategory, MenuItem, WeeklyMenu as WeeklyMenuType } from "@/constants"
 import { CalendarDays, Plus } from "lucide-react"
@@ -24,6 +24,7 @@ export default function EmployeeMealsPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [createdMenus, setCreatedMenus] = useState<WeeklyMenuType[]>([])
   const [showNewMeal, setShowNewMeal] = useState(false)
+  const [editItem, setEditItem] = useState<MenuItem | null>(null)
 
   useEffect(() => {
     fetch("/api/recipe")
@@ -50,7 +51,7 @@ export default function EmployeeMealsPage() {
             sugar: (n?.sugar_g as number) ?? 0,
             sodium: (n?.sodium_mg as number) ?? 0,
             image_path: (r.image_path as string) ?? null,
-            ingredients: ((r.ingredients as { name: string }[]) ?? []).map((i) => i.name),
+            ingredients: (r.ingredients as MenuItem["ingredients"]) ?? [],
           }
         })
         setMenuItems(items)
@@ -68,13 +69,16 @@ export default function EmployeeMealsPage() {
       <motion.div variants={itemVariants}>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-xl font-bold text-brand-900">All Meals</h2>
-          <Button onClick={() => setShowNewMeal(true)}>
+          <Button onClick={() => { setEditItem(null); setShowNewMeal(true) }}>
             <Plus size={16} className="mr-1" />
             New Meal
           </Button>
-          <NewMealDialog open={showNewMeal} onClose={() => setShowNewMeal(false)} />
+          <NewMealDialog open={showNewMeal && !editItem} onClose={() => setShowNewMeal(false)} />
+          {editItem && (
+            <EditMealDialog open={!!editItem} onClose={() => { setEditItem(null); setShowNewMeal(false) }} item={editItem} />
+          )}
         </div>
-        <MealGallery items={menuItems} categories={MENU_CATEGORIES} />
+        <MealGallery items={menuItems} categories={MENU_CATEGORIES} onEdit={(item) => { setEditItem(item); setShowNewMeal(true) }} />
       </motion.div>
 
       <motion.div variants={itemVariants}>

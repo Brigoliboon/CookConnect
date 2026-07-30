@@ -28,6 +28,7 @@ export interface Ingredient {
   id: UUID;
   name: string;
   nutrition: any | null; // jsonb
+  fatsecret_id: string;
 }
 
 export interface RecipeIngredient {

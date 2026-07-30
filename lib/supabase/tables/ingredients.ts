@@ -2,6 +2,7 @@ import type { Ingredient, RecipeIngredient } from "../models"
 
 export interface UpsertIngredientInput {
   name: string
+  fatsecret_id?: string | null
   nutrition?: Record<string, unknown> | null
 }
 
@@ -19,7 +20,7 @@ export async function upsertIngredient(
 
   const { data, error } = await supabase
     .from("ingredients")
-    .insert({ name: input.name, nutrition: input.nutrition ?? null })
+    .insert({ name: input.name, nutrition: input.nutrition ?? null, fatsecret_id: input.fatsecret_id ?? null })
     .select()
     .single()
 
@@ -46,4 +47,16 @@ export async function linkIngredient(
 
   if (error) throw error
   return data as RecipeIngredient
+}
+
+export async function unlinkRecipeIngredients(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  recipeId: string,
+) {
+  const { error } = await supabase
+    .from("recipe_ingredients")
+    .delete()
+    .eq("recipe_id", recipeId)
+
+  if (error) throw error
 }

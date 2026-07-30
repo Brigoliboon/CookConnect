@@ -95,12 +95,12 @@ export function MealDetailDialog({ item, onClose, onEdit }: MealDetailDialogProp
                 <div>
                   <p className="mb-2.5 text-xs font-semibold text-neutral-500">INGREDIENTS</p>
                   <div className="flex flex-wrap gap-2">
-                    {item.ingredients.map((ing) => (
+                    {item.ingredients.map((ing, i) => (
                       <span
-                        key={ing}
+                        key={i}
                         className="rounded-full bg-neutral-100 px-4 py-1.5 text-sm font-medium text-neutral-700"
                       >
-                        {ing}
+                        {ing.name}
                       </span>
                     ))}
                   </div>

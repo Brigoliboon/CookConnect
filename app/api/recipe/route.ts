@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
 
 interface IngredientInput {
+  fatsecret_id?: string | null
   name: string
   quantity_g: number
   unit: string | null
@@ -17,11 +18,6 @@ interface CreateMealBody extends CreateRecipeInput {
 export async function GET() {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 })
-  }
 
   try {
     const recipes = await listRecipes(supabase)
@@ -59,6 +55,7 @@ export async function POST(request: Request) {
     if (body.ingredients?.length) {
       for (const ing of body.ingredients) {
         const ingredient = await upsertIngredient(supabase, {
+          fatsecret_id: ing.fatsecret_id ?? null,
           name: ing.name,
           nutrition: ing.nutrition ?? null,
         })

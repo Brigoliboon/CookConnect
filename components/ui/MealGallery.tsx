@@ -8,9 +8,10 @@ import type { MenuItem } from "@/constants"
 interface MealGalleryProps {
   items: MenuItem[]
   categories: { label: string; value: string }[]
+  onEdit?: (item: MenuItem) => void
 }
 
-export function MealGallery({ items, categories }: MealGalleryProps) {
+export function MealGallery({ items, categories, onEdit }: MealGalleryProps) {
   const [activeCat, setActiveCat] = useState(categories[0]?.value ?? "")
   const [detailItem, setDetailItem] = useState<MenuItem | null>(null)
 
@@ -46,7 +47,7 @@ export function MealGallery({ items, categories }: MealGalleryProps) {
               </div>
             ))}
           </div>
-          <MealDetailDialog item={detailItem} onClose={() => setDetailItem(null)} />
+          <MealDetailDialog item={detailItem} onClose={() => setDetailItem(null)} onEdit={onEdit} />
         </>
       ) : (
         <p className="py-8 text-center text-sm text-text-secondary">No items in this category.</p>
