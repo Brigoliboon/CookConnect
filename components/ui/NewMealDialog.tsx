@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, ImageIcon, Calculator, Trash2, Search, ChevronDown } from "lucide-react"
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
 } from "recharts"
-import { MENU_CATEGORIES } from "@/constants"
+import { MENU_CATEGORIES, type MenuItem } from "@/constants"
 
 const COLORS = {
   protein: "#FA6868",
@@ -81,9 +81,10 @@ function parseSearchDescription(desc: string) {
 interface NewMealDialogProps {
   open: boolean
   onClose: () => void
+  editItem?: MenuItem | null
 }
 
-export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
+export function NewMealDialog({ open, onClose, editItem }: NewMealDialogProps) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [imagePreview, setImagePreview] = useState("")
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -103,6 +104,39 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
   const [nutrition, setNutrition] = useState({
     calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0, sugar: 0, sodium: 0,
   })
+
+  useEffect(() => {
+    if (editItem) {
+      setMealName(editItem.name)
+      setDescription(editItem.description)
+      setPrice(String(editItem.price))
+      setCategory(MENU_CATEGORIES.find((c) => c.value === editItem.category)?.label ?? editItem.category)
+      setNutrition({
+        calories: editItem.calories,
+        protein: editItem.protein,
+        carbs: editItem.carbs,
+        fats: editItem.fats,
+        fiber: editItem.fiber,
+        sugar: editItem.sugar,
+        sodium: editItem.sodium,
+      })
+      setImagePreview(editItem.image_path ?? "")
+    } else {
+      setImagePreview("")
+      setImageFile(null)
+      setMealName("")
+      setPrice("")
+      setDescription("")
+      setIngredients([])
+      setSearchQuery("")
+      setSearchResults([])
+      setShowDropdown(false)
+      setShowResults(false)
+      setCalculating(false)
+      setCategory("")
+      setNutrition({ calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0, sugar: 0, sodium: 0 })
+    }
+  }, [editItem])
 
   function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -251,7 +285,7 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
     if (!mealName.trim()) return
     setSaving(true)
     try {
-      let imageUrl: string | null = null
+      let imageUrl: string | null = imagePreview && !imageFile ? imagePreview : null
       if (imageFile) {
         const formData = new FormData()
         formData.append("file", imageFile)
@@ -262,39 +296,44 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
         }
       }
 
-      const res = await fetch("/api/recipe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: mealName.trim(),
-          category: getCategoryValue(),
-          description: description.trim() || null,
-          price: price ? parseFloat(price) : null,
-          calories: nutrition.calories || null,
-          image_path: imageUrl,
+      const body = {
+        name: mealName.trim(),
+        category: getCategoryValue(),
+        description: description.trim() || null,
+        price: price ? parseFloat(price) : null,
+        calories: nutrition.calories || null,
+        image_path: imageUrl,
+        nutrition: {
+          protein_g: nutrition.protein,
+          carbs_g: nutrition.carbs,
+          fats_g: nutrition.fats,
+          fiber_g: nutrition.fiber,
+          sugar_g: nutrition.sugar,
+          sodium_mg: nutrition.sodium,
+        },
+        ingredients: ingredients.map((ing) => ({
+          name: ing.name,
+          quantity_g: ing.amount,
+          unit: ing.unit,
           nutrition: {
-            protein_g: nutrition.protein,
-            carbs_g: nutrition.carbs,
-            fats_g: nutrition.fats,
-            fiber_g: nutrition.fiber,
-            sugar_g: nutrition.sugar,
-            sodium_mg: nutrition.sodium,
+            calories_per_100g: Math.round(ing.calories / (ing.amount / 100)),
+            protein_g: ing.protein,
+            carbs_g: ing.carbs,
+            fats_g: ing.fat,
+            fiber_g: ing.fiber,
+            sugar_g: ing.sugar,
+            sodium_mg: ing.sodium,
           },
-          ingredients: ingredients.map((ing) => ({
-            name: ing.name,
-            quantity_g: ing.amount,
-            unit: ing.unit,
-            nutrition: {
-              calories_per_100g: Math.round(ing.calories / (ing.amount / 100)),
-              protein_g: ing.protein,
-              carbs_g: ing.carbs,
-              fats_g: ing.fat,
-              fiber_g: ing.fiber,
-              sugar_g: ing.sugar,
-              sodium_mg: ing.sodium,
-            },
-          })),
-        }),
+        })),
+      }
+
+      const url = editItem ? `/api/recipe/${editItem.id}` : "/api/recipe"
+      const method = editItem ? "PATCH" : "POST"
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       })
       if (!res.ok) {
         const err = await res.json()
@@ -352,7 +391,7 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
           >
             <div className="flex w-[500px] shrink-0 flex-col">
               <div className="flex items-center justify-between px-8 pt-7 pb-2">
-                <h2 className="text-2xl font-bold text-neutral-900">New Meal</h2>
+                <h2 className="text-2xl font-bold text-neutral-900">{editItem ? "Edit Meal" : "New Meal"}</h2>
                 <button onClick={handleClose} className="text-neutral-400 transition-colors hover:text-neutral-700">
                   <X size={22} />
                 </button>
@@ -416,7 +455,7 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
                     <ChevronDown size={18} className="text-neutral-400" />
                   </button>
                   {showCategoryDropdown && (
-                    <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-lg">
+                    <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white shadow-lg">
                       {MENU_CATEGORIES.map((cat) => (
                         <button
                           key={cat.value}
@@ -618,6 +657,13 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
                   </div>
                 </div>
 
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <span className="text-[10px] text-neutral-500">Nutrition data sourced from</span>
+                  <a href="https://www.fatsecret.com/" target="_blank" rel="noopener noreferrer">
+                    <img src="/fatsecret-logo.svg" alt="FatSecret" className="h-4" />
+                  </a>
+                </div>
+
                 <div className="flex justify-end gap-3 border-t border-neutral-200 pt-5">
                   <button onClick={handleClose} className="text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-700">
                     Cancel
@@ -627,7 +673,7 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
                     disabled={saving || !mealName.trim()}
                     className="rounded-xl bg-neutral-900 px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-neutral-800 disabled:opacity-50"
                   >
-                    {saving ? "Saving..." : "Save Meal"}
+                    {saving ? "Saving..." : editItem ? "Update Meal" : "Save Meal"}
                   </button>
                 </div>
               </div>

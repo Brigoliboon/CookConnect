@@ -8,6 +8,7 @@ import JsBarcode from "react-barcode"
 interface MealDetailDialogProps {
   item: MenuItem | null
   onClose: () => void
+  onEdit?: (item: MenuItem) => void
 }
 
 const macroColors: Record<string, string> = {
@@ -19,7 +20,7 @@ const macroColors: Record<string, string> = {
   sodium: "#7B5EA7",
 }
 
-export function MealDetailDialog({ item, onClose }: MealDetailDialogProps) {
+export function MealDetailDialog({ item, onClose, onEdit }: MealDetailDialogProps) {
   const imageUrl = item?.image_path ?? ""
 
   return (
@@ -46,8 +47,16 @@ export function MealDetailDialog({ item, onClose }: MealDetailDialogProps) {
                 onClick={onClose}
                 className="absolute right-4 top-4 rounded-full bg-white/20 p-1.5 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
               >
-                <X size={18} />
-              </button>
+                  <X size={18} />
+                </button>
+                {onEdit && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onEdit(item); onClose() }}
+                    className="absolute right-14 top-4 rounded-full bg-white/20 p-1.5 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                  </button>
+                )}
               <div className="absolute bottom-0 left-0 right-0 p-5">
                 <h2 className="text-2xl font-bold text-white">{item.name}</h2>
                 <div className="mt-1 flex items-center gap-3">
@@ -65,18 +74,31 @@ export function MealDetailDialog({ item, onClose }: MealDetailDialogProps) {
             </div>
 
             <div className="flex-1 space-y-5 overflow-y-auto p-5">
+              <div className="flex justify-center">
+                <JsBarcode
+                  value={item.id}
+                  format="CODE128"
+                  width={1}
+                  height={28}
+                  margin={0}
+                  displayValue={false}
+                  background="transparent"
+                />
+              </div>
+
               <div>
+                <p className="mb-2 text-xs font-semibold text-neutral-500">DESCRIPTION</p>
                 <p className="text-sm leading-relaxed text-neutral-600">{item.description}</p>
               </div>
 
               {item.ingredients && item.ingredients.length > 0 && (
                 <div>
                   <p className="mb-2.5 text-xs font-semibold text-neutral-500">INGREDIENTS</p>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-2">
                     {item.ingredients.map((ing) => (
                       <span
                         key={ing}
-                        className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-700"
+                        className="rounded-full bg-neutral-100 px-4 py-1.5 text-sm font-medium text-neutral-700"
                       >
                         {ing}
                       </span>
@@ -168,20 +190,12 @@ export function MealDetailDialog({ item, onClose }: MealDetailDialogProps) {
                 </div>
               </div>
 
-              <div className="flex flex-col items-center gap-2 border-t border-neutral-200 pt-4">
-                <JsBarcode
-                  value={item.id}
-                  format="CODE128"
-                  width={1.2}
-                  height={32}
-                  margin={0}
-                  displayValue={false}
-                  background="transparent"
-                />
-                <span className="font-mono text-[10px] text-neutral-400">{item.id}</span>
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <span className="text-[10px] text-neutral-500">Nutrition data sourced from</span>
+                <a href="https://www.fatsecret.com/" target="_blank" rel="noopener noreferrer">
+                  <img src="/fatsecret-logo.svg" alt="FatSecret" className="h-4" />
+                </a>
               </div>
-
-              <p className="text-center text-xs text-neutral-500">Per serving &middot; Made fresh to order</p>
             </div>
           </motion.div>
         </motion.div>
