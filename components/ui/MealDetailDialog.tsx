@@ -20,7 +20,7 @@ const macroColors: Record<string, string> = {
 }
 
 export function MealDetailDialog({ item, onClose }: MealDetailDialogProps) {
-  const imageUrl = item ? `https://picsum.photos/seed/${item.id}/800/500` : ""
+  const imageUrl = item?.image_path ?? ""
 
   return (
     <AnimatePresence>

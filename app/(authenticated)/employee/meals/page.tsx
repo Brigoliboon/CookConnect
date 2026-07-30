@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Button, WeeklyMenu, MealGallery, NewMealDialog } from "@/components/ui"
-import { MENU_CATEGORIES, MENU_ITEMS } from "@/constants"
-import type { MenuCategory, WeeklyMenu as WeeklyMenuType } from "@/constants"
+import { MENU_CATEGORIES } from "@/constants"
+import type { MenuCategory, MenuItem, WeeklyMenu as WeeklyMenuType } from "@/constants"
 import { CalendarDays, Plus } from "lucide-react"
 
 const containerVariants = {
@@ -21,8 +21,42 @@ const itemVariants = {
 }
 
 export default function EmployeeMealsPage() {
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [createdMenus, setCreatedMenus] = useState<WeeklyMenuType[]>([])
   const [showNewMeal, setShowNewMeal] = useState(false)
+
+  useEffect(() => {
+    fetch("/api/recipe")
+      .then(async (res) => {
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error ?? "Failed to fetch recipes")
+        return data as Record<string, unknown>[]
+      })
+      .then((data) => {
+        console.log("[MEALS] API response:", data)
+        const items: MenuItem[] = data.map((r: Record<string, unknown>) => {
+          const n = r.nutrition as Record<string, unknown> | null
+          return {
+            id: r.id as string,
+            name: r.name as string,
+            category: (r.category as MenuCategory) ?? "chicken",
+            description: (r.description as string) ?? "",
+            price: (r.price as number) ?? 0,
+            calories: (r.calories as number) ?? 0,
+            protein: (n?.protein_g as number) ?? 0,
+            carbs: (n?.carbs_g as number) ?? 0,
+            fats: (n?.fats_g as number) ?? 0,
+            fiber: (n?.fiber_g as number) ?? 0,
+            sugar: (n?.sugar_g as number) ?? 0,
+            sodium: (n?.sodium_mg as number) ?? 0,
+            image_path: (r.image_path as string) ?? null,
+            ingredients: ((r.ingredients as { name: string }[]) ?? []).map((i) => i.name),
+          }
+        })
+        setMenuItems(items)
+      })
+      .catch((e) => console.error("[MEALS] Failed to fetch recipes:", e.message || e))
+  }, [])
 
   return (
     <motion.div
@@ -40,7 +74,7 @@ export default function EmployeeMealsPage() {
           </Button>
           <NewMealDialog open={showNewMeal} onClose={() => setShowNewMeal(false)} />
         </div>
-        <MealGallery items={MENU_ITEMS} categories={MENU_CATEGORIES} />
+        <MealGallery items={menuItems} categories={MENU_CATEGORIES} />
       </motion.div>
 
       <motion.div variants={itemVariants}>

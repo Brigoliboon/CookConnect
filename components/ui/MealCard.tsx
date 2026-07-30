@@ -14,13 +14,13 @@ interface MealCardProps {
 }
 
 export function MealCard({ item, onClick }: MealCardProps) {
-  const imageUrl = `https://picsum.photos/seed/${item.id}/600/400`
+  const imageUrl = item.image_path ?? undefined
 
   return (
     <motion.div
       variants={cardVariants}
       className="relative aspect-[4/3] cursor-pointer overflow-hidden rounded-xl bg-cover bg-center"
-      style={{ backgroundImage: `url(${imageUrl})` }}
+      style={imageUrl ? { backgroundImage: `url(${imageUrl})` } : undefined}
       onClick={onClick}
     >
       <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />

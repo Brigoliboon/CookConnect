@@ -86,6 +86,7 @@ interface NewMealDialogProps {
 export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [imagePreview, setImagePreview] = useState("")
+  const [imageFile, setImageFile] = useState<File | null>(null)
   const [mealName, setMealName] = useState("")
   const [description, setDescription] = useState("")
   const [ingredients, setIngredients] = useState<IngredientItem[]>([])
@@ -98,6 +99,7 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
   const [category, setCategory] = useState("")
   const [showResults, setShowResults] = useState(false)
   const [calculating, setCalculating] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [nutrition, setNutrition] = useState({
     calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0, sugar: 0, sodium: 0,
   })
@@ -105,6 +107,7 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
   function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (file) {
+      setImageFile(file)
       setImagePreview(URL.createObjectURL(file))
     }
   }
@@ -239,8 +242,76 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
     }, 300)
   }
 
+  function getCategoryValue() {
+    const found = MENU_CATEGORIES.find((c) => c.label === category)
+    return found?.value ?? (category || null)
+  }
+
+  async function handleSave() {
+    if (!mealName.trim()) return
+    setSaving(true)
+    try {
+      let imageUrl: string | null = null
+      if (imageFile) {
+        const formData = new FormData()
+        formData.append("file", imageFile)
+        const imgRes = await fetch("/api/upload", { method: "POST", body: formData })
+        if (imgRes.ok) {
+          const imgData = await imgRes.json()
+          imageUrl = imgData.url
+        }
+      }
+
+      const res = await fetch("/api/recipe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: mealName.trim(),
+          category: getCategoryValue(),
+          description: description.trim() || null,
+          price: price ? parseFloat(price) : null,
+          calories: nutrition.calories || null,
+          image_path: imageUrl,
+          nutrition: {
+            protein_g: nutrition.protein,
+            carbs_g: nutrition.carbs,
+            fats_g: nutrition.fats,
+            fiber_g: nutrition.fiber,
+            sugar_g: nutrition.sugar,
+            sodium_mg: nutrition.sodium,
+          },
+          ingredients: ingredients.map((ing) => ({
+            name: ing.name,
+            quantity_g: ing.amount,
+            unit: ing.unit,
+            nutrition: {
+              calories_per_100g: Math.round(ing.calories / (ing.amount / 100)),
+              protein_g: ing.protein,
+              carbs_g: ing.carbs,
+              fats_g: ing.fat,
+              fiber_g: ing.fiber,
+              sugar_g: ing.sugar,
+              sodium_mg: ing.sodium,
+            },
+          })),
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        console.error("[NEW_MEAL] Save failed:", err.error)
+        return
+      }
+      handleClose()
+    } catch (e) {
+      console.error("[NEW_MEAL] Save error:", e)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   function handleClose() {
     setImagePreview("")
+    setImageFile(null)
     setMealName("")
     setPrice("")
     setDescription("")
@@ -250,6 +321,7 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
     setShowDropdown(false)
     setShowResults(false)
     setCalculating(false)
+    setSaving(false)
     setCategory("")
     onClose()
   }
@@ -551,10 +623,11 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
                     Cancel
                   </button>
                   <button
-                    onClick={handleClose}
-                    className="rounded-xl bg-neutral-900 px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-neutral-800"
+                    onClick={handleSave}
+                    disabled={saving || !mealName.trim()}
+                    className="rounded-xl bg-neutral-900 px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-neutral-800 disabled:opacity-50"
                   >
-                    Save Meal
+                    {saving ? "Saving..." : "Save Meal"}
                   </button>
                 </div>
               </div>
