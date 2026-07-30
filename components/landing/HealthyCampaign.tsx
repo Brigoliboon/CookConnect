@@ -96,7 +96,7 @@ export function HealthyCampaign() {
           </h3>
           <div className="mt-6 h-px w-12 bg-black/20" />
           <div className="mt-10 flex flex-col gap-4">
-            <div className="flex items-center gap-6 rounded-xl p-4 transition-transform duration-300 hover:-translate-y-1">
+            <div className="flex flex-col items-center gap-6 rounded-xl p-4 transition-transform duration-300 hover:-translate-y-1 sm:flex-row">
               <img
                 src="/healthy-section/section-1.png"
                 alt=""
@@ -109,7 +109,7 @@ export function HealthyCampaign() {
                 leafy foundations fuel natural energy without the afternoon crash.
               </p>
             </div>
-            <div className="flex items-center gap-6 rounded-xl p-4 transition-transform duration-300 hover:-translate-y-1">
+            <div className="flex flex-col items-center gap-6 rounded-xl p-4 transition-transform duration-300 hover:-translate-y-1 sm:flex-row">
               <img
                 src="/healthy-section/section-2.png"
                 alt=""
@@ -122,7 +122,7 @@ export function HealthyCampaign() {
                 daily targets stay on track.
               </p>
             </div>
-            <div className="flex items-center gap-6 rounded-xl p-4 transition-transform duration-300 hover:-translate-y-1">
+            <div className="flex flex-col items-center gap-6 rounded-xl p-4 transition-transform duration-300 hover:-translate-y-1 sm:flex-row">
               <img
                 src="/healthy-section/section-3.png"
                 alt=""
