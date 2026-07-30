@@ -5,17 +5,6 @@ import { MealCard } from "./MealCard"
 import { MealDetailDialog } from "./MealDetailDialog"
 import type { MenuItem } from "@/constants"
 
-const CAT_BG: Record<string, string> = {
-  chicken: "https://picsum.photos/seed/chicken-dish/200/80",
-  beef: "https://picsum.photos/seed/beef-dish/200/80",
-  seafood: "https://picsum.photos/seed/seafood-platter/200/80",
-  salad: "https://picsum.photos/seed/fresh-salad/200/80",
-  wrap: "https://picsum.photos/seed/gourmet-wrap/200/80",
-  breakfast: "https://picsum.photos/seed/hearty-breakfast/200/80",
-  pasta: "https://picsum.photos/seed/pasta-dish/200/80",
-  soup: "https://picsum.photos/seed/warm-soup/200/80",
-}
-
 interface MealGalleryProps {
   items: MenuItem[]
   categories: { label: string; value: string }[]
@@ -36,20 +25,13 @@ export function MealGallery({ items, categories }: MealGalleryProps) {
             <button
               key={cat.value}
               onClick={() => setActiveCat(cat.value)}
-              className={`relative cursor-pointer overflow-hidden rounded-lg px-2 py-4 text-sm font-medium transition-all ${
+              className={`rounded-lg px-2 py-4 text-sm font-medium transition-all ${
                 isActive
-                  ? "text-white hover:brightness-110"
+                  ? "bg-brand-900 text-white"
                   : "bg-white text-text-secondary ring-1 ring-border-light hover:ring-brand-900 hover:text-brand-900"
               }`}
             >
-              {isActive && (
-                <div
-                  className="absolute inset-0 bg-cover bg-center"
-                  style={{ backgroundImage: `url(${CAT_BG[cat.value] ?? CAT_BG.chicken})` }}
-                />
-              )}
-              {isActive && <div className="absolute inset-0 bg-black/50" />}
-              <span className="relative z-10">{cat.label}</span>
+              {cat.label}
             </button>
           )
         })}
