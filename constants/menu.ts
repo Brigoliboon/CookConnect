@@ -12,7 +12,7 @@ export interface MenuItem {
   sugar: number
   sodium: number
   ingredients: string[]
-  image_path: string | null
+  image_path?: string | null
 }
 
 export type MenuCategory =

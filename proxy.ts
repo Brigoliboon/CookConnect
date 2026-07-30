@@ -4,7 +4,7 @@ import { createClient } from "@/utils/supabase/middleware"
 const AUTH_ROUTES = ["/login"]
 const PROTECTED_PREFIXES = ["/employee", "/rider", "/customer"]
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   const { supabase, supabaseResponse } = createClient(request)

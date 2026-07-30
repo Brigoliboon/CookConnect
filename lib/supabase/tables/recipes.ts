@@ -38,7 +38,7 @@ export async function listRecipes(
 
   if (error) throw error
 
-  return (recipes as unknown[]).map((r: Record<string, unknown>) => ({
+  return (recipes as Record<string, unknown>[]).map((r) => ({
     ...r,
     ingredients: ((r.recipe_ingredients as Record<string, unknown>[]) ?? []).map(
       (ri: Record<string, unknown>) => ({
