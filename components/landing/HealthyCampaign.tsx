@@ -96,11 +96,11 @@ export function HealthyCampaign() {
           </h3>
           <div className="mt-6 h-px w-12 bg-black/20" />
           <div className="mt-10 flex flex-col gap-4">
-            <div className="flex items-center gap-6 rounded-xl p-4">
+            <div className="flex items-center gap-6 rounded-xl p-4 transition-transform duration-300 hover:-translate-y-1">
               <img
-                src="https://picsum.photos/seed/leafy-greens/144/144"
+                src="/healthy-section/section-1.png"
                 alt=""
-                className="size-24 shrink-0 object-cover max-sm:size-20"
+                className="w-32 h-48 shrink-0 rounded object-cover max-sm:w-24 max-sm:h-36"
               />
               <p className="font-nunito text-xl leading-loose text-black/50 max-sm:text-lg">
                 Every plate at CookConnect starts with farm-fresh greens — crisp kale,
@@ -109,30 +109,30 @@ export function HealthyCampaign() {
                 leafy foundations fuel natural energy without the afternoon crash.
               </p>
             </div>
-            <div className="flex items-center gap-6 rounded-xl p-4">
+            <div className="flex items-center gap-6 rounded-xl p-4 transition-transform duration-300 hover:-translate-y-1">
               <img
-                src="https://picsum.photos/seed/light-meal/144/144"
+                src="/healthy-section/section-2.png"
                 alt=""
-                className="size-24 shrink-0 object-cover max-sm:size-20"
+                className="w-32 h-48 shrink-0 rounded object-cover max-sm:w-24 max-sm:h-36"
               />
               <p className="font-nunito text-xl leading-loose text-black/50 max-sm:text-lg">
                 Calorie-counting shouldn&apos;t mean flavour-counting. Our chef team
-                crafts each meal under 500 kcal using bold spices, citrus marinades,
+                crafts each meal using bold spices, citrus marinades,
                 and umami-rich reductions — so every bite hits hard while your
                 daily targets stay on track.
               </p>
             </div>
-            <div className="flex items-center gap-6 rounded-xl p-4">
+            <div className="flex items-center gap-6 rounded-xl p-4 transition-transform duration-300 hover:-translate-y-1">
               <img
-                src="https://picsum.photos/seed/focus-energy/144/144"
+                src="/healthy-section/section-3.png"
                 alt=""
-                className="size-24 shrink-0 object-cover max-sm:size-20"
+                className="w-32 h-48 shrink-0 rounded object-cover max-sm:w-24 max-sm:h-36"
               />
               <p className="font-nunito text-xl leading-loose text-black/50 max-sm:text-lg">
-                Within your first week, subscribers tell us the fog lifts.
-                Omega-rich proteins, slow-burning carbs, and leafy micronutrients
-                stabilize blood sugar and feed the brain steadily — turning midday
-                slumps into sustained clarity, meeting after meeting.
+                Within your first week, our members tell us the fatigue 
+                lifts. Lean proteins, complex carbs, and dense greens fuel your muscles 
+                and steady your blood sugar — turning afternoon crashes into sustained 
+                power, set after set.
               </p>
             </div>
           </div>

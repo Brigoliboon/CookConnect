@@ -45,7 +45,7 @@ export function Subscription() {
                 custom={i + 1}
                 className={`group relative flex w-72 flex-col rounded-3xl border p-8 transition-all duration-500 ${
                   isHealthy
-                    ? "border-transparent bg-gradient-to-br from-brand-900 to-[#0d6e3f] text-white shadow-xl"
+                    ? "border-transparent bg-gradient-to-br from-brand-900 to-[#0d6e3f] text-white shadow-xl [background-image:url(/healthy_sub-banner.png),linear-gradient(to_bottom_right,var(--tw-gradient-from),var(--tw-gradient-to))] bg-cover bg-no-repeat bg-right"
                     : "border-neutral-200 bg-white text-black hover:border-black/30 hover:shadow-lg"
                 }`}
               >

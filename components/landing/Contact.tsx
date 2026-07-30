@@ -17,7 +17,7 @@ const inputClass =
   "font-nunito w-full border-b border-black/10 bg-transparent px-0 py-3 text-sm text-black outline-none transition-colors placeholder:text-black/20 focus:border-black"
 
 const details = [
-  { icon: MapPin, label: "Address", value: "Al Maqam, Abu Dhabi, UAE" },
+  { icon: MapPin, label: "Address", value: "Sheikh Zayed Street, Al Hamidiya 1, Ajman, UAE" },
   { icon: Phone, label: "Phone", value: "+971 50 123 4567" },
   { icon: Mail, label: "Email", value: "hello@cookconnect.ae" },
   { icon: Clock, label: "Hours", value: "Sat–Thu, 8:00 AM – 10:00 PM" },
@@ -51,13 +51,13 @@ export function Contact() {
             <Map
               mapboxAccessToken={token}
               mapStyle="mapbox://styles/mapbox/streets-v12"
-              longitude={55.52202863565307}
-              latitude={25.39726570081227}
-              zoom={17}
+              longitude={55.5220053}
+              latitude={25.3969036}
+              zoom={16}
               style={{ width: "100%", height: 360 }}
               attributionControl={false}
             >
-              <Marker longitude={55.52202863565307} latitude={25.39726570081227} anchor="bottom">
+              <Marker longitude={55.5220053} latitude={25.3969036} anchor="bottom">
                 <img src="/icons/marker-skip.png" alt="" className="size-8" />
               </Marker>
             </Map>

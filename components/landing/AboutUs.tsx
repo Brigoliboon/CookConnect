@@ -2,13 +2,6 @@
 
 import { motion } from "framer-motion"
 
-const stats = [
-  { label: "Meals Delivered", value: "50K+" },
-  { label: "Happy Customers", value: "2K+" },
-  { label: "Chef Partners", value: "24" },
-  { label: "Cities", value: "12" },
-]
-
 const fadeUp = {
   hidden: { opacity: 0, y: 50 },
   visible: (i = 0) => ({
@@ -26,9 +19,16 @@ export function AboutUs() {
       viewport={{ once: true, margin: "-80px" }}
       className="bg-white px-6 py-32"
     >
-      <div className="mx-auto max-w-6xl">
-        <div className="grid items-center gap-20 lg:grid-cols-5">
-          <motion.div variants={fadeUp} custom={0} className="lg:col-span-3">
+      <div>
+        <div className="grid items-center gap-12 lg:grid-cols-2">
+          <motion.div variants={fadeUp} custom={0} className="overflow-hidden rounded-2xl">
+            <img
+              src="/landingpage/cook-connect-team.jpg"
+              alt="CookConnect team"
+              className="h-full w-full scale-125 object-cover"
+            />
+          </motion.div>
+          <motion.div variants={fadeUp} custom={1}>
             <span className="font-nunito inline-block text-[11px] font-semibold uppercase tracking-[0.3em] text-black/30">
               About Us
             </span>
@@ -38,30 +38,16 @@ export function AboutUs() {
               Purpose
             </h2>
             <div className="mt-8 h-px w-16 bg-black/20" />
-            <p className="font-nunito mt-8 max-w-md text-sm leading-relaxed text-black/50">
-              CookConnect was born from a simple idea: good food should be effortless.
-              We partner with local chefs to create balanced, delicious meals that fit
-              your dietary needs and weekly schedule.
+            <p className="font-nunito mt-8 text-base leading-relaxed text-black/70">
+              We started the healthy food concept in <strong>September 2016</strong> after realizing that food to us isn&apos;t just food. To us, it is a pathway to <strong>better energy levels, sharper mental clarity, improved mood, better health, and overall wellbeing</strong>. We saw that when you connect the dots between eating well and feeling refreshed, that&apos;s when good things happen. Our ingredients work their magic on your health and wellbeing, and that&apos;s what drives everything we do.
             </p>
-            <p className="font-nunito mt-5 max-w-md text-sm leading-relaxed text-black/50">
-              Every ingredient is sourced fresh, every recipe is tested in-house, and
-              every delivery is tracked so you know exactly when your food arrives.
+            <p className="font-nunito mt-5 text-base leading-relaxed text-black/70">
+              We are on a <strong>mission to help people see, understand, and consume food in a totally new way</strong>. We want people to eat our food and feel amazing afterwards, and we want them to be surprised by just how delicious healthy food can be. More than that, we hope our food inspires people to eat healthier for good, to make better choices, and to be conscious of where their food comes from. It&apos;s about <strong>creating a lasting shift in how people think about nourishment</strong>.
+            </p>
+            <p className="font-nunito mt-5 text-base leading-relaxed text-black/70">
+              <strong>Everything we serve is made by us</strong>. We know exactly where all our ingredients come from and we know how to cook them to get the most out of them, both in terms of flavour and nutrients. This commitment ensures that every meal is <strong>crafted with intention, delivering an exceptional and nourishing experience</strong> that leaves you feeling your best.
             </p>
           </motion.div>
-
-          <div className="grid grid-cols-2 gap-5 lg:col-span-2">
-            {stats.map((s, i) => (
-              <motion.div
-                key={s.label}
-                variants={fadeUp}
-                custom={i + 1}
-                className="rounded-2xl border border-neutral-100 bg-neutral-50 p-7 transition-colors hover:border-neutral-200"
-              >
-                <p className="font-playfair text-4xl font-medium text-black">{s.value}</p>
-                <p className="font-nunito mt-1.5 text-xs text-black/40">{s.label}</p>
-              </motion.div>
-            ))}
-          </div>
         </div>
       </div>
     </motion.section>
