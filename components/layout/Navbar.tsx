@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { useAuth } from "@/hooks/AuthProvider"
 import { NAV_ITEMS } from "@/constants"
@@ -22,6 +23,7 @@ const iconMap: Record<string, typeof LayoutDashboard> = {
 
 export function Navbar() {
   const { user, signOut } = useAuth()
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
@@ -62,7 +64,7 @@ export function Navbar() {
       </div>
       <div className="flex items-center gap-4">
         <span className="hidden sm:inline text-sm text-white/60">{user.name}</span>
-        <Button variant="ghost" size="sm" className="text-white/80 hover:text-white" onClick={signOut}>
+        <Button variant="ghost" size="sm" className="text-white/80 hover:text-white" onClick={async () => { await signOut(); router.push("/login") }}>
           Sign Out
         </Button>
         <button className="sm:hidden text-white transition-transform hover:scale-110" onClick={() => setOpen(!open)}>
@@ -98,7 +100,7 @@ export function Navbar() {
                 {user.name}
               </div>
               <button
-                onClick={signOut}
+                onClick={async () => { await signOut(); router.push("/login") }}
                 className="mt-1 rounded-lg px-3 py-2 text-left text-sm text-white/50 transition-colors hover:text-white"
               >
                 Sign Out

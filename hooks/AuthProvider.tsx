@@ -24,10 +24,10 @@ async function fetchProfile(id: string) {
   const supabase = createClient()
   const { data } = await supabase
     .from("accounts")
-    .select("role, name")
+    .select("role, name, is_active")
     .eq("id", id)
     .single()
-  return data as { role: string; name: string | null } | null
+  return data as { role: string; name: string | null; is_active: boolean } | null
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -39,13 +39,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         const profile = await fetchProfile(session.user.id)
-        if (profile?.role) {
+        if (profile?.role && profile.is_active) {
           setUser({
             id: session.user.id,
             name: profile.name || session.user.email?.split("@")[0] || "",
             email: session.user.email || "",
             role: profile.role as UserRole,
           })
+        } else {
+          setUser(null)
         }
       }
       setLoading(false)
@@ -54,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         const profile = await fetchProfile(session.user.id)
-        if (profile?.role) {
+        if (profile?.role && profile.is_active) {
           setUser({
             id: session.user.id,
             name: profile.name || session.user.email?.split("@")[0] || "",
@@ -79,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const profile = await fetchProfile(data.user.id)
     if (!profile?.role) throw new Error("No role assigned to this account")
+    if (!profile.is_active) throw new Error("This account has been disabled")
 
     return profile.role as UserRole
   }, [supabase])

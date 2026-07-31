@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { Button, WeeklyMenu, MealGallery, NewMealDialog, EditMealDialog } from "@/components/ui"
 import { MENU_CATEGORIES } from "@/constants"
 import type { MenuCategory, MenuItem, WeeklyMenu as WeeklyMenuType } from "@/constants"
-import { CalendarDays, Plus } from "lucide-react"
+import { CalendarDays, Plus, UtensilsCrossed } from "lucide-react"
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -67,8 +67,20 @@ export default function EmployeeMealsPage() {
       animate="visible"
     >
       <motion.div variants={itemVariants}>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-brand-900">All Meals</h2>
+        <div className="mb-6 flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-600 text-white shadow-lg">
+            <UtensilsCrossed size={20} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Meals</h1>
+            <p className="text-sm text-neutral-500">Manage your menu items and weekly meal plans</p>
+          </div>
+        </div>
+      </motion.div>
+
+      <motion.div variants={itemVariants}>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-neutral-900">All Meals</h2>
           <Button onClick={() => { setEditItem(null); setShowNewMeal(true) }}>
             <Plus size={16} className="mr-1" />
             New Meal
@@ -86,31 +98,41 @@ export default function EmployeeMealsPage() {
       </motion.div>
 
       <motion.div variants={itemVariants}>
+        <h2 className="mb-4 text-lg font-semibold text-neutral-900">Previous Menus</h2>
         {createdMenus.length > 0 ? (
           <div className="space-y-4">
-            <h2 className="text-xl font-bold text-brand-900">Previous Menus</h2>
             {createdMenus.map((menu, i) => (
-              <div key={i} className="rounded-xl border border-border-light bg-white p-5">
-                <p className="mb-4 text-base font-semibold text-brand-900">{menu.weekOf}</p>
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.06 }}
+                className="rounded-2xl border border-neutral-200/60 bg-white/80 p-6 backdrop-blur-sm transition-all hover:border-neutral-300 hover:shadow-lg hover:shadow-neutral-200/50"
+              >
+                <p className="mb-5 font-semibold text-neutral-900">{menu.weekOf}</p>
+                <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
                   {(Object.keys(menu.items) as MenuCategory[]).map((cat) => (
                     <div key={cat}>
-                      <p className="text-[11px] font-semibold uppercase text-text-secondary">{MENU_CATEGORIES.find((c) => c.value === cat)?.label ?? cat}</p>
-                      <div className="mt-1 flex flex-wrap gap-1">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
+                        {MENU_CATEGORIES.find((c) => c.value === cat)?.label ?? cat}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
                         {menu.items[cat].map((m) => (
-                          <span key={m.id} className="rounded bg-brand-400/10 px-2 py-0.5 text-xs text-brand-900">{m.name}</span>
+                          <span key={m.id} className="rounded-lg bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-700">
+                            {m.name}
+                          </span>
                         ))}
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-3 py-16 text-text-secondary">
-            <CalendarDays size={40} className="opacity-30" />
-            <p className="text-sm">No previous menus.</p>
+          <div className="flex flex-col items-center gap-4 rounded-2xl border-2 border-dashed border-neutral-200 py-20">
+            <CalendarDays size={40} className="text-neutral-300" />
+            <p className="text-sm font-medium text-neutral-500">No previous menus.</p>
           </div>
         )}
       </motion.div>

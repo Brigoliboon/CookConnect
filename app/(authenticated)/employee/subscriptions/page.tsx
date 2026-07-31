@@ -21,6 +21,9 @@ const MEAL_TIME_ICONS: Record<string, typeof Clock> = {
   dinner: Moon,
 }
 
+const inputClass =
+  "w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition-all placeholder:text-neutral-400 focus:border-neutral-900"
+
 export default function EmployeeSubscriptionsPage() {
   const [subscriptions, setSubscriptions] = useState(SUBSCRIPTIONS)
   const [form, setForm] = useState({
@@ -107,12 +110,14 @@ export default function EmployeeSubscriptionsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="inline-flex items-center gap-2 text-2xl font-bold text-brand-900">
-          <ClipboardList size={24} />
-          Subscriptions
-        </h1>
-        <p className="mt-1 text-sm text-text-secondary">View existing meal plans or create a new subscription for a customer.</p>
+      <div className="flex items-center gap-3">
+        <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-600 text-white shadow-lg">
+          <ClipboardList size={20} />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Subscriptions</h1>
+          <p className="text-sm text-neutral-500">View existing meal plans or create a new subscription for a customer.</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -124,19 +129,21 @@ export default function EmployeeSubscriptionsPage() {
         </div>
 
         <motion.div
-          className="rounded-xl border border-border-light p-5 shadow-md"
+          className="rounded-2xl border border-neutral-200/60 bg-white/80 p-6 backdrop-blur-sm shadow-sm"
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.35 }}
         >
-          <div className="mb-4 flex items-center gap-2 text-lg font-semibold text-brand-900">
-            <Plus size={18} />
+          <div className="mb-5 flex items-center gap-2 text-base font-semibold text-neutral-900">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-neutral-100">
+              <Plus size={14} className="text-neutral-600" />
+            </div>
             New Subscription
           </div>
           <form onSubmit={handleCreate} className="space-y-4">
             <div>
-              <label className="mb-1 flex items-center gap-1.5 text-sm font-medium text-brand-900">
-                <User size={14} /> Customer
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                <User size={13} /> Customer
               </label>
               <Select
                 options={CUSTOMERS.map((c) => ({ label: c.name, value: c.id }))}
@@ -147,15 +154,15 @@ export default function EmployeeSubscriptionsPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1 flex items-center gap-1.5 text-sm font-medium text-brand-900">
-                  <CalendarDays size={14} /> Meals / Week
+                <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                  <CalendarDays size={13} /> Meals / Week
                 </label>
                 <Input type="number" min={1} max={21} value={form.mealsPerWeek}
                   onChange={(e) => setForm((prev) => ({ ...prev, mealsPerWeek: e.target.value }))} />
               </div>
               <div>
-                <label className="mb-1 flex items-center gap-1.5 text-sm font-medium text-brand-900">
-                  <ChefHat size={14} /> Servings
+                <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                  <ChefHat size={13} /> Servings
                 </label>
                 <Input type="number" min={1} max={20} value={form.servingsPerMeal}
                   onChange={(e) => setForm((prev) => ({ ...prev, servingsPerMeal: e.target.value }))} />
@@ -163,8 +170,8 @@ export default function EmployeeSubscriptionsPage() {
             </div>
 
             <div>
-              <label className="mb-1 flex items-center gap-1.5 text-sm font-medium text-brand-900">
-                <Target size={14} /> Goal
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                <Target size={13} /> Goal
               </label>
               <Select
                 options={GOALS}
@@ -176,10 +183,10 @@ export default function EmployeeSubscriptionsPage() {
                   {WEIGHT_LOSS_OPTIONS.map((opt) => (
                     <button key={opt.value} type="button"
                       onClick={() => setForm((prev) => ({ ...prev, goalOption: opt.value }))}
-                      className={`rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors ${
+                      className={`rounded-xl border px-2 py-1.5 text-xs font-medium transition-all ${
                         form.goalOption === opt.value
-                          ? "border-brand-900 bg-brand-900/10 text-brand-900"
-                          : "border-border-light text-text-secondary hover:bg-brand-400/5"
+                          ? "border-neutral-900 bg-neutral-900 text-white"
+                          : "border-neutral-200 text-neutral-600 hover:border-neutral-400"
                       }`}
                     >
                       {opt.label}
@@ -197,14 +204,14 @@ export default function EmployeeSubscriptionsPage() {
                     onChange={(e) => setForm((prev) => ({ ...prev, customCarbs: e.target.value }))} />
                 </div>
               )}
-              <p className="mt-1.5 text-[10px] italic text-text-secondary">
+              <p className="mt-1.5 text-[10px] italic text-neutral-400">
                 {GOAL_MODIFICATIONS[form.goal as keyof typeof GOAL_MODIFICATIONS] ?? ""}
               </p>
             </div>
 
             <div>
-              <label className="mb-1 flex items-center gap-1.5 text-sm font-medium text-brand-900">
-                <Carrot size={14} /> Preferred Carb
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                <Carrot size={13} /> Preferred Carb
               </label>
               <Select
                 options={CARB_OPTIONS}
@@ -214,20 +221,20 @@ export default function EmployeeSubscriptionsPage() {
             </div>
 
             <fieldset>
-              <legend className="mb-2 flex items-center gap-1.5 text-sm font-medium text-brand-900">
-                <Ban size={15} /> Food Restrictions
+              <legend className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                <Ban size={14} /> Food Restrictions
               </legend>
               <div className="grid grid-cols-2 gap-1.5">
                 {FOOD_RESTRICTIONS.map((r) => (
                   <label key={r.value}
-                    className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                    className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 text-sm transition-all ${
                       selectedRestrictions.includes(r.value)
-                        ? "border-brand-900 bg-brand-900/10 text-brand-900"
-                        : "border-border-light text-text-secondary hover:bg-brand-400/5"
+                        ? "border-neutral-900 bg-neutral-900 text-white"
+                        : "border-neutral-200 text-neutral-600 hover:border-neutral-400"
                     }`}
                   >
                     <input type="checkbox" checked={selectedRestrictions.includes(r.value)}
-                      onChange={() => toggleRestriction(r.value)} className="h-4 w-4 accent-brand-900" />
+                      onChange={() => toggleRestriction(r.value)} className="h-4 w-4 accent-neutral-900" />
                     {r.label}
                   </label>
                 ))}
@@ -240,8 +247,8 @@ export default function EmployeeSubscriptionsPage() {
             </fieldset>
 
             <fieldset>
-              <legend className="mb-2 flex items-center gap-1.5 text-sm font-medium text-brand-900">
-                <Clock size={15} /> Meal Times
+              <legend className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                <Clock size={14} /> Meal Times
               </legend>
               <div className="grid grid-cols-2 gap-2">
                 {MEAL_TIMES.map((mt) => {
@@ -249,14 +256,14 @@ export default function EmployeeSubscriptionsPage() {
                   const selected = selectedMealTimes.includes(mt.value)
                   return (
                     <label key={mt.value}
-                      className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition-colors ${
+                      className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 text-sm transition-all ${
                         selected
-                          ? "border-brand-900 bg-brand-900/10 text-brand-900"
-                          : "border-border-light text-text-secondary hover:bg-brand-400/5"
+                          ? "border-neutral-900 bg-neutral-900 text-white"
+                          : "border-neutral-200 text-neutral-600 hover:border-neutral-400"
                       }`}
                     >
                       <input type="checkbox" checked={selected}
-                        onChange={() => toggleMealTime(mt.value)} className="h-4 w-4 accent-brand-900" />
+                        onChange={() => toggleMealTime(mt.value)} className="h-4 w-4 accent-neutral-900" />
                       <Icon size={15} /> {mt.label}
                     </label>
                   )
@@ -265,8 +272,8 @@ export default function EmployeeSubscriptionsPage() {
             </fieldset>
 
             <div>
-              <label className="mb-1 flex items-center gap-1.5 text-sm font-medium text-brand-900">
-                <RefreshCw size={14} /> Meal Rotation
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                <RefreshCw size={13} /> Meal Rotation
               </label>
               <Select
                 options={ROTATION_MODES}
@@ -274,39 +281,39 @@ export default function EmployeeSubscriptionsPage() {
                 onChange={(e) => setForm((prev) => ({ ...prev, rotationMode: e.target.value }))}
               />
               {form.rotationMode === "pre-select" && (
-                <p className="mt-1 text-[10px] text-text-secondary">Cut-off: Thursday 11:59 PM</p>
+                <p className="mt-1 text-[10px] text-neutral-400">Cut-off: Thursday 11:59 PM</p>
               )}
             </div>
 
             <div>
-              <label className="mb-1 flex items-center gap-1.5 text-sm font-medium text-brand-900">
-                <Truck size={14} /> Preferred Delivery Time
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                <Truck size={13} /> Preferred Delivery Time
               </label>
               <Input type="time" value={form.deliveryTime}
                 onChange={(e) => setForm((prev) => ({ ...prev, deliveryTime: e.target.value }))} />
             </div>
 
             <fieldset>
-              <legend className="mb-2 flex items-center gap-1.5 text-sm font-medium text-brand-900">
-                <CheckSquare size={15} /> Select Meals
+              <legend className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                <CheckSquare size={14} /> Select Meals
               </legend>
-              <div className="max-h-60 space-y-3 overflow-y-auto rounded-lg border border-border-light p-3">
+              <div className="max-h-60 space-y-3 overflow-y-auto rounded-xl border border-neutral-200 p-3">
                 {MENU_CATEGORIES.map((cat) => {
                   const items = getMenuByCategory(cat.value)
                   return (
                     <div key={cat.value}>
-                      <p className="mb-1 text-xs font-semibold uppercase text-text-secondary">{cat.label}</p>
+                      <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-neutral-500">{cat.label}</p>
                       <div className="space-y-1">
                         {items.map((meal) => (
                           <label key={meal.id}
-                            className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors ${
+                            className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-1.5 text-sm transition-all ${
                               selectedMeals.includes(meal.name)
-                                ? "border-brand-900 bg-brand-900/10 text-brand-900"
-                                : "border-border-light text-text-secondary hover:bg-brand-400/5"
+                                ? "border-neutral-900 bg-neutral-900 text-white"
+                                : "border-neutral-200 text-neutral-600 hover:border-neutral-400"
                             }`}
                           >
                             <input type="checkbox" checked={selectedMeals.includes(meal.name)}
-                              onChange={() => toggleMeal(meal.name)} className="h-4 w-4 accent-brand-900" />
+                              onChange={() => toggleMeal(meal.name)} className="h-4 w-4 accent-neutral-900" />
                             <span className="flex-1">{meal.name}</span>
                           </label>
                         ))}
@@ -322,15 +329,15 @@ export default function EmployeeSubscriptionsPage() {
                     setSelectedMeals((prev) => [...prev, name.trim()])
                   }
                 }}
-                className="mt-2 text-xs font-medium text-brand-900 hover:underline"
+                className="mt-2 text-xs font-medium text-neutral-900 hover:underline"
               >
                 + Custom Meal
               </button>
             </fieldset>
 
             <div>
-              <label className="mb-1 flex items-center gap-1.5 text-sm font-medium text-brand-900">
-                <Hash size={14} /> Notes
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                <Hash size={13} /> Notes
               </label>
               <Input placeholder="Optional notes..." value={form.notes}
                 onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))} />
