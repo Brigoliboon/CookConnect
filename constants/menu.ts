@@ -50,7 +50,9 @@ export const MENU_CATEGORIES: { label: string; value: MenuCategory }[] = [
   { label: "Soup", value: "soup" },
 ]
 
-export const MENU_ITEMS: MenuItem[] = [
+type RawMenuItem = Omit<MenuItem, "ingredients"> & { ingredients: string[] }
+
+export const MENU_ITEMS: MenuItem[] = ([
   // Chicken (10)
   { id: "CHK-01", name: "Grilled Lemon Herb Chicken", category: "chicken", description: "Tender chicken breast marinated in fresh lemon juice, garlic, and a medley of Mediterranean herbs, then grilled over an open flame for a smoky char and juicy finish.", price: 32, calories: 380, protein: 42, carbs: 10, fats: 18, fiber: 1, sugar: 2, sodium: 520,
     ingredients: ["Chicken Breast", "Olive Oil", "Garlic", "Lemon", "Herbs", "Salt"],
@@ -197,8 +199,11 @@ export const MENU_ITEMS: MenuItem[] = [
 },
   { id: "SUP-02", name: "Chicken Noodle Soup", category: "soup", description: "A comforting chicken broth loaded with tender shredded chicken, sliced carrots, celery, egg noodles, and fresh herbs.", price: 26, calories: 250, protein: 14, carbs: 30, fats: 8, fiber: 2, sugar: 3, sodium: 620,
     ingredients: ["Chicken", "Egg Noodles", "Carrots", "Celery", "Garlic", "Herbs"],
-},
-]
+  },
+] as RawMenuItem[]).map((item) => ({
+  ...item,
+  ingredients: item.ingredients.map((name) => ({ name, quantity_g: 100, unit: null })),
+}))
 
 // Meal Times (Task 2)
 export type MealTime = "breakfast" | "morning-snack" | "lunch" | "afternoon-snack" | "dinner"

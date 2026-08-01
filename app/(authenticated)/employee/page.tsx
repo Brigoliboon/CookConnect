@@ -4,7 +4,7 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 import { MapboxMap } from "@/components/ui/MapboxMap"
 import { CUSTOMERS, SUBSCRIPTIONS, DELIVERIES } from "@/constants"
-import { Package, Truck, Users, UserPlus, ClipboardList, UserCheck, LayoutDashboard } from "lucide-react"
+import { Package, Truck, Users, UserPlus, ClipboardList, UserCheck, LayoutDashboard, type LucideIcon } from "lucide-react"
 import { StatCard, StatusGallery, WeeklyMenu, QuickActionCard } from "@/components/ui"
 import { PopularMealsChart, CarbPreferenceChart, RestrictionsChart, GoalsChart } from "@/components/charts"
 
