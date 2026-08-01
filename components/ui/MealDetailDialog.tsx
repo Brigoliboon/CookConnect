@@ -1,9 +1,14 @@
 "use client"
 
+import { useState, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X } from "lucide-react"
+import { X, Download } from "lucide-react"
+import { toPng } from "html-to-image"
 import type { MenuItem } from "@/constants"
+import { useAuth } from "@/hooks/AuthProvider"
+import { slugify } from "@/utils/slugify"
 import JsBarcode from "react-barcode"
+import { NutritionSticker, toStickerMeal } from "./NutritionSticker"
 
 interface MealDetailDialogProps {
   item: MenuItem | null
@@ -22,6 +27,26 @@ const macroColors: Record<string, string> = {
 
 export function MealDetailDialog({ item, onClose, onEdit }: MealDetailDialogProps) {
   const imageUrl = item?.image_path ?? ""
+  const { user } = useAuth()
+  const isEmployee = user?.role === "employee"
+  const stickerRef = useRef<HTMLDivElement>(null)
+  const [downloading, setDownloading] = useState(false)
+
+  async function handleDownloadSticker() {
+    if (!stickerRef.current) return
+    setDownloading(true)
+    try {
+      const dataUrl = await toPng(stickerRef.current, { pixelRatio: 2, backgroundColor: "#ffffff" })
+      const link = document.createElement("a")
+      link.href = dataUrl
+      link.download = `${slugify(item?.name ?? "meal")}-sticker.png`
+      link.click()
+    } catch (e) {
+      console.error("[MEAL_DETAIL] Sticker download failed:", e)
+    } finally {
+      setDownloading(false)
+    }
+  }
 
   return (
     <AnimatePresence>
@@ -196,8 +221,27 @@ export function MealDetailDialog({ item, onClose, onEdit }: MealDetailDialogProp
                   <img src="/fatsecret-logo.svg" alt="FatSecret" className="h-4" />
                 </a>
               </div>
+
+              {isEmployee && (
+                <button
+                  onClick={handleDownloadSticker}
+                  disabled={downloading}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-700 disabled:opacity-60"
+                >
+                  <Download size={16} />
+                  {downloading ? "Generating..." : "Download Sticker"}
+                </button>
+              )}
             </div>
           </motion.div>
+
+          {isEmployee && item && (
+            <div className="pointer-events-none fixed -left-[9999px] top-0" aria-hidden="true">
+              <div ref={stickerRef}>
+                <NutritionSticker meal={toStickerMeal(item)} />
+              </div>
+            </div>
+          )}
         </motion.div>
       )}
     </AnimatePresence>

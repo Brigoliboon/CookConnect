@@ -1,0 +1,30 @@
+diff --git a/node_modules/html-to-image/es/embed-webfonts.js b/node_modules/html-to-image/es/embed-webfonts.js
+index f6b0d96..6aff683 100644
+--- a/node_modules/html-to-image/es/embed-webfonts.js
++++ b/node_modules/html-to-image/es/embed-webfonts.js
+@@ -175,7 +175,10 @@ export async function getWebFontCSS(node, options) {
+     const rules = await parseWebFontRules(node, options);
+     const usedFonts = getUsedFonts(node);
+     const cssTexts = await Promise.all(rules
+-        .filter((rule) => usedFonts.has(normalizeFontFamily(rule.style.fontFamily)))
++        .filter((rule) => {
++        const fontFamily = rule.style.fontFamily || rule.cssText.match(/font-family:\s*([^;]+)/)?.[1];
++        return fontFamily ? usedFonts.has(normalizeFontFamily(fontFamily)) : false;
++    })
+         .map((rule) => {
+         const baseUrl = rule.parentStyleSheet
+             ? rule.parentStyleSheet.href
+diff --git a/node_modules/html-to-image/lib/embed-webfonts.js b/node_modules/html-to-image/lib/embed-webfonts.js
+index c91538b..0b6f044 100644
+--- a/node_modules/html-to-image/lib/embed-webfonts.js
++++ b/node_modules/html-to-image/lib/embed-webfonts.js
+@@ -262,7 +262,8 @@ function getWebFontCSS(node, options) {
+                     usedFonts = getUsedFonts(node);
+                     return [4 /*yield*/, Promise.all(rules
+                             .filter(function (rule) {
+-                            return usedFonts.has(normalizeFontFamily(rule.style.fontFamily));
++                            var fontFamily = rule.style.fontFamily || rule.cssText.match(/font-family:\s*([^;]+)/)?.[1];
++                            return fontFamily ? usedFonts.has(normalizeFontFamily(fontFamily)) : false;
+                         })
+                             .map(function (rule) {
+                             var baseUrl = rule.parentStyleSheet
