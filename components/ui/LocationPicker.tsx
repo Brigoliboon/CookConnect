@@ -56,7 +56,7 @@ export function LocationPicker({ value, onChange }: LocationPickerProps) {
       <div className="relative h-64 overflow-hidden rounded-xl border border-neutral-200">
         <Map
           mapboxAccessToken={token}
-          mapStyle="mapbox://styles/mapbox/light-v11"
+          mapStyle="mapbox://styles/mapbox/satellite-streets-v12"
           initialViewState={{ latitude: center.lat, longitude: center.lng, zoom: 12 }}
           onLoad={(e) => { mapRef.current = e.target }}
           style={{ width: "100%", height: "100%" }}

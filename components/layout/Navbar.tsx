@@ -7,11 +7,12 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useAuth } from "@/hooks/AuthProvider"
 import { NAV_ITEMS } from "@/constants"
 import { Button } from "@/components/ui"
-import { Menu, X, LayoutDashboard, Users, ClipboardList, Truck, UserPlus, MapPin, UserCircle, Utensils } from "lucide-react"
+import { Menu, X, LayoutDashboard, Users, ClipboardList, Truck, UserPlus, MapPin, UserCircle, Utensils, Receipt } from "lucide-react"
 
 const iconMap: Record<string, typeof LayoutDashboard> = {
   Dashboard: LayoutDashboard,
   Meals: Utensils,
+  Orders: Receipt,
   Customers: Users,
   Subscriptions: ClipboardList,
   Deliveries: Truck,

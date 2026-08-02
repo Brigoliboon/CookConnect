@@ -2,16 +2,23 @@
 
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Trash2, Minus, Plus, X, CheckCircle2, User, Mail, Phone, MapPin } from "lucide-react"
+import { Trash2, Minus, Plus, X, CheckCircle2, User, Mail, Phone, MapPin, Check } from "lucide-react"
 import { getCart, setCart, type CartItem } from "@/utils/cart"
 import { LocationPicker, type Coordinates } from "@/components/ui/LocationPicker"
+import { resolveDeliveryAddress, formatPrice } from "@/utils/mapbox"
 
 export function CartDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [cart, setCartState] = useState<CartItem[]>([])
   const [submitted, setSubmitted] = useState(false)
   const [location, setLocation] = useState<Coordinates | null>(null)
-  const [form, setForm] = useState({ name: "", email: "", mobile: "" })
+  const [form, setForm] = useState({ name: "", email: "", mobile: "", address: "" })
   const [locationError, setLocationError] = useState("")
+  const [unsupported, setUnsupported] = useState(false)
+  const [locating, setLocating] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState("")
+  const [feeCents, setFeeCents] = useState<number | null>(null)
+  const [confirmed, setConfirmed] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -57,13 +64,73 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
     )
   }
 
-  function handleSubmit() {
+  function handleConfirmLocation() {
     if (!location) {
       setLocationError("Please set a delivery location")
       return
     }
     setLocationError("")
-    setSubmitted(true)
+    setLocating(true)
+    resolveDeliveryAddress(location.lat, location.lng)
+      .then((resolved) => {
+        setForm((p) => ({ ...p, address: resolved.address }))
+        if (resolved.area.supported) {
+          setFeeCents(resolved.area.feeCents)
+          setConfirmed(true)
+          setUnsupported(false)
+        } else {
+          setFeeCents(null)
+          setConfirmed(false)
+          setUnsupported(true)
+          setLocationError("")
+        }
+      })
+      .catch(() => {
+        setLocationError("Unable to resolve delivery address. Please try again.")
+      })
+      .finally(() => setLocating(false))
+  }
+
+  async function handleSubmit() {
+    if (!confirmed || feeCents === null) {
+      setLocationError("Please confirm a supported delivery location")
+      return
+    }
+    if (!form.name || !form.email || !form.mobile || !form.address) {
+      return
+    }
+    setLocationError("")
+    setSubmitError("")
+    setSubmitting(true)
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          mobile_number: form.mobile,
+          address: form.address,
+          location,
+          shipping_cents: feeCents,
+          items: cart.map((item) => ({
+            name: item.name,
+            unit_price_cents: Math.round(item.price * 100),
+            qty: item.qty,
+            image_path: item.image ?? null,
+          })),
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error ?? "Failed to place order")
+      }
+      setSubmitted(true)
+    } catch (e) {
+      setSubmitError(e instanceof Error ? e.message : "Failed to place order")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   function handleDone() {
@@ -72,7 +139,9 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
     onClose()
   }
 
+  const itemCount = cart.reduce((sum, i) => sum + i.qty, 0)
   const subtotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0)
+  const total = feeCents === null ? subtotal : subtotal + feeCents / 100
 
   return (
     <AnimatePresence>
@@ -198,18 +267,70 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                   Delivery Location
                   <span className="text-red-500">*</span>
                 </label>
-                <LocationPicker value={location} onChange={(loc) => { setLocation(loc); setLocationError("") }} />
-                {locationError && <p className="mt-1.5 text-xs text-red-500">{locationError}</p>}
+                <LocationPicker value={location} onChange={(loc) => { setLocation(loc); setConfirmed(false); setFeeCents(null); setUnsupported(false); setLocationError("") }} />
+                <button
+                  onClick={handleConfirmLocation}
+                  disabled={!location || locating}
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-900/20 py-2 text-xs font-semibold text-neutral-900 transition-all hover:bg-neutral-900 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {locating ? (
+                    "Resolving address..."
+                  ) : confirmed ? (
+                    <>
+                      <Check size={14} />
+                      Address Confirmed
+                    </>
+                  ) : (
+                    "Confirm Location"
+                  )}
+                </button>
+                {unsupported && (
+                  <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-4">
+                    <p className="text-sm font-bold text-red-600">Delivery Not Available</p>
+                    <p className="mt-1 text-sm font-medium leading-relaxed text-red-500">
+                      Delivery is not supported to your location. We currently deliver to Dubai, Sharjah, Um Al Quwain, and Ajman.
+                    </p>
+                  </div>
+                )}
+                {locationError && !unsupported && <p className="mt-1.5 text-xs text-red-500">{locationError}</p>}
               </div>
+              {form.address && (
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-neutral-500">Delivery Address</label>
+                  <input
+                    readOnly
+                    value={form.address}
+                    className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-900 outline-none"
+                  />
+                </div>
+              )}
+
+              {feeCents !== null && (
+                <div className="rounded-xl bg-neutral-50 p-4 text-sm">
+                  <div className="flex items-center justify-between text-neutral-500">
+                    <span>{itemCount} item{itemCount !== 1 ? "s" : ""}</span>
+                    <span>{formatPrice(subtotal * 100)}</span>
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between text-neutral-500">
+                    <span>Shipping fee</span>
+                    <span>{feeCents === 0 ? "Free" : formatPrice(feeCents)}</span>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between border-t border-neutral-200 pt-3 font-bold text-neutral-900">
+                    <span>Total</span>
+                    <span>{formatPrice(total * 100)}</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <button
               onClick={handleSubmit}
-              disabled={cart.length === 0}
+              disabled={cart.length === 0 || !confirmed || feeCents === null || submitting}
               className="mt-6 w-full rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white shadow-lg shadow-neutral-900/20 transition-all hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Place Order
+              {submitting ? "Placing order..." : "Place Order"}
             </button>
+            {submitError && <p className="mt-2 text-center text-xs text-red-500">{submitError}</p>}
             <p className="mt-2 text-center text-xs text-neutral-400">
               You will be placing an inquiry with the restaurant — our team will confirm your order shortly.
             </p>
