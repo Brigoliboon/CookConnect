@@ -38,6 +38,32 @@ export interface RecipeIngredient {
   quantity_g: number; // numeric
   unit: string | null;
 }
+export type user_role = "user" | "admin" | "employee" | "customer" | "rider";
+
+export type SubscriptionStatus = "active" | "cancelled";
+
+export type SubscriptionPlan = {
+  id: UUID;
+  name: string;
+  validity_days: number; // > 0
+  price_cents: number; // >= 0
+  currency: string; // default "USD"
+  details: any | null; // jsonb // default {}
+  is_active: boolean; // default true
+  created_at: string; // ISO datetime from timestamptz
+};
+
+export type Subscription = {
+  id: UUID;
+  customer_id: UUID; // -> public.accounts.id
+  subscription_plan_id: UUID; // -> public.subscription_plans.id
+  status: SubscriptionStatus;
+  started_at: string; // timestamptz (ISO)
+  expires_at: string; // timestamptz (ISO)
+  cancelled_at: string | null; // timestamptz, nullable
+  details: any; //jsonb // default {}
+  created_at: string; // ISO timestamptz
+}
 
 export interface SubscriptionIngredientQuota {
   id: UUID;
