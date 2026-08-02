@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { MapboxMap } from "@/components/ui/MapboxMap"
 import { CUSTOMERS, SUBSCRIPTIONS, DELIVERIES } from "@/constants"
-import { Package, Truck, Users, UserPlus, ClipboardList, UserCheck, LayoutDashboard, type LucideIcon } from "lucide-react"
+import { Package, Truck, Users, UserPlus, ClipboardList, Receipt, LayoutDashboard, type LucideIcon } from "lucide-react"
 import { StatCard, StatusGallery, WeeklyMenu, QuickActionCard } from "@/components/ui"
 import { PopularMealsChart, CarbPreferenceChart, RestrictionsChart, GoalsChart } from "@/components/charts"
 
@@ -38,6 +38,20 @@ const itemVariants = {
 
 export default function EmployeeDashboardPage() {
   const [mapFilter, setMapFilter] = useState<MapFilter>("all")
+  const [activeOrders, setActiveOrders] = useState(0)
+
+  useEffect(() => {
+    fetch("/api/orders")
+      .then(async (res) => {
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error ?? "Failed to fetch orders")
+        return data as { status: string }[]
+      })
+      .then((orders) => {
+        setActiveOrders(orders.filter((o) => !["cancelled", "delivered"].includes(o.status)).length)
+      })
+      .catch((e) => console.error("[DASHBOARD] Orders fetch error:", e.message || e))
+  }, [])
 
   const mapMarkers = DELIVERIES
     .filter((d) => {
@@ -74,7 +88,7 @@ export default function EmployeeDashboardPage() {
           <StatCard icon={Users as LucideIcon} label="Total Customers" value={CUSTOMERS.length} />
           <StatCard icon={ClipboardList as LucideIcon} label="Active Subscriptions" value={SUBSCRIPTIONS.length} />
           <StatCard icon={Truck as LucideIcon} label="Delivering Today" value={DELIVERIES.filter((d) => d.intent === "today").length} />
-          <StatCard icon={UserCheck as LucideIcon} label="Available Riders" value={3} />
+          <StatCard icon={Receipt as LucideIcon} label="Active Orders" value={activeOrders} />
         </div>
       </motion.div>
 

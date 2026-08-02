@@ -137,3 +137,38 @@ export interface RiderAssignment {
   assigned_at: string; // ISO timestamp
   updated_at: string; // ISO timestamp
 }
+
+export type OrderStatus =
+  | "inquiry"
+  | "confirmed"
+  | "preparing"
+  | "out_for_delivery"
+  | "delivered"
+  | "cancelled";
+
+export interface Order {
+  id: UUID;
+  customer_id: UUID | null; // -> public.accounts.id, null for guest checkout
+  name: string;
+  email: string;
+  mobile_number: string;
+  address: string | null;
+  status: OrderStatus;
+  subtotal_cents: number; // numeric
+  shipping_cents: number; // numeric
+  currency: string; // default "AED"
+  location: any | null; // geography
+  details: any; // jsonb // default {}
+  created_at: string; // ISO timestamptz
+  updated_at: string; // ISO timestamptz
+}
+
+export interface OrderItem {
+  id: UUID;
+  order_id: UUID; // -> public.orders.id
+  recipe_id: UUID | null; // -> public.recipes.id
+  name: string;
+  unit_price_cents: number; // numeric
+  qty: number; // int4
+  image_path: string | null;
+}
