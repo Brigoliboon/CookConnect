@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
-import { ShoppingCart, Flame } from "lucide-react"
+import { ShoppingCart, Check, Flame } from "lucide-react"
+import { getCart, setCart } from "@/utils/cart"
 
 interface FeaturedMealProps {
   name: string
@@ -19,6 +20,7 @@ export function MealCard({ name, price, image, calories, protein, carbs, fats, d
   const shortDesc = description.length > 70 ? description.slice(0, 70) + "..." : description
   const [imageHovered, setImageHovered] = useState(false)
   const [revealed, setRevealed] = useState(false)
+  const [added, setAdded] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -38,6 +40,20 @@ export function MealCard({ name, price, image, calories, protein, carbs, fats, d
   }, [])
 
   const shrunk = revealed && !imageHovered
+
+  function handleAdd() {
+    const cart = getCart()
+    const existing = cart.find((item) => item.name === name)
+    if (existing) {
+      existing.qty += 1
+    } else {
+      cart.push({ name, price, qty: 1, image })
+    }
+    setCart(cart)
+    window.dispatchEvent(new Event("cart-changed"))
+    setAdded(true)
+    setTimeout(() => setAdded(false), 1500)
+  }
 
   return (
     <div ref={ref} className="relative shrink-0 w-72 max-sm:w-48 h-full max-sm:snap-start">
@@ -90,9 +106,25 @@ export function MealCard({ name, price, image, calories, protein, carbs, fats, d
         <p className="font-nunito mt-2 text-xs leading-relaxed text-white/70 line-clamp-2">{shortDesc}</p>
 
         <div className="mt-3 opacity-0 transition-all duration-200 group-hover/detail:opacity-100 max-sm:opacity-100">
-          <button className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 py-2 text-xs font-semibold text-white transition-all hover:bg-white/10">
-            <ShoppingCart size={14} />
-            Add to Order
+          <button
+            onClick={handleAdd}
+            className={`flex w-full items-center justify-center gap-2 rounded-xl border py-2 text-xs font-semibold transition-all ${
+              added
+                ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300"
+                : "border-white/20 text-white hover:bg-white/10"
+            }`}
+          >
+            {added ? (
+              <>
+                <Check size={14} />
+                Added to Order
+              </>
+            ) : (
+              <>
+                <ShoppingCart size={14} />
+                Add to Order
+              </>
+            )}
           </button>
         </div>
       </motion.div>

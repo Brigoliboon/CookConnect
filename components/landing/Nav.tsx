@@ -4,11 +4,14 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { useTheme } from "@/hooks/useTheme"
-import { Sun, Moon, ShoppingCart, Menu, X } from "lucide-react"
+import { Sun, Moon, Menu, X } from "lucide-react"
+import { CartButton } from "@/components/landing/CartButton"
+import { CartDialog } from "@/components/landing/CartDialog"
 
 export function Nav() {
   const { theme, toggle } = useTheme()
   const [open, setOpen] = useState(false)
+  const [cartOpen, setCartOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
@@ -26,14 +29,15 @@ export function Nav() {
   ]
 
   return (
-    <motion.nav
-      initial={{ y: -20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-      className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-3 transition-all duration-300 ${
-        scrolled ? "bg-black/70 backdrop-blur-md" : ""
-      }`}
-    >
+    <>
+      <motion.nav
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+        className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-3 transition-all duration-300 ${
+          scrolled ? "bg-black/70 backdrop-blur-md" : ""
+        }`}
+      >
       <Link href="/" className="font-playfair text-xl font-bold tracking-tight text-white">
         CookConnect
       </Link>
@@ -44,12 +48,7 @@ export function Nav() {
             {l.label}
           </Link>
         ))}
-        <button
-          className="rounded-full p-1.5 text-white/60 transition-colors hover:text-white"
-          aria-label="Open cart"
-        >
-          <ShoppingCart size={17} />
-        </button>
+        <CartButton onOpen={() => setCartOpen(true)} />
         <button
           onClick={toggle}
           className="rounded-full p-1.5 text-white/60 transition-colors hover:text-white"
@@ -66,6 +65,7 @@ export function Nav() {
       </div>
 
       <div className="flex sm:hidden items-center gap-2">
+        <CartButton mobile onOpen={() => setCartOpen(true)} />
         <Link
           href="/login"
           className="font-nunito rounded-xl bg-white px-4 py-1.5 text-xs font-semibold text-black transition-all hover:bg-white/90"
@@ -114,6 +114,9 @@ export function Nav() {
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.nav>
+      </motion.nav>
+
+      <CartDialog open={cartOpen} onClose={() => setCartOpen(false)} />
+    </>
   )
 }

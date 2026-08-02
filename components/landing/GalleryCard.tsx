@@ -1,6 +1,8 @@
 "use client"
 
-import { ShoppingCart, Flame, Sun, Moon } from "lucide-react"
+import { useState } from "react"
+import { ShoppingCart, Check, Flame, Sun, Moon } from "lucide-react"
+import { getCart, setCart } from "@/utils/cart"
 
 interface GalleryCardProps {
   name: string
@@ -15,9 +17,25 @@ interface GalleryCardProps {
   timeSlot?: "morning" | "night"
   className?: string
   onClick?: () => void
+  onAdd?: (name: string, price: number, image: string) => void
 }
 
-export function GalleryCard({ name, price, calories, protein, carbs, fats, description, image, variant = "order", timeSlot, className, onClick }: GalleryCardProps) {
+export function GalleryCard({ name, price, calories, protein, carbs, fats, description, image, variant = "order", timeSlot, className, onClick, onAdd }: GalleryCardProps) {
+  const [added, setAdded] = useState(false)
+
+  function handleAdd() {
+    const cart = getCart()
+    const existing = cart.find((item) => item.name === name)
+    if (existing) {
+      existing.qty += 1
+    } else {
+      cart.push({ name, price, qty: 1, image })
+    }
+    setCart(cart)
+    window.dispatchEvent(new Event("cart-changed"))
+    setAdded(true)
+    setTimeout(() => setAdded(false), 1500)
+  }
 
   return (
     <div
@@ -62,9 +80,29 @@ export function GalleryCard({ name, price, calories, protein, carbs, fats, descr
           </span>
         </div>
         {variant === "order" && (
-          <button className="font-nunito mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-brand-900/30 py-2.5 text-xs font-semibold text-brand-900 drop-shadow-md transition-all hover:bg-brand-900/5">
-            <ShoppingCart size={13} />
-            Add to Order
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              if (onAdd) onAdd(name, price, image)
+              else handleAdd()
+            }}
+            className={`font-nunito mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border py-2.5 text-xs font-semibold transition-all ${
+              added
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600"
+                : "border-brand-900/30 text-brand-900 drop-shadow-md hover:bg-brand-900/5"
+            }`}
+          >
+            {added ? (
+              <>
+                <Check size={13} />
+                Added to Order
+              </>
+            ) : (
+              <>
+                <ShoppingCart size={13} />
+                Add to Order
+              </>
+            )}
           </button>
         )}
       </div>

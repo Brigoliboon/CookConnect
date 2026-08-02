@@ -18,8 +18,8 @@ const inputClass =
 
 const details = [
   { icon: MapPin, label: "Address", value: "Sheikh Zayed Street, Al Hamidiya 1, Ajman, UAE" },
-  { icon: Phone, label: "Phone", value: "+971 50 123 4567" },
-  { icon: Mail, label: "Email", value: "hello@cookconnect.ae" },
+  { icon: Phone, label: "Phone", value: "+971556634050" },
+  { icon: Mail, label: "Email", value: "cookconnectrestaurant@gmail.com" },
   { icon: Clock, label: "Hours", value: "Sat–Thu, 8:00 AM – 10:00 PM" },
 ]
 

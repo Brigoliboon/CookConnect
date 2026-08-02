@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
 
-  let body: { name: string; email: string; role: string }
+  let body: { name: string; email: string; role: string; mobile_number?: string | null; location?: { lat: number; lng: number } | null; subscription_plan_id?: string | null }
   try {
     body = await request.json()
   } catch {
@@ -35,6 +35,10 @@ export async function POST(request: Request) {
     return Response.json({ error: "name and email are required" }, { status: 400 })
   }
 
+  if ((body.role ?? "customer") === "customer" && (!body.location || !body.subscription_plan_id)) {
+    return Response.json({ error: "location and subscription_plan_id are required for customer accounts" }, { status: 400 })
+  }
+
   try {
     const { data, error } = await supabase.auth.signUp({
       email: body.email.trim(),
@@ -42,7 +46,10 @@ export async function POST(request: Request) {
       options: {
         data: {
           name: body.name.trim(),
+          mobile_number: body.mobile_number ?? null,
           role: body.role ?? "customer",
+          location: body.location ?? null,
+          subscription_plan_id: body.subscription_plan_id ?? null,
         },
       },
     })

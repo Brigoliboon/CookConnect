@@ -21,14 +21,25 @@ export function Footer() {
           <div>
             <p className="font-nunito text-sm font-semibold text-black">Contact</p>
             <div className="font-nunito mt-3 space-y-2 text-sm text-black/50">
-              <p>hello@cookconnect.com</p>
-              <p>+971 4 123 4567</p>
+              <p>cookconnectrestaurant@gmail.com</p>
+              <p>+971556634050</p>
               <p>Dubai, UAE</p>
             </div>
           </div>
         </div>
         <div className="font-nunito mt-10 border-t border-neutral-200 pt-6 text-center text-xs text-black/40">
-          &copy; {new Date().getFullYear()} CookConnect. All rights reserved.
+          <p>&copy; {new Date().getFullYear()} CookConnect. All rights reserved.</p>
+          <p className="mt-2 font-semibold text-black/80">
+            Love what you see?{" "}
+            <a
+              href="https://www.boonbrigoli.site/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline-offset-2 hover:text-black hover:underline"
+            >
+              Contact the developer.
+            </a>
+          </p>
         </div>
       </div>
     </footer>
