@@ -9,6 +9,7 @@ export const NAV_ITEMS: Record<UserRole, NavItem[]> = {
   employee: [
     { label: "Dashboard", href: "/employee" },
     { label: "Meals", href: "/employee/meals" },
+    { label: "Orders", href: "/employee/orders" },
     { label: "Customers", href: "/employee/customers" },
     { label: "Subscriptions", href: "/employee/subscriptions" },
     { label: "Deliveries", href: "/employee/deliveries" },
