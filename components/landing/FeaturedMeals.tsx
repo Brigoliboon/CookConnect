@@ -101,7 +101,7 @@ export function FeaturedMeals() {
             </div>
           )}
 
-          <div className="flex items-stretch gap-8 overflow-hidden pb-2 max-sm:justify-start max-sm:overflow-x-auto max-sm:gap-5 max-sm:snap-x max-sm:snap-mandatory max-sm:scroll-smooth max-sm:px-4">
+          <div className="flex items-stretch gap-8 overflow-hidden pb-2 max-sm:-mx-4 max-sm:justify-start max-sm:overflow-x-auto max-sm:gap-5 max-sm:snap-x max-sm:snap-mandatory max-sm:scroll-smooth max-sm:px-4">
             <AnimatePresence mode="wait">
               {(itemsPerPage < 2 ? featured : visible).map((item) => (
                 <motion.div
