@@ -6,6 +6,7 @@ export interface Account {
   id: UUID;
   name: string;
   email: string;
+  mobile_number: Text;
   role: UserRole;
   is_active: boolean;
   created_at: string; // ISO timestamp
