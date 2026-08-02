@@ -161,6 +161,25 @@ app/
 
 All 15 UI components + Navbar built and used across modules.
 
+### Module 8: Subscription Plans & Subscriptions (Backend) — ⏳ In Progress
+
+Schema already deployed (`lib/supabase/models.ts` is the source of truth). Verified live: `subscription_plans` + `subscriptions` columns match models. RLS: customers read active plans + own subscriptions; employees/admins manage; customers cannot write. Exclusion constraint prevents overlapping entitlement windows per customer.
+
+- `subscription_plans`: name, validity_days, price_cents, currency, details, is_active
+- `subscriptions.customer_id` → `accounts.id` (user link), `subscriptions.subscription_plan_id` → `subscription_plans.id`
+- status `active`/`cancelled`, `started_at`/`expires_at`/`cancelled_at`
+- Flow: customer views plans → inquiry (table not created yet) → sales creates subscription
+
+Checkpoint (all must pass before marking complete):
+- [x] `lib/supabase/tables/subscription_plans.ts` — `listActivePlans`
+- [x] `lib/supabase/tables/subscriptions.ts` — `listSubscriptions`, `listSubscriptionsForCustomer`, `getSubscription`, `createSubscription` (computes `expires_at` from plan `validity_days`), `cancelSubscription`
+- [x] `app/api/subscription-plans/route.ts` — GET active plans
+- [x] `app/api/subscriptions/route.ts` — GET list, POST create (maps exclusion/unique violations → 409)
+- [x] `app/api/subscriptions/[id]/route.ts` — PATCH cancel (DELETE removed; no hard-delete)
+- [x] Testcase file: `tests/SUBSCRIPTIONS_BACKEND_TESTCASE.md` (+ Postman collection)
+- [x] Lint + typecheck pass
+- [ ] **Pending:** Postman verification of `tests/SUBSCRIPTIONS_BACKEND_TESTCASE.md` (P1–P2, S1–S7) + RLS checks across customer/employee/anonymous sessions
+
 ---
 
 ## Key Decisions

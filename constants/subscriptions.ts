@@ -25,6 +25,28 @@ export interface MealPlanDetail {
 
 export type PlanType = "standard" | "healthy"
 
+export const PLAN_VARIANTS: { label: string; value: string }[] = [
+  { label: "Individual", value: "individual" },
+  { label: "Family", value: "family" },
+]
+
+export const DELIVERY_DAYS: { label: string; value: string }[] = [
+  { label: "Mon", value: "monday" },
+  { label: "Tue", value: "tuesday" },
+  { label: "Wed", value: "wednesday" },
+  { label: "Thu", value: "thursday" },
+  { label: "Fri", value: "friday" },
+  { label: "Sat", value: "saturday" },
+  { label: "Sun", value: "sunday" },
+]
+
+export const PAYMENT_METHODS: { label: string; value: string }[] = [
+  { label: "Bank Transfer", value: "bank-transfer" },
+  { label: "Cash on Delivery", value: "cod" },
+  { label: "Pay at Restaurant", value: "restaurant" },
+  { label: "Tabby", value: "tabby" },
+]
+
 export interface SubscriptionPlan {
   id: string
   name: string
