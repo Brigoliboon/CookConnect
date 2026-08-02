@@ -2,14 +2,22 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Search, Download, Plus, X, Check, ChevronDown, Mail, Shield, Calendar, MoreVertical, UserPlus } from "lucide-react"
+import { Search, Download, Plus, X, Check, ChevronDown, Mail, Shield, Calendar, UserPlus, MapPin, User, Truck, Briefcase, Phone } from "lucide-react"
 import type { UserRole } from "@/constants"
-import { ROLE_OPTIONS } from "@/constants"
+import { ROLE_OPTIONS, SUBSCRIPTION_PLANS } from "@/constants"
+import { LocationPicker, type Coordinates } from "@/components/ui/LocationPicker"
+
+const ACCOUNT_TYPE_ICONS: Record<UserRole, typeof User> = {
+  customer: User,
+  rider: Truck,
+  employee: Briefcase,
+}
 
 interface AccountRow {
   id: string
   name: string
   email: string
+  mobileNumber?: string
   role: UserRole
   isActive: boolean
   createdAt: string
@@ -45,8 +53,11 @@ export default function EmployeeAccountsPage() {
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all")
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "disabled">("all")
   const [showFilters, setShowFilters] = useState(false)
+  const [showTypePicker, setShowTypePicker] = useState(false)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ name: "", email: "", role: "customer" as UserRole })
+  const [form, setForm] = useState({ name: "", email: "", mobile: "", role: "customer" as UserRole, location: null as Coordinates | null, subscription: "" })
+  const [locationError, setLocationError] = useState("")
+  const [subscriptionError, setSubscriptionError] = useState("")
   const [toggling, setToggling] = useState<string | null>(null)
 
   useEffect(() => {
@@ -61,6 +72,7 @@ export default function EmployeeAccountsPage() {
           id: r.id as string,
           name: r.name as string,
           email: r.email as string,
+          mobileNumber: r.mobile_number as string | undefined,
           role: r.role as UserRole,
           isActive: r.is_active as boolean,
           createdAt: (r.created_at as string)?.split("T")[0] ?? "",
@@ -113,9 +125,15 @@ export default function EmployeeAccountsPage() {
     }
   }
 
+  function openAccountForm(role: UserRole) {
+    setForm((prev) => ({ ...prev, role }))
+    setShowTypePicker(false)
+    setShowForm(true)
+  }
+
   function exportCSV() {
-    const headers = ["Name", "Email", "Role", "Status", "Created"]
-    const rows = filtered.map((a) => [a.name, a.email, a.role, a.isActive ? "Active" : "Disabled", a.createdAt])
+    const headers = ["Name", "Email", "Mobile", "Role", "Status", "Created"]
+    const rows = filtered.map((a) => [a.name, a.email, a.mobileNumber ?? "", a.role, a.isActive ? "Active" : "Disabled", a.createdAt])
     const csv = [headers, ...rows].map((r) => r.join(",")).join("\n")
     const blob = new Blob([csv], { type: "text/csv" })
     const url = URL.createObjectURL(blob)
@@ -167,7 +185,7 @@ export default function EmployeeAccountsPage() {
               Export
             </button>
             <button
-              onClick={() => setShowForm(true)}
+              onClick={() => setShowTypePicker(true)}
               className="flex items-center gap-2 rounded-2xl bg-neutral-900 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-neutral-900/20 transition-all hover:bg-neutral-800"
             >
               <Plus size={16} />
@@ -271,6 +289,12 @@ export default function EmployeeAccountsPage() {
                       <Mail size={12} />
                       {account.email}
                     </p>
+                    {account.mobileNumber && (
+                      <p className="mt-0.5 flex items-center gap-1.5 text-sm text-neutral-500">
+                        <Phone size={12} />
+                        {account.mobileNumber}
+                      </p>
+                    )}
                   </div>
                   <div className="mt-4 flex items-center justify-between border-t border-neutral-100 pt-4">
                     <span className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold ${roleBadge[account.role] ?? "bg-neutral-100 text-neutral-600"}`}>
@@ -297,6 +321,55 @@ export default function EmployeeAccountsPage() {
       </div>
 
       <AnimatePresence>
+        {showTypePicker && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+            onClick={() => setShowTypePicker(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mb-6 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-900 to-emerald-700 text-white shadow-sm">
+                    <UserPlus size={18} />
+                  </div>
+                  <h2 className="text-lg font-bold text-neutral-900">Account Type</h2>
+                </div>
+                <button onClick={() => setShowTypePicker(false)} className="text-neutral-400 transition-colors hover:text-neutral-700">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                {ROLE_OPTIONS.map((role) => {
+                  const Icon = ACCOUNT_TYPE_ICONS[role.value]
+                  return (
+                    <button
+                      key={role.value}
+                      type="button"
+                      onClick={() => openAccountForm(role.value)}
+                      className="group flex aspect-square flex-col items-center justify-center gap-4 rounded-2xl border border-neutral-200 text-neutral-700 transition-all hover:border-neutral-900 hover:bg-neutral-900 hover:text-white"
+                    >
+                      <Icon size={28} className="text-neutral-400 transition-colors group-hover:text-brand-400" />
+                      <span className="text-sm font-semibold">{role.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {showForm && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -309,7 +382,7 @@ export default function EmployeeAccountsPage() {
               initial={{ scale: 0.95, opacity: 0, y: 10 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+              className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="mb-6 flex items-center justify-between">
@@ -317,7 +390,7 @@ export default function EmployeeAccountsPage() {
                   <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-900 to-emerald-700 text-white shadow-sm">
                     <UserPlus size={18} />
                   </div>
-                  <h2 className="text-lg font-bold text-neutral-900">New Account</h2>
+                  <h2 className="text-lg font-bold text-neutral-900">New {ROLE_OPTIONS.find((r) => r.value === form.role)?.label ?? "Account"} Account</h2>
                 </div>
                 <button onClick={() => setShowForm(false)} className="text-neutral-400 transition-colors hover:text-neutral-700">
                   <X size={20} />
@@ -326,11 +399,36 @@ export default function EmployeeAccountsPage() {
               <form
                 onSubmit={async (e) => {
                   e.preventDefault()
+                  if (form.role === "customer") {
+                    let valid = true
+                    if (!form.location) {
+                      setLocationError("Location is required for customer accounts")
+                      valid = false
+                    } else {
+                      setLocationError("")
+                    }
+                    if (!form.subscription) {
+                      setSubscriptionError("Please select a subscription plan for the customer")
+                      valid = false
+                    } else {
+                      setSubscriptionError("")
+                    }
+                    if (!valid) return
+                  }
+                  setLocationError("")
+                  setSubscriptionError("")
                   try {
                     const res = await fetch("/api/accounts", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify(form),
+                      body: JSON.stringify({
+                        name: form.name,
+                        email: form.email,
+                        mobile_number: form.mobile,
+                        role: form.role,
+                        location: form.location,
+                        subscription_plan_id: form.subscription,
+                      }),
                     })
                     if (!res.ok) {
                       const err = await res.json()
@@ -343,11 +441,12 @@ export default function EmployeeAccountsPage() {
                       id: user.id,
                       name: form.name,
                       email: user.email ?? form.email,
+                      mobileNumber: form.mobile,
                       role: form.role,
                       isActive: true,
                       createdAt: user.created_at?.split("T")[0] ?? new Date().toISOString().split("T")[0],
                     }, ...prev])
-                    setForm({ name: "", email: "", role: "customer" })
+                    setForm({ name: "", email: "", mobile: "", role: "customer", location: null, subscription: "" })
                     setShowForm(false)
                   } catch (e) {
                     console.error("[ACCOUNTS] Create error:", e)
@@ -377,17 +476,80 @@ export default function EmployeeAccountsPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-neutral-500">Role</label>
-                  <select
-                    value={form.role}
-                    onChange={(e) => setForm((prev) => ({ ...prev, role: e.target.value as UserRole }))}
-                    className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm text-neutral-900 outline-none transition-colors focus:border-neutral-900"
-                  >
-                    {ROLE_OPTIONS.map((r) => (
-                      <option key={r.value} value={r.value}>{r.label}</option>
-                    ))}
-                  </select>
+                  <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                    <Phone size={13} />
+                    Mobile Number
+                  </label>
+                  <input
+                    type="tel"
+                    value={form.mobile}
+                    onChange={(e) => setForm((prev) => ({ ...prev, mobile: e.target.value }))}
+                    className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900"
+                    placeholder="+971 50 123 4567"
+                  />
                 </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-neutral-500">Account Type</label>
+                  <div className="flex w-full items-center gap-4 rounded-xl border border-neutral-200 px-4 py-3 text-sm text-neutral-900">
+                    {(() => {
+                      const Icon = ACCOUNT_TYPE_ICONS[form.role]
+                      return <Icon size={16} className="text-neutral-400" />
+                    })()}
+                    <span className="font-medium">{ROLE_OPTIONS.find((r) => r.value === form.role)?.label}</span>
+                    <button
+                      type="button"
+                      className="ml-auto text-xs font-semibold text-neutral-400 transition-colors hover:text-neutral-900"
+                      onClick={() => {
+                        setShowForm(false)
+                        setShowTypePicker(true)
+                      }}
+                    >
+                      Change
+                    </button>
+                  </div>
+                </div>
+
+                {form.role === "customer" && (
+                  <>
+                  <div>
+                    <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                      <MapPin size={13} />
+                      Location
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <LocationPicker
+                      value={form.location}
+                      onChange={(loc) => {
+                        setForm((prev) => ({ ...prev, location: loc }))
+                        setLocationError("")
+                      }}
+                    />
+                    {locationError && <p className="mt-1.5 text-xs text-red-500">{locationError}</p>}
+                  </div>
+                  <div>
+                    <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                      Subscription Plan
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={form.subscription}
+                      onChange={(e) => {
+                        setForm((prev) => ({ ...prev, subscription: e.target.value }))
+                        setSubscriptionError("")
+                      }}
+                      className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm text-neutral-900 outline-none transition-colors focus:border-neutral-900"
+                    >
+                      <option value="" disabled>Select a plan...</option>
+                      {SUBSCRIPTION_PLANS.map((plan) => (
+                        <option key={plan.id} value={plan.id}>
+                          {plan.name} — {plan.priceAED} AED
+                        </option>
+                      ))}
+                    </select>
+                    {subscriptionError && <p className="mt-1.5 text-xs text-red-500">{subscriptionError}</p>}
+                  </div>
+                  </>
+                )}
                 <button
                   type="submit"
                   className="w-full rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white shadow-lg shadow-neutral-900/20 transition-all hover:bg-neutral-800"
