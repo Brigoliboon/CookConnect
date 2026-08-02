@@ -40,7 +40,7 @@ export function MealCard({ name, price, image, calories, protein, carbs, fats, d
   const shrunk = revealed && !imageHovered
 
   return (
-    <div ref={ref} className="relative shrink-0 w-72 max-sm:w-48 h-full">
+    <div ref={ref} className="relative shrink-0 w-72 max-sm:w-48 h-full max-sm:snap-start">
       <div className="relative z-10 flex justify-center">
         <motion.div
           animate={{ width: shrunk ? "70%" : "100%" }}
