@@ -37,7 +37,7 @@ export function Footer() {
               rel="noopener noreferrer"
               className="underline-offset-2 hover:text-black hover:underline"
             >
-              Contact the developer.
+              Contact the developer
             </a>
           </p>
         </div>
