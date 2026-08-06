@@ -1,9 +1,12 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import Image from "next/image"
 import { motion } from "framer-motion"
 import { ShoppingCart, Check, Flame } from "lucide-react"
 import { getCart, setCart } from "@/utils/cart"
+
+const MotionImage = motion(Image)
 
 interface FeaturedMealProps {
   name: string
@@ -64,14 +67,16 @@ export function MealCard({ name, price, image, calories, protein, carbs, fats, d
         <motion.div
           animate={{ width: shrunk ? "70%" : "100%" }}
           transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-          className="overflow-hidden rounded-2xl"
+          className="relative aspect-square overflow-hidden rounded-2xl"
           onMouseEnter={() => setImageHovered(true)}
           onMouseLeave={() => setImageHovered(false)}
         >
-          <motion.img
+          <MotionImage
             src={image}
             alt={name}
-            className="w-full"
+            fill
+            sizes="(max-width: 640px) 192px, 288px"
+            className="object-cover"
             animate={{ scale: shrunk ? 0.85 : 1 }}
             transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
           />
