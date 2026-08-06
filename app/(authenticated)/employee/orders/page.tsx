@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Search, Download, ChevronDown, Mail, Phone, Receipt, Package, Check } from "lucide-react"
 import type { Order, OrderItem } from "@/lib/supabase/models"
 import { formatPrice } from "@/utils/mapbox"
+import { OrderPrintButton } from "@/components/ui/OrderPrintButton"
 
 const STATUSES = ["inquiry", "confirmed", "preparing", "out_for_delivery", "delivered", "cancelled"] as const
 
@@ -55,6 +56,7 @@ interface OrderRow {
   status: string
   subtotalCents: number
   shippingCents: number
+  currency: string
   createdAt: string
   items: OrderItem[]
 }
@@ -116,6 +118,7 @@ export default function EmployeeOrdersPage() {
           status: o.status,
           subtotalCents: Number(o.subtotal_cents),
           shippingCents: Number(o.shipping_cents),
+          currency: o.currency ?? "AED",
           createdAt: (o.created_at ?? "").split("T")[0],
           items: o.order_items ?? [],
         })))
@@ -327,13 +330,22 @@ export default function EmployeeOrdersPage() {
                       </span>
                       <span className="font-bold text-neutral-900">{formatPrice(total)}</span>
                     </div>
-                    <button
-                      onClick={() => setExpanded(isOpen ? null : order.id)}
-                      className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-neutral-200 py-2 text-xs font-semibold text-neutral-600 transition-all hover:bg-neutral-900 hover:text-white"
-                    >
-                      <ChevronDown size={14} className={`transition-transform ${isOpen ? "rotate-180" : ""}`} />
-                      {isOpen ? "Hide Items" : "View Items"}
-                    </button>
+                    <div className="mt-3 flex gap-2">
+                      {order.status === "confirmed" && (
+                        <OrderPrintButton
+                          order={order}
+                          receiptOptions={{ storeName: "CookConnect" }}
+                          className="flex-1"
+                        />
+                      )}
+                      <button
+                        onClick={() => setExpanded(isOpen ? null : order.id)}
+                        className="mt-0 flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-neutral-200 py-2 text-xs font-semibold text-neutral-600 transition-all hover:bg-neutral-900 hover:text-white"
+                      >
+                        <ChevronDown size={14} className={`transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                        {isOpen ? "Hide Items" : "View Items"}
+                      </button>
+                    </div>
                     <AnimatePresence>
                       {isOpen && (
                         <motion.div
