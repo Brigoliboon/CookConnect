@@ -94,19 +94,19 @@ export function MealCard({ name, price, image, calories, protein, carbs, fats, d
         <div className="mt-3 flex items-center gap-4 text-xs text-white/40">
           <span className="flex items-center gap-1.5">
             <span className="size-2.5 rounded-sm bg-macro-protein" />
-            {protein}g
+            {protein.toFixed(1)}g
           </span>
           <span className="flex items-center gap-1.5">
             <span className="size-2.5 rounded-sm bg-macro-carbs" />
-            {carbs}g
+            {carbs.toFixed(1)}g
           </span>
           <span className="flex items-center gap-1.5">
             <span className="size-2.5 rounded-sm bg-macro-fat" />
-            {fats}g
+            {fats.toFixed(1)}g
           </span>
         </div>
 
-        <p className="font-nunito mt-2 text-xs leading-relaxed text-white/70 line-clamp-2">{shortDesc}</p>
+        <p className="font-nunito h-[39] mt-2 text-xs leading-relaxed text-white/70 line-clamp-2">{shortDesc}</p>
 
         <div className="mt-3 opacity-0 transition-all duration-200 group-hover/detail:opacity-100 max-sm:opacity-100">
           <button
