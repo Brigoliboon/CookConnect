@@ -19,14 +19,14 @@ export function MealGallery({ items, categories, onEdit }: MealGalleryProps) {
 
   return (
     <div>
-      <nav className="mb-5 grid grid-cols-4 gap-2 sm:grid-cols-8">
+      <nav className="mb-5 flex gap-2 overflow-x-auto pb-2">
         {categories.map((cat) => {
           const isActive = activeCat === cat.value
           return (
             <button
               key={cat.value}
               onClick={() => setActiveCat(cat.value)}
-              className={`rounded-lg px-2 py-4 text-sm font-medium transition-all ${
+              className={`shrink-0 rounded-lg px-4 py-3 text-sm font-medium transition-all ${
                 isActive
                   ? "bg-brand-900 text-white"
                   : "bg-white text-text-secondary ring-1 ring-border-light hover:ring-brand-900 hover:text-brand-900"

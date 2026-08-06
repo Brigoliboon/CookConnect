@@ -38,6 +38,9 @@ export type MenuCategory =
   | "breakfast"
   | "pasta"
   | "soup"
+  | "pizza"
+  | "burgers"
+  | "drinks"
 
 export const MENU_CATEGORIES: { label: string; value: MenuCategory }[] = [
   { label: "Chicken", value: "chicken" },
@@ -48,6 +51,9 @@ export const MENU_CATEGORIES: { label: string; value: MenuCategory }[] = [
   { label: "Breakfast", value: "breakfast" },
   { label: "Pasta", value: "pasta" },
   { label: "Soup", value: "soup" },
+  { label: "Pizza", value: "pizza" },
+  { label: "Burgers 'n Fries", value: "burgers" },
+  { label: "Drinks", value: "drinks" },
 ]
 
 type RawMenuItem = Omit<MenuItem, "ingredients"> & { ingredients: string[] }
@@ -306,6 +312,9 @@ export const MENU_CATEGORY_COUNTS: Record<MenuCategory, { min: number; max: numb
   breakfast: { min: 3, max: 4 },
   pasta: { min: 2, max: 2 },
   soup: { min: 1, max: 2 },
+  pizza: { min: 2, max: 4 },
+  burgers: { min: 2, max: 4 },
+  drinks: { min: 3, max: 5 },
 }
 
 export function getMenuByCategory(category: MenuCategory): MenuItem[] {
@@ -366,5 +375,8 @@ export const CURRENT_WEEKLY_MENU: WeeklyMenu = {
       MENU_ITEMS.find((m) => m.id === "SUP-01")!,
       MENU_ITEMS.find((m) => m.id === "SUP-02")!,
     ],
+    pizza: [],
+    burgers: [],
+    drinks: [],
   },
 }
