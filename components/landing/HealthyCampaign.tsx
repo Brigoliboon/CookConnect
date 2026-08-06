@@ -66,7 +66,7 @@ export function HealthyCampaign() {
   const visible = items.slice(start, start + ITEMS_PER_PAGE)
 
   return (
-    <section id="meals" className="overflow-hidden px-8 py-32 max-sm:px-4 max-sm:py-16">
+    <section id="diet" className="overflow-hidden px-8 py-32 max-sm:px-4 max-sm:py-16">
       <motion.div
         initial="hidden"
         whileInView="visible"

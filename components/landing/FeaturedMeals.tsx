@@ -1,15 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { useState } from "react"
+import { motion } from "framer-motion"
+import { PremiumGallery } from "@/components/landing/PremiumGallery"
 import { MealCard } from "@/components/landing/MealCard"
-
-function getItemsPerPage(width: number) {
-  if (width < 640) return 1
-  if (width < 1024) return 2
-  return 5
-}
+import { DrinkCard } from "@/components/landing/DrinkCard"
 
 const fadeUp = {
   hidden: { opacity: 0, y: 25 },
@@ -35,27 +30,34 @@ const featured = [
   { name: "Mushroom Risotto", price: 32, image: "/menus/shrimp-salad.png", calories: 440, protein: 12, carbs: 56, fats: 18, description: "Creamy Arborio rice with wild mushrooms, white wine, and a finish of truffle oil and parmesan." },
 ]
 
+const drinks = [
+  { name: "Fresh Orange Juice", price: 18, image: "/menus/beef-steak.png", calories: 110, protein: 2, carbs: 26, fats: 0, description: "Freshly squeezed oranges, no added sugar." },
+  { name: "Iced Matcha Latte", price: 22, image: "/menus/salad.png", calories: 140, protein: 4, carbs: 18, fats: 6, description: "Ceremonial matcha whisked with oat milk over ice." },
+  { name: "Berry Smoothie", price: 24, image: "/menus/salmon-salad.png", calories: 190, protein: 6, carbs: 34, fats: 4, description: "Mixed berries, banana, Greek yogurt, and honey blended smooth." },
+  { name: "Mango Lassi", price: 20, image: "/menus/shrimp-salad.png", calories: 200, protein: 5, carbs: 30, fats: 8, description: "Creamy yogurt blended with ripe alphonso mangoes." },
+  { name: "Cold Brew Coffee", price: 18, image: "/menus/beef-steak.png", calories: 15, protein: 1, carbs: 3, fats: 0, description: "Slow-steeped 24-hour cold brew, served black." },
+  { name: "Sparkling Lemonade", price: 16, image: "/menus/salad.png", calories: 80, protein: 0, carbs: 20, fats: 0, description: "Fresh lemon juice, sparkling water, and a touch of agave." },
+  { name: "Watermelon Mint Cooler", price: 20, image: "/menus/salmon-salad.png", calories: 70, protein: 1, carbs: 17, fats: 0, description: "Pressed watermelon juice muddled with fresh mint." },
+  { name: "Turmeric Golden Latte", price: 22, image: "/menus/shrimp-salad.png", calories: 160, protein: 3, carbs: 22, fats: 7, description: "Turmeric, ginger, cinnamon, and coconut milk latte." },
+]
+
+const categories = [
+  { id: "meals", label: "Meals", image: "/menus/beef-steak.png", subs: ["Beef", "Chicken", "Seafood", "Soup", "Breakfast"] },
+  { id: "salad", label: "Salad", image: "/menus/salad.png" },
+  { id: "pasta", label: "Pasta", image: "/menus/salad.png" },
+  { id: "wraps", label: "Wraps", image: "/menus/salmon-salad.png" },
+  { id: "pizza", label: "Pizza", image: "/menus/shrimp-salad.png" },
+  { id: "burgers", label: "Burgers 'n Fries", image: "/menus/beef-steak.png" },
+  { id: "drinks", label: "Drinks", image: "/drink_sample.svg" },
+]
+
 export function FeaturedMeals() {
-  const [page, setPage] = useState(0)
-  const [itemsPerPage, setItemsPerPage] = useState(5)
-
-  useEffect(() => {
-    const update = () => setItemsPerPage(getItemsPerPage(window.innerWidth))
-    update()
-    window.addEventListener("resize", update)
-    return () => window.removeEventListener("resize", update)
-  }, [])
-
-  useEffect(() => {
-    setPage(0)
-  }, [itemsPerPage])
-
-  const totalPages = Math.max(1, Math.ceil(featured.length / itemsPerPage))
-  const start = page * itemsPerPage
-  const visible = featured.slice(start, start + itemsPerPage)
+  const [activeCategory, setActiveCategory] = useState("meals")
+  const [activeSub, setActiveSub] = useState("Beef")
+  const activeCat = categories.find((c) => c.id === activeCategory)
 
   return (
-    <section className="relative  overflow-hidden overflow-hidden bg-[#aa9a88]">
+    <section id="meals" className="relative h-screen overflow-hidden overflow-hidden bg-[#aa9a88]">
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/90 to-black/100" />
 
       <div className="relative z-10 mx-auto flex m-20 flex-col justify-center px-20 max-sm:px-4">
@@ -81,43 +83,86 @@ export function FeaturedMeals() {
           Curated Plates
         </motion.h2>
 
-        <div className="relative h-[412px] mt-16 w-full max-sm:mt-12">
-          {totalPages > 1 && (
-            <div className="max-sm:hidden">
-              <button
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                disabled={page === 0}
-                className="absolute -left-4 top-1/2 z-10 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur transition-all hover:bg-white disabled:opacity-30 max-sm:-left-2 max-sm:size-8"
-              >
-                <ChevronLeft size={18} className="text-neutral-800 max-sm:size-4" />
-              </button>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                disabled={page >= totalPages - 1}
-                className="absolute -right-4 top-1/2 z-10 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur transition-all hover:bg-white disabled:opacity-30 max-sm:-right-2 max-sm:size-8"
-              >
-                <ChevronRight size={18} className="text-neutral-800 max-sm:size-4" />
-              </button>
-            </div>
-          )}
+        {/* Gallery */}
+        <PremiumGallery className=" h-[340px] md:h-[412px] mt-8 w-full max-sm:mt-6" itemScale={1}>
+          {featured.map((item) => (
+            <MealCard key={item.name} {...item} scale={1} />
+          ))}
+        </PremiumGallery>
 
-          <div className="flex items-stretch gap-8 overflow-hidden pb-2 max-sm:-mx-4 max-sm:justify-start max-sm:overflow-x-auto max-sm:gap-5 max-sm:snap-x max-sm:snap-mandatory max-sm:scroll-smooth max-sm:px-4">
-            <AnimatePresence mode="wait">
-              {(itemsPerPage < 2 ? featured : visible).map((item) => (
-                <motion.div
-                  key={item.name}
-                  initial={{ opacity: 0, x: 40 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -40 }}
-                  transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                  className="shrink-0 max-sm:snap-center"
-                >
-                  <MealCard {...item} />
-                </motion.div>
-              ))}
-            </AnimatePresence>
+        {/* Category nav */}
+        <div className="mt-10 flex flex-col items-center">
+          <motion.p
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-60px" }}
+            variants={fadeUp}
+            className="font-nunito text-2xl font-medium leading-tight text-white max-sm:text-xl"
+          >
+            Want something else?
+          </motion.p>
+
+          <div className="mt-4 flex flex-wrap justify-center gap-3 max-sm:gap-2">
+            {categories.map((cat) => (
+              <motion.button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+                className={`flex items-center gap-2 rounded-full border px-4 py-2 backdrop-blur-sm transition-all max-sm:gap-1.5 max-sm:px-3 max-sm:py-1.5 ${
+                  activeCategory === cat.id
+                    ? "border-white bg-white/10 text-white"
+                    : "border-white/10 bg-white/10 text-white hover:bg-white/20"
+                }`}
+              >
+                <img src={cat.image} alt={cat.label} className="size-8 rounded-full object-cover max-sm:size-6" />
+                <span className="font-nunito text-sm font-semibold max-sm:text-xs">{cat.label}</span>
+              </motion.button>
+            ))}
+          </div>
+
+          <div
+            className={`grid w-full transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${
+              activeCat?.subs ? "mt-3 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+            }`}
+          >
+            <div className="overflow-hidden">
+              <div className="flex flex-wrap justify-center gap-2">
+                {activeCat?.subs?.map((sub) => (
+                  <button
+                    key={sub}
+                    onClick={() => setActiveSub(sub)}
+                    className={`font-nunito rounded-full border px-4 py-1.5 text-xs font-medium backdrop-blur-sm transition-colors ${
+                      activeSub === sub
+                        ? "border-white bg-white/20 text-white"
+                        : "border-white/10 bg-white/5 text-white/70 hover:bg-white/15 hover:text-white"
+                    }`}
+                  >
+                    {sub}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* <motion.h2
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-60px" }}
+          variants={fadeUp}
+          custom={1}
+          className="font-playfair mt-4 text-4xl font-medium leading-tight text-white sm:text-5xl max-sm:text-3xl"
+        >
+          Drinks
+        </motion.h2>
+
+        <PremiumGallery className="h-[340px] md:h-[412px] mt-8 w-full max-sm:mt-6" itemScale={0.9}>
+          {drinks.map((item) => (
+            <DrinkCard key={item.name} {...item} image="/drink_sample.svg" />
+          ))}
+        </PremiumGallery> */}
       </div>
     </section>
   )
