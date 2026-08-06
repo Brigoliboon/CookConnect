@@ -77,7 +77,7 @@ export function Hero() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.8, ease: [0.25, 0.1, 0.25, 1] as const }}
-          className="flex gap-10 overflow-x-auto pb-2 justify-center max-sm:-mx-4 max-sm:flex-nowrap max-sm:justify-start max-sm:overflow-x-auto max-sm:px-4 max-sm:snap-x max-sm:snap-mandatory items-stretch">
+          className="flex gap-10 overflow-y-hidden overflow-x-auto pb-2 justify-center max-sm:-mx-4 max-sm:flex-nowrap max-sm:justify-start max-sm:overflow-x-auto max-sm:px-4 max-sm:snap-x max-sm:snap-mandatory items-stretch">
             {featured.map((item) => (
               <MealCard key={item.name} {...item} />
             ))}
