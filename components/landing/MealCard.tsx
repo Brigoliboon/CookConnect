@@ -14,9 +14,12 @@ interface FeaturedMealProps {
   carbs: number
   fats: number
   description: string
+  scale?: number
+  width?: string
+  className?: string
 }
 
-export function MealCard({ name, price, image, calories, protein, carbs, fats, description }: FeaturedMealProps) {
+export function MealCard({ name, price, image, calories, protein, carbs, fats, description, scale = 1, width = "w-72 max-sm:w-48", className = "" }: FeaturedMealProps) {
   const shortDesc = description.length > 70 ? description.slice(0, 70) + "..." : description
   const [imageHovered, setImageHovered] = useState(false)
   const [revealed, setRevealed] = useState(false)
@@ -56,7 +59,7 @@ export function MealCard({ name, price, image, calories, protein, carbs, fats, d
   }
 
   return (
-    <div ref={ref} className="relative shrink-0 w-72 max-sm:w-48 h-full max-sm:snap-start">
+    <div ref={ref} style={{ scale }} className={`relative shrink-0 h-full max-sm:snap-start ${width} ${className}`}>
       <div className="relative z-10 flex justify-center">
         <motion.div
           animate={{ width: shrunk ? "70%" : "100%" }}
@@ -78,11 +81,11 @@ export function MealCard({ name, price, image, calories, protein, carbs, fats, d
       <motion.div
         animate={{ y: shrunk ? 0 : 20, opacity: shrunk ? 1 : 0 }}
         transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-        className="group/detail -mt-16 rounded-2xl border border-white/10 bg-white/10 px-5 pb-5 pt-20 backdrop-blur-sm opacity-0"
+        className="group/detail -mt-16 rounded-2xl border border-white/10 bg-white/10 px-5 pb-5 pt-15 backdrop-blur-sm opacity-0"
       >
         <div className="flex items-start justify-between gap-2">
-          <div>
-            <p className="font-nunito text-base font-semibold text-white/90">{name}</p>
+          <div className="min-w-0">
+            <p className="font-nunito truncate text-base font-semibold text-white/90" title={name}>{name}</p>
             <p className="font-nunito mt-1 flex items-center gap-1 text-xs text-white/50"><Flame size={12} className="text-orange-400" /> {calories} Cal</p>
           </div>
           <p className="font-nunito shrink-0 text-base font-bold text-white/90">{price} AED</p>
