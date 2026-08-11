@@ -131,6 +131,17 @@ export function FeaturedMeals() {
           Curated Plates
         </motion.h2>
 
+        <motion.p
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-60px" }}
+          variants={fadeUp}
+          custom={2}
+          className="font-nunito mt-3 text-sm font-light text-white/55 max-sm:text-xs"
+        >
+          The image shown is for presentation only — the actual dish may vary from what is displayed.
+        </motion.p>
+
         {/* Gallery */}
         <PremiumGallery className=" h-[340px] md:h-[412px] mt-8 w-full max-sm:mt-6" itemScale={1}>
           {loading ? (
