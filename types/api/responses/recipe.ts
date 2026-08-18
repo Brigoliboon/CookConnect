@@ -14,14 +14,11 @@ export interface RecipeIngredientResponse {
   fatsecret_id: string | null
 }
 
-export interface RecipeResponse {
+export interface RecipeServingResponse {
   id: string
-  name: string
-  category: string | null
-  description: string | null
+  name: string | null
   price: number | null
   calories: number | null
-  is_active: boolean
   nutrition: {
     fats_g: number
     carbs_g: number
@@ -30,23 +27,18 @@ export interface RecipeResponse {
     protein_g: number
     sodium_mg: number
   } | null
-  image_path: string | null
-  recipe_ingredients: {
-    unit: string | null
-    ingredient: {
-      name: string
-      nutrition: {
-        fats_g: number
-        carbs_g: number
-        fiber_g: number
-        sugar_g: number
-        protein_g: number
-        sodium_mg: number
-        calories_per_100g: number
-      } | null
-      fatsecret_id: string | null
-    }
-    quantity_g: number
-  }[]
+  is_active: boolean
+  created_at: string
+  updated_at: string
   ingredients: RecipeIngredientResponse[]
+}
+
+export interface RecipeResponse {
+  id: string
+  name: string
+  category: string | null
+  description: string | null
+  is_active: boolean
+  image_path: string | null
+  servings: RecipeServingResponse[]
 }

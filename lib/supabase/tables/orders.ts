@@ -18,6 +18,7 @@ export interface CreateOrderItemInput {
   name: string
   unit_price_cents: number
   qty: number
+  note?: string | null
   image_path?: string | null
 }
 
@@ -84,6 +85,7 @@ export async function createOrder(
     name: item.name,
     unit_price_cents: item.unit_price_cents,
     qty: item.qty,
+    note: item.note ?? null,
     image_path: item.image_path ?? null,
   }))
 

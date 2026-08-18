@@ -6,6 +6,7 @@ import { Search, Download, ChevronDown, Mail, Phone, Receipt, Package, Check } f
 import type { Order, OrderItem } from "@/lib/supabase/models"
 import { formatPrice } from "@/utils/mapbox"
 import { OrderPrintButton } from "@/components/ui/OrderPrintButton"
+import { OrderStatusDialog, type StatusOption } from "@/components/ui/OrderStatusDialog"
 
 const STATUSES = ["inquiry", "confirmed", "preparing", "out_for_delivery", "delivered", "cancelled"] as const
 
@@ -73,7 +74,7 @@ export default function EmployeeOrdersPage() {
   const [showFilters, setShowFilters] = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [updating, setUpdating] = useState<string | null>(null)
-  const [menuOpen, setMenuOpen] = useState<string | null>(null)
+  const [statusDialogId, setStatusDialogId] = useState<string | null>(null)
 
   async function updateStatus(orderId: string, status: string) {
     setUpdating(orderId)
@@ -138,6 +139,16 @@ export default function EmployeeOrdersPage() {
       }),
     [orders, search]
   )
+
+  const statusOptions: StatusOption[] = STATUSES.map((s) => ({
+    value: s,
+    label: s.replaceAll("_", " "),
+    dotClass: statusDot[s] ?? "bg-neutral-400",
+  }))
+
+  const statusDialogOrder = statusDialogId
+    ? orders.find((o) => o.id === statusDialogId) ?? null
+    : null
 
   function exportCSV() {
     const headers = ["Name", "Email", "Mobile", "Status", "Items", "Total", "Created"]
@@ -267,46 +278,16 @@ export default function EmployeeOrdersPage() {
                       <div className={`flex size-12 items-center justify-center rounded-xl bg-gradient-to-br ${statusAvatar[order.status] ?? "from-neutral-500 to-neutral-600"} text-sm font-bold text-white shadow-sm`}>
                         {initials(order.name)}
                       </div>
-                      <div className="relative">
+                      <div>
                         <button
-                          onClick={() => setMenuOpen(menuOpen === order.id ? null : order.id)}
+                          onClick={() => setStatusDialogId(order.id)}
                           disabled={updating === order.id}
                           className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold capitalize transition-all disabled:cursor-not-allowed disabled:opacity-50 ${statusBadge[order.status] ?? "bg-neutral-100 text-neutral-600"}`}
                         >
                           <span className={`size-1.5 rounded-full ${statusDot[order.status] ?? "bg-neutral-400"}`} />
                           {order.status.replaceAll("_", " ")}
-                          <ChevronDown size={12} className={`transition-transform ${menuOpen === order.id ? "rotate-180" : ""}`} />
+                          <ChevronDown size={12} />
                         </button>
-                        <AnimatePresence>
-                          {menuOpen === order.id && (
-                            <motion.div
-                              initial={{ opacity: 0, y: -4 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -4 }}
-                              transition={{ duration: 0.15 }}
-                              className="absolute right-0 top-full z-10 mt-1.5 w-44 rounded-xl border border-neutral-200 bg-white p-1.5 shadow-xl shadow-neutral-900/10"
-                            >
-                              {STATUSES.map((s) => (
-                                <button
-                                  key={s}
-                                  onClick={() => {
-                                    setMenuOpen(null)
-                                    if (s !== order.status) updateStatus(order.id, s)
-                                  }}
-                                  className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium capitalize transition-colors ${
-                                    s === order.status
-                                      ? "bg-neutral-100 text-neutral-900"
-                                      : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
-                                  }`}
-                                >
-                                  <span className={`size-1.5 rounded-full ${statusDot[s] ?? "bg-neutral-400"}`} />
-                                  {s.replaceAll("_", " ")}
-                                  {s === order.status && <Check size={12} className="ml-auto text-neutral-900" />}
-                                </button>
-                              ))}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
                       </div>
                     </div>
                     <div className="mt-4">
@@ -356,13 +337,18 @@ export default function EmployeeOrdersPage() {
                         >
                           <div className="mt-3 space-y-2 rounded-xl bg-neutral-50 p-3">
                             {order.items.map((item) => (
-                              <div key={item.id} className="flex items-center justify-between text-sm">
-                                <span className="flex items-center gap-2 text-neutral-700">
-                                  <Check size={12} className="text-brand-700" />
-                                  {item.name}
-                                  <span className="text-xs text-neutral-400">x{item.qty}</span>
-                                </span>
-                                <span className="font-semibold text-neutral-900">{formatPrice(Number(item.unit_price_cents) * item.qty)}</span>
+                              <div key={item.id}>
+                                <div className="flex items-center justify-between text-sm">
+                                  <span className="flex items-center gap-2 text-neutral-700">
+                                    <Check size={12} className="text-brand-700" />
+                                    {item.name}
+                                    <span className="text-xs text-neutral-400">x{item.qty}</span>
+                                  </span>
+                                  <span className="font-semibold text-neutral-900">{formatPrice(Number(item.unit_price_cents) * item.qty)}</span>
+                                </div>
+                                {item.note && (
+                                  <p className="mt-0.5 pl-5 text-xs text-amber-700">{item.note}</p>
+                                )}
                               </div>
                             ))}
                             {order.shippingCents > 0 && (
@@ -391,6 +377,22 @@ export default function EmployeeOrdersPage() {
           <span>{filtered.length} of {orders.length} orders</span>
         </div>
       </div>
+
+      {statusDialogOrder && (
+        <OrderStatusDialog
+          open={!!statusDialogOrder}
+          customerName={statusDialogOrder.name}
+          currentStatus={statusDialogOrder.status}
+          currentBadgeClass={statusBadge[statusDialogOrder.status] ?? "bg-neutral-100 text-neutral-600"}
+          updating={updating === statusDialogOrder.id}
+          options={statusOptions}
+          onSelect={(s) => {
+            updateStatus(statusDialogOrder.id, s)
+            setStatusDialogId(null)
+          }}
+          onClose={() => setStatusDialogId(null)}
+        />
+      )}
     </div>
   )
 }

@@ -1,5 +1,5 @@
-import { updateRecipe, deleteRecipe, type CreateRecipeInput } from "@/lib/supabase/tables/recipes"
-import { upsertIngredient, linkIngredient, unlinkRecipeIngredients } from "@/lib/supabase/tables/ingredients"
+import { updateRecipe, deleteRecipe, getRecipe, type CreateRecipeInput } from "@/lib/supabase/tables/recipes"
+import { replaceServingIngredients, linkServingIngredients, type ServingIngredientInput } from "@/lib/supabase/tables/servings"
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
 
@@ -17,7 +17,19 @@ export async function PATCH(
 
   const { id } = await params
 
-  let body: Partial<CreateRecipeInput> & { ingredients?: { name: string; quantity_g: number; unit: string | null }[] }
+  type PatchBody = Partial<CreateRecipeInput> & {
+    servings?: {
+      id?: string | null
+      name?: string | null
+      price?: number | null
+      calories?: number | null
+      nutrition?: Record<string, unknown> | null
+      is_active?: boolean
+      ingredients?: ServingIngredientInput[]
+    }[]
+  }
+
+  let body: PatchBody
   try {
     body = await request.json()
   } catch {
@@ -25,27 +37,21 @@ export async function PATCH(
   }
 
   try {
-    const { ingredients: newIngredients, ...recipeFields } = body
+    const { servings: newServings, ...recipeFields } = body
 
-    const recipe = await updateRecipe(supabase, id, recipeFields)
+    await updateRecipe(supabase, id, recipeFields)
 
-    if (newIngredients !== undefined) {
-      await unlinkRecipeIngredients(supabase, id)
-      for (const ing of newIngredients) {
-        const ingredient = await upsertIngredient(supabase, {
-          name: ing.name,
-          nutrition: null,
-        })
-        await linkIngredient(supabase, {
-          recipe_id: id,
-          ingredient_id: ingredient.id,
-          quantity_g: ing.quantity_g,
-          unit: ing.unit ?? null,
-        })
+    if (newServings !== undefined) {
+      for (const serving of newServings) {
+        if (serving.id) {
+          const linkedIngredients = await linkServingIngredients(supabase, serving.ingredients ?? [])
+          await replaceServingIngredients(supabase, serving.id, linkedIngredients)
+        }
       }
     }
 
-    return Response.json(recipe)
+    const updated = await getRecipe(supabase, id)
+    return Response.json(updated)
   } catch (err) {
     console.error("[API] PATCH /api/recipe/[id] error:", err)
     const message = err instanceof Error ? err.message : "Internal server error"

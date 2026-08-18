@@ -1,4 +1,4 @@
-import type { Ingredient, RecipeIngredient } from "../models"
+import type { Ingredient } from "../models"
 
 export interface UpsertIngredientInput {
   name: string
@@ -28,35 +28,40 @@ export async function upsertIngredient(
   return data as Ingredient
 }
 
-export interface LinkIngredientInput {
-  recipe_id: string
+export interface LinkServingIngredientInput {
+  serving_id: string
   ingredient_id: string
   quantity_g: number
   unit: string | null
 }
 
-export async function linkIngredient(
+export async function linkServingIngredient(
   supabase: import("@supabase/supabase-js").SupabaseClient,
-  input: LinkIngredientInput,
-): Promise<RecipeIngredient> {
+  input: LinkServingIngredientInput,
+) {
   const { data, error } = await supabase
-    .from("recipe_ingredients")
-    .insert(input)
+    .from("serving_ingredients")
+    .insert({
+      serving_id: input.serving_id,
+      ingredient_id: input.ingredient_id,
+      quantity_g: input.quantity_g,
+      unit: input.unit ?? null,
+    })
     .select()
     .single()
 
   if (error) throw error
-  return data as RecipeIngredient
+  return data
 }
 
-export async function unlinkRecipeIngredients(
+export async function unlinkServingIngredients(
   supabase: import("@supabase/supabase-js").SupabaseClient,
-  recipeId: string,
+  servingId: string,
 ) {
   const { error } = await supabase
-    .from("recipe_ingredients")
+    .from("serving_ingredients")
     .delete()
-    .eq("recipe_id", recipeId)
+    .eq("serving_id", servingId)
 
   if (error) throw error
 }

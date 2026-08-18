@@ -18,10 +18,7 @@ export interface Recipe {
   name: string;
   category: string | null;
   description: string | null;
-  price: number | null; // numeric -> number (may lose precision; string is safer if needed)
-  calories: number | null; // numeric
   is_active: boolean;
-  nutrition: any | null; // jsonb
   image_path: string | null;
 }
 
@@ -32,10 +29,22 @@ export interface Ingredient {
   fatsecret_id: string;
 }
 
-export interface RecipeIngredient {
+export interface Serving {
   id: UUID;
-  recipe_id: UUID;
-  ingredient_id: UUID;
+  recipe_id: UUID; // -> public.recipes.id, the meal this serving belongs to
+  name: string | null; // serving-type label (e.g. "Regular", "Large", "Family"); display name/desc/pictures inherit from the recipe
+  price: number | null; // numeric
+  calories: number | null; // numeric
+  nutrition: any | null; // jsonb (per-serving macros)
+  is_active: boolean; // default true
+  created_at: string; // ISO timestamptz
+  updated_at: string; // ISO timestamptz
+}
+
+export interface ServingIngredient {
+  id: UUID;
+  serving_id: UUID; // -> public.servings.id
+  ingredient_id: UUID; // -> public.ingredients.id
   quantity_g: number; // numeric
   unit: string | null;
 }
@@ -170,5 +179,6 @@ export interface OrderItem {
   name: string;
   unit_price_cents: number; // numeric
   qty: number; // int4
+  note: string | null; // customer note for this item (e.g. "no onions", "extra spicy")
   image_path: string | null;
 }

@@ -1,4 +1,4 @@
-import type { RecipeIngredient, SubscriptionIngredientQuota } from "@/lib/supabase/models"
+import type { ServingIngredient, SubscriptionIngredientQuota } from "@/lib/supabase/models"
 
 export interface QuotaConsumption {
   ingredientId: string
@@ -17,7 +17,7 @@ export function roundGrams(value: number): number {
  * (quantity_g per serving × servings). Ingredients with an empty id are skipped.
  */
 export function calculateQuotaConsumption(
-  recipeIngredients: Pick<RecipeIngredient, "ingredient_id" | "quantity_g">[],
+  recipeIngredients: Pick<ServingIngredient, "ingredient_id" | "quantity_g">[],
   servings: number,
 ): QuotaConsumption[] {
   if (!Number.isInteger(servings) || servings < 1) {

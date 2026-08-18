@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { PremiumGallery } from "@/components/landing/PremiumGallery"
 import { MealCard } from "@/components/landing/MealCard"
+import type { MealServingOption } from "@/constants"
 
 const fadeUp = {
   hidden: { opacity: 0, y: 25 },
@@ -24,6 +25,7 @@ interface MenuItem {
   fats: number
   image: string
   description: string
+  servings: MealServingOption[]
 }
 
 const fallbackImages: Record<string, string> = {
@@ -41,18 +43,29 @@ const fallbackImages: Record<string, string> = {
 }
 
 function mapRecipe(r: Record<string, unknown>): MenuItem {
-  const n = r.nutrition as Record<string, unknown> | null
   const category = (r.category as string) ?? ""
+  const servings = ((r.servings as Record<string, unknown>[]) ?? [])
+    .filter((s) => (s.is_active as boolean) !== false)
+    .map((s) => ({
+      id: s.id as string,
+      name: (s.name as string | null) ?? null,
+      price: (s.price as number | null) ?? null,
+      calories: (s.calories as number | null) ?? null,
+      nutrition: (s.nutrition as MealServingOption["nutrition"]) ?? null,
+      is_active: (s.is_active as boolean) ?? true,
+    }))
+  const first = servings[0]
   return {
     name: (r.name as string) ?? "",
     category,
-    price: (r.price as number) ?? 0,
-    calories: (r.calories as number) ?? 0,
-    protein: (n?.protein_g as number) ?? 0,
-    carbs: (n?.carbs_g as number) ?? 0,
-    fats: (n?.fats_g as number) ?? 0,
+    price: first?.price ?? 0,
+    calories: first?.calories ?? 0,
+    protein: first?.nutrition?.protein_g ?? 0,
+    carbs: first?.nutrition?.carbs_g ?? 0,
+    fats: first?.nutrition?.fats_g ?? 0,
     image: (r.image_path as string) ?? fallbackImages[category] ?? "/drink_sample.svg",
     description: (r.description as string) ?? "",
+    servings,
   }
 }
 

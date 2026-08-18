@@ -70,6 +70,23 @@ interface IngredientItem {
   sodium: number
 }
 
+interface ServingOption {
+  id?: string
+  name: string
+  price: number
+  calories: number
+  nutrition: {
+    protein_g: number
+    carbs_g: number
+    fats_g: number
+    fiber_g: number
+    sugar_g: number
+    sodium_mg: number
+  }
+  is_active: boolean
+  ingredients: IngredientItem[]
+}
+
 function parseSearchDescription(desc: string) {
   const cal = desc.match(/Calories:\s*([\d.]+)/)?.[1] ?? "0"
   const fat = desc.match(/Fat:\s*([\d.]+)/)?.[1] ?? "0"
@@ -106,6 +123,10 @@ export function EditMealDialog({ open, onClose, item }: EditMealDialogProps) {
   const [nutrition, setNutrition] = useState({
     calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0, sugar: 0, sodium: 0,
   })
+  const [servings, setServings] = useState<ServingOption[]>([])
+  const [servingsLoading, setServingsLoading] = useState(false)
+  const [activeServingIndex, setActiveServingIndex] = useState(0)
+  const removedServingIds = useRef<string[]>([])
 
   useEffect(() => {
     if (!open) return
@@ -129,6 +150,47 @@ export function EditMealDialog({ open, onClose, item }: EditMealDialogProps) {
     setSearchResults([])
     setShowDropdown(false)
     setCalculating(false)
+    setServings([])
+    setActiveServingIndex(0)
+    removedServingIds.current = []
+    setServingsLoading(true)
+    fetch(`/api/recipe/${item.id}/servings`)
+      .then(async (res) => {
+        if (!res.ok) return []
+        const data = await res.json()
+        return Array.isArray(data) ? data : []
+      })
+      .then((data: Record<string, unknown>[]) => {
+        const loaded: ServingOption[] = (data ?? []).map((s) => {
+          const n = s.nutrition as Record<string, number | undefined> | null
+          return {
+            id: s.id as string,
+            name: (s.name as string | null) ?? "",
+            price: (s.price as number) ?? 0,
+            calories: (s.calories as number) ?? 0,
+            nutrition: {
+              protein_g: n?.protein_g ?? 0,
+              carbs_g: n?.carbs_g ?? 0,
+              fats_g: n?.fats_g ?? 0,
+              fiber_g: n?.fiber_g ?? 0,
+              sugar_g: n?.sugar_g ?? 0,
+              sodium_mg: n?.sodium_mg ?? 0,
+            },
+            is_active: (s.is_active as boolean) ?? true,
+            ingredients: ((s.ingredients as Record<string, unknown>[]) ?? []).map(mapServingIngredient),
+          }
+        })
+        setServings(loaded)
+        if (loaded.length > 0) {
+          setActiveServingIndex(0)
+          applyServingToForm(loaded[0])
+        } else {
+          setPrice("")
+          setIngredients([])
+        }
+      })
+      .catch((e) => console.error("[EDIT_MEAL] Failed to load servings:", e))
+      .finally(() => setServingsLoading(false))
     if (item.ingredients?.length) {
       setIngredients(item.ingredients.map((ing) => {
         const nut = ing.nutrition ?? { calories_per_100g: 0, protein_g: 0, carbs_g: 0, fats_g: 0, fiber_g: 0, sugar_g: 0, sodium_mg: 0 }
@@ -269,6 +331,146 @@ export function EditMealDialog({ open, onClose, item }: EditMealDialogProps) {
     setIngredients(ingredients.filter((_, i) => i !== index))
   }
 
+  function mapServingIngredient(si: Record<string, unknown>): IngredientItem {
+    const nut = (si.nutrition as Record<string, number> | null) ?? {}
+    const amount = (si.quantity_g as number) ?? 100
+    const unit = (si.unit as string | null) ?? "g"
+    const ratio = amount / 100
+    return {
+      food_id: (si.fatsecret_id as string | null) ?? "",
+      name: si.name as string,
+      amount,
+      unit,
+      servingDesc: `${amount} ${unit}`,
+      calories: Math.round((nut.calories_per_100g ?? 0) * ratio),
+      protein: Math.round((nut.protein_g ?? 0) * ratio * 10) / 10,
+      carbs: Math.round((nut.carbs_g ?? 0) * ratio * 10) / 10,
+      fat: Math.round((nut.fats_g ?? 0) * ratio * 10) / 10,
+      fiber: Math.round((nut.fiber_g ?? 0) * ratio * 10) / 10,
+      sugar: Math.round((nut.sugar_g ?? 0) * ratio * 10) / 10,
+      sodium: Math.round((nut.sodium_mg ?? 0) * ratio * 10) / 10,
+    }
+  }
+
+  function applyServingToForm(s: ServingOption) {
+    setPrice(s.price ? String(s.price) : "")
+    setNutrition({
+      calories: s.calories,
+      protein: s.nutrition.protein_g,
+      carbs: s.nutrition.carbs_g,
+      fats: s.nutrition.fats_g,
+      fiber: s.nutrition.fiber_g,
+      sugar: s.nutrition.sugar_g,
+      sodium: s.nutrition.sodium_mg,
+    })
+    setShowResults(true)
+    setIngredients(s.ingredients.map((ing) => ({ ...ing })))
+  }
+
+  function selectServing(i: number) {
+    if (i === activeServingIndex) return
+    const serving = servings[i]
+    if (!serving) return
+    setActiveServingIndex(i)
+    applyServingToForm(serving)
+  }
+
+  function addServing() {
+    const index = servings.length
+    setServings((prev) => [...prev, {
+      name: "",
+      price: 0,
+      calories: 0,
+      nutrition: { protein_g: 0, carbs_g: 0, fats_g: 0, fiber_g: 0, sugar_g: 0, sodium_mg: 0 },
+      is_active: true,
+      ingredients: [],
+    }])
+    setActiveServingIndex(index)
+    setPrice("")
+    setNutrition({ calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0, sugar: 0, sodium: 0 })
+    setIngredients([])
+  }
+
+  function renameActiveServing(name: string) {
+    setServings((prev) => prev.map((s, i) => (i === activeServingIndex ? { ...s, name } : s)))
+  }
+
+  function removeActiveServing() {
+    const active = servings[activeServingIndex]
+    if (!active) return
+    if (active.id) {
+      removedServingIds.current = [...removedServingIds.current, active.id]
+    }
+    const next = servings.filter((_, i) => i !== activeServingIndex)
+    setServings(next)
+    if (next.length > 0) {
+      const idx = Math.min(Math.max(0, activeServingIndex - 1), next.length - 1)
+      setActiveServingIndex(idx)
+      applyServingToForm(next[idx])
+    } else {
+      setActiveServingIndex(0)
+      setPrice("")
+      setNutrition({ calories: 0, protein: 0, carbs: 0, fats: 0, fiber: 0, sugar: 0, sodium: 0 })
+      setIngredients([])
+    }
+  }
+
+  async function saveActiveServing() {
+    const serving = servings[activeServingIndex]
+    if (!serving) return
+
+    const payload = {
+      name: serving.name.trim() || null,
+      price: price ? parseFloat(price) : null,
+      calories: nutrition.calories || null,
+      nutrition: {
+        protein_g: nutrition.protein,
+        carbs_g: nutrition.carbs,
+        fats_g: nutrition.fats,
+        fiber_g: nutrition.fiber,
+        sugar_g: nutrition.sugar,
+        sodium_mg: nutrition.sodium,
+      },
+      is_active: true,
+      ingredients: ingredients.map((ing) => ({
+        fatsecret_id: ing.food_id || null,
+        name: ing.name,
+        quantity_g: ing.amount,
+        unit: ing.unit,
+        nutrition: {
+          calories_per_100g: ing.amount > 0 ? Math.round(ing.calories / (ing.amount / 100)) : 0,
+          protein_g: ing.protein,
+          carbs_g: ing.carbs,
+          fats_g: ing.fat,
+          fiber_g: ing.fiber,
+          sugar_g: ing.sugar,
+          sodium_mg: ing.sodium,
+        },
+      })),
+    }
+
+    if (serving.id) {
+      const res = await fetch(`/api/recipe/${item.id}/servings/${serving.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error("Failed to update serving")
+    } else {
+      const res = await fetch(`/api/recipe/${item.id}/servings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error("Failed to create serving")
+    }
+
+    for (const removedId of removedServingIds.current) {
+      const res = await fetch(`/api/recipe/${item.id}/servings/${removedId}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Failed to delete serving")
+    }
+  }
+
   function handleCalculate() {
     setCalculating(true)
     const total = ingredients.reduce(
@@ -299,6 +501,8 @@ export function EditMealDialog({ open, onClose, item }: EditMealDialogProps) {
     if (!mealName.trim()) return
     setSaving(true)
     try {
+      await saveActiveServing()
+
       let imageUrl: string | null = imagePreview && !imageFile ? imagePreview : null
       if (imageFile) {
         const formData = new FormData()
@@ -317,31 +521,7 @@ export function EditMealDialog({ open, onClose, item }: EditMealDialogProps) {
           name: mealName.trim(),
           category: getCategoryValue(),
           description: description.trim() || null,
-          price: price ? parseFloat(price) : null,
-          calories: nutrition.calories || null,
           image_path: imageUrl,
-          nutrition: {
-            protein_g: nutrition.protein,
-            carbs_g: nutrition.carbs,
-            fats_g: nutrition.fats,
-            fiber_g: nutrition.fiber,
-            sugar_g: nutrition.sugar,
-            sodium_mg: nutrition.sodium,
-          },
-          ingredients: ingredients.map((ing) => ({
-            name: ing.name,
-            quantity_g: ing.amount,
-            unit: ing.unit,
-            nutrition: {
-              calories_per_100g: Math.round(ing.calories / (ing.amount / 100)),
-              protein_g: ing.protein,
-              carbs_g: ing.carbs,
-              fats_g: ing.fat,
-              fiber_g: ing.fiber,
-              sugar_g: ing.sugar,
-              sodium_mg: ing.sodium,
-            },
-          })),
         }),
       })
       if (!res.ok) {
@@ -389,6 +569,10 @@ export function EditMealDialog({ open, onClose, item }: EditMealDialogProps) {
     setCalculating(false)
     setSaving(false)
     setCategory("")
+    setServings([])
+    setActiveServingIndex(0)
+    setServingsLoading(false)
+    removedServingIds.current = []
     onClose()
   }
 
@@ -477,6 +661,74 @@ export function EditMealDialog({ open, onClose, item }: EditMealDialogProps) {
                     <span />
                     <span>{mealName.length}/60</span>
                   </div>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-base font-semibold text-neutral-800">Serving Sizes</label>
+                  <p className="mb-2 text-xs text-neutral-400">
+                    Select the size to edit. The price and nutrition below apply to that size, and calories are calculated from its ingredients.
+                  </p>
+
+                  {servingsLoading ? (
+                    <div className="flex items-center gap-2 py-2 text-sm text-neutral-400">
+                      <div className="size-4 animate-spin rounded-full border-2 border-neutral-300 border-t-transparent" />
+                      Loading servings…
+                    </div>
+                  ) : servings.length > 0 ? (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {servings.map((s, i) => (
+                        <button
+                          key={s.id ?? `new-${i}`}
+                          type="button"
+                          onClick={() => selectServing(i)}
+                          className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                            i === activeServingIndex
+                              ? "border-neutral-900 bg-neutral-900 text-white"
+                              : "border-neutral-200 text-neutral-600 hover:border-neutral-400"
+                          }`}
+                        >
+                          {s.name || `Serving ${i + 1}`}
+                        </button>
+                      ))}
+                      <span className="mx-1 h-4 w-px bg-neutral-200" />
+                      <button
+                        type="button"
+                        onClick={addServing}
+                        className="rounded-full border border-dashed border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-500 transition-colors hover:border-neutral-500 hover:text-neutral-700"
+                      >
+                        + Add Size
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={addServing}
+                      className="w-full rounded-xl border border-dashed border-neutral-300 px-4 py-3 text-sm font-medium text-neutral-500 transition-colors hover:border-neutral-500 hover:text-neutral-700"
+                    >
+                      + Add Serving Size (e.g. Regular, Large)
+                    </button>
+                  )}
+
+                  {servings.length > 0 && servings[activeServingIndex] && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <input
+                        value={servings[activeServingIndex].name}
+                        onChange={(e) => renameActiveServing(e.target.value)}
+                        maxLength={30}
+                        placeholder="Size label (e.g. Regular)"
+                        className="min-w-0 flex-1 rounded-lg border border-neutral-200 px-3 py-2 text-sm font-medium text-neutral-900 outline-none transition-colors placeholder:text-neutral-300 focus:border-neutral-900"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeActiveServing}
+                        disabled={servings.length === 1}
+                        title="Remove this size"
+                        className="shrink-0 rounded-lg border border-neutral-200 px-3 py-2 text-neutral-400 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-40 disabled:hover:border-neutral-200 disabled:hover:bg-transparent disabled:hover:text-neutral-400"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="relative">

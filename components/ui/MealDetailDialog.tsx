@@ -31,6 +31,18 @@ export function MealDetailDialog({ item, onClose, onEdit }: MealDetailDialogProp
   const isEmployee = user?.role === "employee"
   const stickerRef = useRef<HTMLDivElement>(null)
   const [downloading, setDownloading] = useState(false)
+  const [servingIndex, setServingIndex] = useState(0)
+
+  const servings = item?.servings ?? []
+  const activeServing = servings.length > 0 ? servings[Math.min(servingIndex, servings.length - 1)] : null
+  const displayCalories = activeServing?.calories ?? item?.calories ?? 0
+  const displayPrice = activeServing?.price ?? item?.price ?? 0
+  const displayProtein = activeServing?.nutrition?.protein_g ?? item?.protein ?? 0
+  const displayCarbs = activeServing?.nutrition?.carbs_g ?? item?.carbs ?? 0
+  const displayFats = activeServing?.nutrition?.fats_g ?? item?.fats ?? 0
+  const displayFiber = activeServing?.nutrition?.fiber_g ?? item?.fiber ?? 0
+  const displaySugar = activeServing?.nutrition?.sugar_g ?? item?.sugar ?? 0
+  const displaySodium = activeServing?.nutrition?.sodium_mg ?? item?.sodium ?? 0
 
   async function handleDownloadSticker() {
     if (!stickerRef.current) return
@@ -86,15 +98,32 @@ export function MealDetailDialog({ item, onClose, onEdit }: MealDetailDialogProp
                 <h2 className="text-2xl font-bold text-white">{item.name}</h2>
                 <div className="mt-1 flex items-center gap-3">
                   <p className="text-base font-extrabold text-white/90">
-                    {item.calories}
+                    {displayCalories}
                     <span className="ml-1 text-sm font-semibold text-white/60">Cal</span>
                   </p>
                   <span className="text-white/40">|</span>
                   <p className="text-base font-extrabold text-white/90">
-                    {item.price}
+                    {displayPrice}
                     <span className="ml-1 text-sm font-semibold text-white/60">DH</span>
                   </p>
                 </div>
+                {servings.length > 1 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {servings.map((s, i) => (
+                      <button
+                        key={s.id}
+                        onClick={() => setServingIndex(i)}
+                        className={`rounded-full border px-3 py-1 text-[11px] font-medium backdrop-blur-sm transition-colors ${
+                          i === servingIndex
+                            ? "border-white bg-white/25 text-white"
+                            : "border-white/30 text-white/70 hover:bg-white/10 hover:text-white"
+                        }`}
+                      >
+                        {s.name ?? `Serving ${i + 1}`}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -136,9 +165,9 @@ export function MealDetailDialog({ item, onClose, onEdit }: MealDetailDialogProp
                 <div className="relative size-28">
                   <svg className="size-full -rotate-90" viewBox="0 0 120 120">
                     {(() => {
-                      const p = item.protein * 4
-                      const c = item.carbs * 4
-                      const f = item.fats * 9
+                      const p = displayProtein * 4
+                      const c = displayCarbs * 4
+                      const f = displayFats * 9
                       const total = p + c + f || 1
                       const r = 48
                       const circ = 2 * Math.PI * r
@@ -171,7 +200,7 @@ export function MealDetailDialog({ item, onClose, onEdit }: MealDetailDialogProp
                     <circle cx="60" cy="60" r="38" fill="white" />
                   </svg>
                   <span className="absolute inset-0 flex items-center justify-center font-nunito text-xl font-bold text-neutral-900">
-                    {item.calories}
+                    {displayCalories}
                   </span>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-neutral-500">
@@ -194,12 +223,12 @@ export function MealDetailDialog({ item, onClose, onEdit }: MealDetailDialogProp
                 <p className="mb-3 text-xs font-semibold text-neutral-500">NUTRITIONAL CONTENT</p>
                 <div className="divide-y divide-neutral-200 border-t border-b border-neutral-300 text-sm">
                   {[
-                    { label: "Protein", value: item.protein, unit: "g", color: macroColors.protein },
-                    { label: "Carbs", value: item.carbs, unit: "g", color: macroColors.carbs },
-                    { label: "Fats", value: item.fats, unit: "g", color: macroColors.fats },
-                    { label: "Fiber", value: item.fiber, unit: "g", color: macroColors.fiber },
-                    { label: "Sugar", value: item.sugar, unit: "g", color: macroColors.sugar },
-                    { label: "Sodium", value: item.sodium, unit: "mg", color: macroColors.sodium },
+                    { label: "Protein", value: displayProtein, unit: "g", color: macroColors.protein },
+                    { label: "Carbs", value: displayCarbs, unit: "g", color: macroColors.carbs },
+                    { label: "Fats", value: displayFats, unit: "g", color: macroColors.fats },
+                    { label: "Fiber", value: displayFiber, unit: "g", color: macroColors.fiber },
+                    { label: "Sugar", value: displaySugar, unit: "g", color: macroColors.sugar },
+                    { label: "Sodium", value: displaySodium, unit: "mg", color: macroColors.sodium },
                   ].map((row) => (
                     <div key={row.label} className="flex items-center justify-between py-2.5">
                       <span className="flex items-center gap-2 font-medium text-neutral-800">
@@ -238,7 +267,19 @@ export function MealDetailDialog({ item, onClose, onEdit }: MealDetailDialogProp
           {isEmployee && item && (
             <div className="pointer-events-none fixed -left-[9999px] top-0" aria-hidden="true">
               <div ref={stickerRef}>
-                <NutritionSticker meal={toStickerMeal(item)} />
+                <NutritionSticker
+                  meal={toStickerMeal({
+                    ...item,
+                    calories: displayCalories,
+                    price: displayPrice,
+                    protein: displayProtein,
+                    carbs: displayCarbs,
+                    fats: displayFats,
+                    fiber: displayFiber,
+                    sugar: displaySugar,
+                    sodium: displaySodium,
+                  })}
+                />
               </div>
             </div>
           )}

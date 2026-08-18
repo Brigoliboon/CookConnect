@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Trash2, Minus, Plus, X, CheckCircle2, User, Mail, Phone, MapPin, Check } from "lucide-react"
+import { Trash2, Minus, Plus, X, CheckCircle2, User, Mail, Phone, MapPin, Check, MessageCircle } from "lucide-react"
 import { getCart, setCart, type CartItem } from "@/utils/cart"
 import { LocationPicker, type Coordinates } from "@/components/ui/LocationPicker"
 import { resolveDeliveryAddress, formatPrice } from "@/utils/mapbox"
@@ -19,14 +19,19 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
   const [submitError, setSubmitError] = useState("")
   const [feeCents, setFeeCents] = useState<number | null>(null)
   const [confirmed, setConfirmed] = useState(false)
+  const [consent, setConsent] = useState(false)
+  const [noteOpen, setNoteOpen] = useState<string | null>(null)
+  const [prevOpen, setPrevOpen] = useState(open)
   const panelRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
+  if (open !== prevOpen) {
+    setPrevOpen(open)
     if (open) {
       setCartState(getCart())
       setSubmitted(false)
+      setConsent(false)
     }
-  }, [open])
+  }
 
   useEffect(() => {
     if (!open) return
@@ -62,6 +67,10 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
         .map((i) => (i.name === name ? { ...i, qty: Math.max(0, i.qty + delta) } : i))
         .filter((i) => i.qty > 0),
     )
+  }
+
+  function setItemNote(name: string, note: string) {
+    commit(cart.map((i) => (i.name === name ? { ...i, note: note.trim() || undefined } : i)))
   }
 
   function handleConfirmLocation() {
@@ -117,6 +126,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
             name: item.name,
             unit_price_cents: Math.round(item.price * 100),
             qty: item.qty,
+            note: item.note ?? null,
             image_path: item.image ?? null,
           })),
         }),
@@ -177,39 +187,64 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                 {cart.map((item) => (
                   <div
                     key={item.name}
-                    className="flex items-center gap-3 rounded-xl border border-neutral-100 p-3"
+                    className="rounded-xl border border-neutral-100 p-3"
                   >
-                    {item.image && (
-                      <img src={item.image} alt={item.name} className="h-14 w-14 shrink-0 rounded-lg object-cover" />
+                    <div className="flex items-center gap-3">
+                      {item.image && (
+                        <img src={item.image} alt={item.name} className="h-14 w-14 shrink-0 rounded-lg object-cover" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-neutral-900">{item.name}</p>
+                        <p className="text-xs text-neutral-500">{item.price} AED</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => changeQty(item.name, -1)}
+                          className="flex size-7 items-center justify-center rounded-lg border border-neutral-200 text-neutral-600 transition-colors hover:bg-neutral-100"
+                          aria-label="Decrease quantity"
+                        >
+                          <Minus size={12} />
+                        </button>
+                        <span className="w-6 text-center text-sm font-semibold">{item.qty}</span>
+                        <button
+                          onClick={() => changeQty(item.name, 1)}
+                          className="flex size-7 items-center justify-center rounded-lg border border-neutral-200 text-neutral-600 transition-colors hover:bg-neutral-100"
+                          aria-label="Increase quantity"
+                        >
+                          <Plus size={12} />
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => setNoteOpen(noteOpen === item.name ? null : item.name)}
+                        className={`transition-colors ${item.note ? "text-brand-900" : "text-neutral-400 hover:text-neutral-700"}`}
+                        aria-label={item.note ? "Edit note" : "Add note"}
+                      >
+                        <MessageCircle size={16} />
+                      </button>
+                      <button
+                        onClick={() => removeItem(item.name)}
+                        className="text-neutral-400 transition-colors hover:text-red-500"
+                        aria-label="Remove item"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                    {(noteOpen === item.name || item.note) && (
+                      <div className="mt-2 border-t border-neutral-100 pt-2">
+                        <div className="flex items-center gap-1.5">
+                          <MessageCircle size={12} className="text-neutral-400" />
+                          <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+                            Note for this item
+                          </span>
+                        </div>
+                        <input
+                          value={item.note ?? ""}
+                          onChange={(e) => setItemNote(item.name, e.target.value)}
+                          placeholder="e.g. no onions, extra spicy"
+                          className="mt-1 w-full rounded-lg border border-neutral-200 px-3 py-2 text-xs text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900"
+                        />
+                      </div>
                     )}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-neutral-900">{item.name}</p>
-                      <p className="text-xs text-neutral-500">{item.price} AED</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => changeQty(item.name, -1)}
-                        className="flex size-7 items-center justify-center rounded-lg border border-neutral-200 text-neutral-600 transition-colors hover:bg-neutral-100"
-                        aria-label="Decrease quantity"
-                      >
-                        <Minus size={12} />
-                      </button>
-                      <span className="w-6 text-center text-sm font-semibold">{item.qty}</span>
-                      <button
-                        onClick={() => changeQty(item.name, 1)}
-                        className="flex size-7 items-center justify-center rounded-lg border border-neutral-200 text-neutral-600 transition-colors hover:bg-neutral-100"
-                        aria-label="Increase quantity"
-                      >
-                        <Plus size={12} />
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => removeItem(item.name)}
-                      className="text-neutral-400 transition-colors hover:text-red-500"
-                      aria-label="Remove item"
-                    >
-                      <Trash2 size={16} />
-                    </button>
                   </div>
                 ))}
                 <div className="flex items-center justify-between border-t border-neutral-100 pt-3 text-sm">
@@ -323,10 +358,40 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
               )}
             </div>
 
+                        <label className="mt-4 flex items-start gap-2.5 text-xs leading-relaxed text-neutral-500">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                className="mt-0.5 size-4 shrink-0 cursor-pointer accent-neutral-900"
+              />
+              <span>
+                By placing an order, I agree to the{" "}
+                <a
+                  href="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-neutral-900 underline underline-offset-2 hover:text-brand-900"
+                >
+                  Terms and Conditions
+                </a>{" "}
+                and{" "}
+                <a
+                  href="/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-neutral-900 underline underline-offset-2 hover:text-brand-900"
+                >
+                  Privacy Policy
+                </a>
+                .
+              </span>
+            </label>
+
             <button
               onClick={handleSubmit}
-              disabled={cart.length === 0 || !confirmed || feeCents === null || submitting}
-              className="mt-6 w-full rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white shadow-lg shadow-neutral-900/20 transition-all hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
+              disabled={cart.length === 0 || !confirmed || feeCents === null || !consent || submitting}
+              className="mt-3 w-full rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white shadow-lg shadow-neutral-900/20 transition-all hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {submitting ? "Placing order..." : "Place Order"}
             </button>

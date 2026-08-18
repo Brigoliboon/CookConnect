@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Button, WeeklyMenu, MealGallery, NewMealDialog, EditMealDialog } from "@/components/ui"
 import { MENU_CATEGORIES } from "@/constants"
-import type { MenuCategory, MenuItem, WeeklyMenu as WeeklyMenuType } from "@/constants"
+import type { MenuCategory, MenuItem, MealServingOption, WeeklyMenu as WeeklyMenuType } from "@/constants"
 import { CalendarDays, Plus, UtensilsCrossed } from "lucide-react"
 
 const containerVariants = {
@@ -52,6 +52,16 @@ export default function EmployeeMealsPage() {
             sodium: (n?.sodium_mg as number) ?? 0,
             image_path: (r.image_path as string) ?? null,
             ingredients: (r.ingredients as MenuItem["ingredients"]) ?? [],
+            servings: ((r.servings as Record<string, unknown>[]) ?? [])
+              .filter((s) => (s.is_active as boolean) !== false)
+              .map((s): MealServingOption => ({
+                id: s.id as string,
+                name: (s.name as string | null) ?? null,
+                price: (s.price as number | null) ?? null,
+                calories: (s.calories as number | null) ?? null,
+                nutrition: (s.nutrition as MealServingOption["nutrition"]) ?? null,
+                is_active: (s.is_active as boolean) ?? true,
+              })),
           }
         })
         setMenuItems(items)

@@ -4,6 +4,7 @@ export interface ReceiptItem {
   name: string
   qty: number
   unit_price_cents: number
+  note?: string | null
 }
 
 export interface ReceiptOrder {
@@ -79,6 +80,7 @@ export function buildOrderReceipt(
   p.feed(1)
   for (const item of order.items) {
     p.text(item.name)
+    if (item.note) p.text(`> ${item.note}`)
     p.row(
       `  ${item.qty} x ${money(item.unit_price_cents)}`,
       money(item.unit_price_cents * item.qty),

@@ -1,18 +1,19 @@
 import { createRecipe, listRecipes, type CreateRecipeInput } from "@/lib/supabase/tables/recipes"
-import { upsertIngredient, linkIngredient } from "@/lib/supabase/tables/ingredients"
+import { createServing, linkServingIngredients, type ServingIngredientInput } from "@/lib/supabase/tables/servings"
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
 
-interface IngredientInput {
-  fatsecret_id?: string | null
-  name: string
-  quantity_g: number
-  unit: string | null
+interface ServingInput {
+  name?: string | null
+  price?: number | null
+  calories?: number | null
   nutrition?: Record<string, unknown> | null
+  is_active?: boolean
+  ingredients?: ServingIngredientInput[]
 }
 
 interface CreateMealBody extends CreateRecipeInput {
-  ingredients?: IngredientInput[]
+  servings?: ServingInput[]
 }
 
 export async function GET() {
@@ -52,23 +53,29 @@ export async function POST(request: Request) {
   try {
     const recipe = await createRecipe(supabase, body)
 
-    if (body.ingredients?.length) {
-      for (const ing of body.ingredients) {
-        const ingredient = await upsertIngredient(supabase, {
-          fatsecret_id: ing.fatsecret_id ?? null,
-          name: ing.name,
-          nutrition: ing.nutrition ?? null,
-        })
-        await linkIngredient(supabase, {
-          recipe_id: recipe.id,
-          ingredient_id: ingredient.id,
-          quantity_g: ing.quantity_g,
-          unit: ing.unit ?? null,
-        })
+    const createdServings = []
+    if (body.servings?.length) {
+      for (const serving of body.servings) {
+        const servingIngredients = serving.ingredients ?? []
+        const linkedIngredients = await linkServingIngredients(supabase, servingIngredients)
+
+        const created = await createServing(
+          supabase,
+          recipe.id,
+          {
+            name: serving.name ?? null,
+            price: serving.price ?? null,
+            calories: serving.calories ?? null,
+            nutrition: serving.nutrition ?? null,
+            is_active: serving.is_active ?? true,
+          },
+          linkedIngredients,
+        )
+        createdServings.push(created)
       }
     }
 
-    return Response.json(recipe, { status: 201 })
+    return Response.json({ ...recipe, servings: createdServings }, { status: 201 })
   } catch (err) {
     const message = err instanceof Error ? err.message : "Internal server error"
     return Response.json({ error: message }, { status: 500 })

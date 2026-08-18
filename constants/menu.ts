@@ -27,6 +27,23 @@ export interface MenuItem {
     fatsecret_id?: string | null
   }[]
   image_path: string | null
+  servings?: MealServingOption[]
+}
+
+export interface MealServingOption {
+  id: string
+  name: string | null
+  price: number | null
+  calories: number | null
+  nutrition: {
+    protein_g?: number | null
+    carbs_g?: number | null
+    fats_g?: number | null
+    fiber_g?: number | null
+    sugar_g?: number | null
+    sodium_mg?: number | null
+  } | null
+  is_active: boolean
 }
 
 export type MenuCategory =
