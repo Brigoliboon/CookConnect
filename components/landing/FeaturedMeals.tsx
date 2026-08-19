@@ -160,7 +160,7 @@ export function FeaturedMeals() {
         </motion.p>
 
         {/* Gallery */}
-        <PremiumGallery className=" h-[340px] md:h-[412px] mt-8 w-full max-sm:mt-6" itemScale={1}>
+        <PremiumGallery key={activeValue} className=" h-[340px] md:h-[412px] mt-8 w-full max-sm:mt-6" itemScale={1}>
           {loading ? (
             <div className="flex h-full w-full items-center justify-center">
               <div className="size-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
