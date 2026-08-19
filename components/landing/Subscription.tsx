@@ -1,8 +1,11 @@
 "use client"
 
-import Link from "next/link"
+import { useTranslations } from "next-intl"
+import { Link } from "@/i18n/navigation"
 import { motion } from "framer-motion"
 import { SUBSCRIPTION_PLANS } from "@/constants"
+import { translateContent } from "@/constants/translations"
+import { useLocale } from "next-intl"
 
 const fadeUp = {
   hidden: { opacity: 0, y: 50 },
@@ -13,6 +16,9 @@ const fadeUp = {
 }
 
 export function Subscription() {
+  const t = useTranslations("subscription")
+  const locale = useLocale()
+
   return (
     <motion.section
       id="subscription"
@@ -24,14 +30,14 @@ export function Subscription() {
       <div className="mx-auto max-w-8xl">
         <motion.div variants={fadeUp} custom={0} className="text-center">
           <span className="font-nunito inline-block text-[11px] font-semibold uppercase tracking-[0.3em] text-black/30">
-            Pricing
+            {t("eyebrow")}
           </span>
           <h2 className="font-playfair mt-4 text-5xl font-medium leading-tight text-black sm:text-6xl">
-            Choose Your Plan
+            {t("title")}
           </h2>
           <div className="mx-auto mt-6 h-px w-12 bg-black/20" />
           <p className="font-nunito mx-auto mt-6 max-w-md text-sm leading-relaxed text-black/50">
-            Transparent pricing, no surprises. Change or cancel anytime.
+            {t("subtitle")}
           </p>
         </motion.div>
 
@@ -51,20 +57,20 @@ export function Subscription() {
               >
                 {isHealthy && (
                   <span className="absolute -top-3 left-8 rounded-full bg-white px-4 py-1 text-[11px] font-semibold uppercase tracking-wider text-black">
-                    Recommended
+                    {t("recommended")}
                   </span>
                 )}
-                <p className="font-playfair text-3xl font-medium">{plan.name}</p>
-                <p className={`font-nunito mt-2 text-sm ${isHealthy ? "text-white/50" : "text-black/40"}`}>{plan.description}</p>
+                <p className="font-playfair text-3xl font-medium">{translateContent(plan.name, locale)}</p>
+                <p className={`font-nunito mt-2 text-sm ${isHealthy ? "text-white/50" : "text-black/40"}`}>{translateContent(plan.description, locale)}</p>
                 <div className="mt-6 flex items-baseline gap-2">
                   <span className="font-playfair text-5xl font-medium tracking-tight">{plan.priceAED}</span>
-                  <span className={`font-nunito text-sm ${isHealthy ? "text-white/40" : "text-black/30"}`}>AED</span>
+                  <span className={`font-nunito text-sm ${isHealthy ? "text-white/40" : "text-black/30"}`}>{t("currency")}</span>
                 </div>
                 <ul className={`font-nunito mt-6 space-y-3 text-sm ${isHealthy ? "text-white/70" : "text-black/50"}`}>
                   {plan.features.map((f) => (
                     <li key={f} className="flex items-center gap-3">
                       <span className={`size-1 rounded-full ${isHealthy ? "bg-white/40" : "bg-black/30"}`} />
-                      {f}
+                      {translateContent(f, locale)}
                     </li>
                   ))}
                 </ul>
@@ -77,7 +83,7 @@ export function Subscription() {
                         : "bg-black text-white hover:bg-neutral-800"
                     }`}
                   >
-                    Subscribe
+                    {t("cta")}
                   </Link>
                 </div>
               </motion.div>

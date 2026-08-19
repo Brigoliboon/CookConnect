@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
 import { ShoppingCart, Check } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { getCart, setCart } from "@/utils/cart"
 
 interface DrinkCardProps {
@@ -15,6 +16,7 @@ interface DrinkCardProps {
 }
 
 export function DrinkCard({ name, price, image, scale = 1, width = "w-72 max-sm:w-48", className = "" }: DrinkCardProps) {
+  const t = useTranslations("meals")
   const [imageHovered, setImageHovered] = useState(false)
   const [revealed, setRevealed] = useState(false)
   const [added, setAdded] = useState(false)
@@ -94,12 +96,12 @@ export function DrinkCard({ name, price, image, scale = 1, width = "w-72 max-sm:
             {added ? (
               <>
                 <Check size={14} />
-                Added to Order
+                {t("added")}
               </>
             ) : (
               <>
                 <ShoppingCart size={14} />
-                Add to Order
+                {t("add")}
               </>
             )}
           </button>

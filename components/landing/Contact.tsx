@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { motion } from "framer-motion"
 import { MapPin, Phone, Mail, Clock } from "lucide-react"
 import Map, { Marker } from "react-map-gl/mapbox"
@@ -16,16 +17,18 @@ const fadeUp = {
 const inputClass =
   "font-nunito w-full border-b border-black/10 bg-transparent px-0 py-3 text-sm text-black outline-none transition-colors placeholder:text-black/20 focus:border-black"
 
-const details = [
-  { icon: MapPin, label: "Address", value: "Sheikh Zayed Street, Al Hamidiya 1, Ajman, UAE" },
-  { icon: Phone, label: "Phone", value: "+971556634050" },
-  { icon: Mail, label: "Email", value: "cookconnectrestaurant@gmail.com" },
-  { icon: Clock, label: "Hours", value: "Sat–Thu, 8:00 AM – 10:00 PM" },
-]
-
 const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ""
 
 export function Contact() {
+  const t = useTranslations("contact")
+
+  const details = [
+    { icon: MapPin, label: t("addressLabel"), value: "Sheikh Zayed Street, Al Hamidiya 1, Ajman, UAE" },
+    { icon: Phone, label: t("phoneLabel"), value: "+971556634050" },
+    { icon: Mail, label: t("emailLabel"), value: "cookconnectrestaurant@gmail.com" },
+    { icon: Clock, label: t("hoursLabel"), value: "Sat–Thu, 8:00 AM – 10:00 PM" },
+  ]
+
   return (
     <motion.section
       id="contact"
@@ -66,24 +69,24 @@ export function Contact() {
 
         <motion.div variants={fadeUp} className="lg:w-[45%]">
           <span className="font-nunito inline-block text-[11px] font-semibold uppercase tracking-[0.3em] text-black/30">
-            Contact
+            {t("eyebrow")}
           </span>
           <h2 className="font-playfair mt-4 text-5xl font-medium leading-tight text-black sm:text-6xl">
-            Let&apos;s Talk
+            {t("title")}
           </h2>
           <div className="mt-6 h-px w-12 bg-black/20" />
           <p className="font-nunito mt-6 text-sm leading-relaxed text-black/50">
-            We&apos;ll get back to you within 24 hours.
+            {t("subtitle")}
           </p>
           <form className="mt-10 space-y-8">
-            <input type="text" placeholder="Your Name" className={inputClass} />
-            <input type="email" placeholder="Your Email" className={inputClass} />
-            <textarea rows={4} placeholder="Your Message" className={`${inputClass} resize-none`} />
+            <input type="text" placeholder={t("name")} className={inputClass} />
+            <input type="email" placeholder={t("email")} className={inputClass} />
+            <textarea rows={4} placeholder={t("message")} className={`${inputClass} resize-none`} />
             <button
               type="submit"
               className="font-nunito w-full rounded-xl bg-black px-8 py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-neutral-800"
             >
-              Send Message
+              {t("send")}
             </button>
           </form>
         </motion.div>

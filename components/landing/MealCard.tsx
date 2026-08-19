@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { motion } from "framer-motion"
 import { ShoppingCart, Check, Flame, ChevronDown } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { getCart, setCart } from "@/utils/cart"
 import type { MealServingOption } from "@/constants"
 
@@ -40,6 +41,7 @@ export function MealCard({
   width = "w-72 max-sm:w-48",
   className = "",
 }: FeaturedMealProps) {
+  const t = useTranslations("meals")
   const shortDesc = description.length > 70 ? description.slice(0, 70) + "..." : description
   const [imageHovered, setImageHovered] = useState(false)
   const [revealed, setRevealed] = useState(false)
@@ -74,7 +76,7 @@ export function MealCard({
 
   function handleAdd() {
     const cart = getCart()
-    const key = activeServing ? `${name} (${activeServing.name ?? "Serving"})` : name
+    const key = activeServing ? `${name} (${activeServing.name ?? t("servingFallback", { index: servingIndex + 1 })})` : name
     const existing = cart.find((item) => item.name === key)
     if (existing) {
       existing.qty += 1
@@ -130,16 +132,16 @@ export function MealCard({
               <select
                 value={servingIndex}
                 onChange={(e) => setServingIndex(Number(e.target.value))}
-                aria-label="Select serving size"
+                aria-label={t("servingAria")}
                 className="font-nunito w-20 cursor-pointer appearance-none rounded-full border border-white/15 bg-white/10 pb-1 pe-5 ps-2.5 pt-1 text-[11px] font-medium text-white/80 outline-none transition-colors hover:bg-white/15 focus:border-white/40"
               >
                 {servings.map((s, i) => (
-                  <option key={s.id} value={i}>{s.name ?? `Serving ${i + 1}`}</option>
+                  <option key={s.id} value={i}>{s.name ?? t("servingFallback", { index: i + 1 })}</option>
                 ))}
               </select>
               <ChevronDown
                 size={12}
-                className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-white/50"
+                className="pointer-events-none absolute end-2 top-1/2 -translate-y-1/2 text-white/50"
               />
             </div>
           )}
@@ -174,12 +176,12 @@ export function MealCard({
             {added ? (
               <>
                 <Check size={14} />
-                Added to Order
+                {t("added")}
               </>
             ) : (
               <>
                 <ShoppingCart size={14} />
-                Add to Order
+                {t("add")}
               </>
             )}
           </button>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
 import { ShoppingCart } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { getCartCount } from "@/utils/cart"
 
 interface CartButtonProps {
@@ -11,6 +12,7 @@ interface CartButtonProps {
 }
 
 export function CartButton({ mobile = false, onOpen }: CartButtonProps) {
+  const t = useTranslations("nav")
   const [count, setCount] = useState(0)
 
   useEffect(() => {
@@ -32,7 +34,7 @@ export function CartButton({ mobile = false, onOpen }: CartButtonProps) {
     <button
       onClick={onClick}
       className="relative rounded-full p-1.5 text-white/60 transition-colors hover:text-white"
-      aria-label="Open cart"
+      aria-label={t("openCart")}
     >
       <ShoppingCart size={mobile ? 17 : 17} />
       {count > 0 && (

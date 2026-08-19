@@ -1,7 +1,10 @@
 "use client"
 
-import Link from "next/link"
+import { useTranslations } from "next-intl"
+import { Link } from "@/i18n/navigation"
 import { motion } from "framer-motion"
+import { translateContent } from "@/constants/translations"
+import { useLocale } from "next-intl"
 import { MealCard } from "@/components/landing/MealCard"
 
 const featured = [
@@ -22,6 +25,14 @@ const fadeUp = {
 }
 
 export function Hero() {
+  const t = useTranslations("hero")
+  const locale = useLocale()
+  const translated = featured.map((item) => ({
+    ...item,
+    name: translateContent(item.name, locale),
+    description: translateContent(item.description, locale),
+  }))
+
   return (
     <section className="relative min-h-[122vh] overflow-hidden max-h-[122vh] bg-black max-sm:min-h-screen">
       <div
@@ -37,39 +48,35 @@ export function Hero() {
           animate="show"
           className="grid items-end gap-16 lg:grid-cols-2 max-sm:gap-8"
         >
-          <div>
-            <motion.p variants={fadeUp} className="text-[11px] font-semibold uppercase tracking-[0.3em] text-white/40">
-              Subscription Meal Plans
-            </motion.p>
-            <motion.h1 variants={fadeUp} className="font-playfair mt-5 text-5xl font-medium leading-tight text-white sm:text-6xl lg:text-7xl max-sm:text-4xl">
-              Fresh, Custom
-              <br />
-              Meal Plans —
-              <br />
-              Delivered
-            </motion.h1>
-            <motion.p variants={fadeUp} className="font-nunito mx-auto mt-6 text-sm leading-relaxed text-white/50">
-              CookConnect makes it easy to subscribe to a meal plan that fits your lifestyle.
-              Customize your weekly menu, and we&apos;ll handle the rest.
-            </motion.p>
+          <motion.div variants={fadeUp}>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-white/40">
+              {t("eyebrow")}
+            </p>
+            <h1 className="font-playfair mt-5 text-5xl font-medium leading-tight text-white sm:text-6xl lg:text-7xl max-sm:text-4xl">
+              {t("title")}
+            </h1>
+            <p className="font-nunito mx-auto mt-6 text-sm leading-relaxed text-white/50">
+              {t("subtitle")}
+              {t("subtitle2")}
+            </p>
             <motion.div variants={fadeUp} className="mt-10 flex items-center gap-4 max-sm:flex-col max-sm:items-start">
               <Link
                 href="#subscription"
                 className="rounded-xl bg-white px-7 py-3 text-sm font-semibold text-black transition-all hover:bg-white/90 max-sm:w-full max-sm:text-center"
               >
-                View Subscriptions
+                {t("cta")}
               </Link>
               <Link
                 href="#meals"
                 className="rounded-xl border border-white/20 px-7 py-3 text-sm font-semibold text-white transition-all hover:bg-white/10 max-sm:w-full max-sm:text-center"
               >
-                Explore Menu
+                {t("ctaSecondary")}
               </Link>
             </motion.div>
-          </div>
+          </motion.div>
 
           <motion.div variants={fadeUp} className="flex items-end justify-end max-sm:justify-center">
-            <img className="w-full hidden sm:flex max-w-lg object-contain" src="/hero-menu.png" alt="Menu preview" />
+            <img className="w-full hidden sm:flex max-w-lg object-contain" src="/hero-menu.png" alt={t("imageAlt")} />
           </motion.div>
         </motion.div>
 
@@ -78,7 +85,7 @@ export function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.8, ease: [0.25, 0.1, 0.25, 1] as const }}
           className="flex gap-10 overflow-y-hidden overflow-x-auto pb-2 justify-center max-sm:-mx-4 max-sm:flex-nowrap max-sm:justify-start max-sm:overflow-x-auto max-sm:px-4 max-sm:snap-x max-sm:snap-mandatory items-stretch">
-            {featured.map((item) => (
+            {translated.map((item) => (
               <MealCard key={item.name} {...item} />
             ))}
           </motion.div>

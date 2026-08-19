@@ -2,12 +2,15 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
+import { Link } from "@/i18n/navigation"
 import { useAuth } from "@/hooks/AuthProvider"
 
 const inputClass =
   "font-nunito w-full rounded-lg border border-black/10 bg-transparent px-3 py-3 text-sm text-black outline-none transition-colors placeholder:text-black/20 focus:border-black"
 
 function LoginForm() {
+  const t = useTranslations("login")
   const router = useRouter()
   const { signIn } = useAuth()
   const [email, setEmail] = useState("")
@@ -24,7 +27,7 @@ function LoginForm() {
       router.push(`/${role}`)
     } catch (e) {
       console.error("[LOGIN] Manual login error:", e)
-      setError(e instanceof Error ? e.message : "Invalid email or password.")
+      setError(e instanceof Error ? e.message : t("invalid"))
       setLogging(null)
     }
   }
@@ -42,11 +45,11 @@ function LoginForm() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="font-nunito mb-1 block text-xs font-semibold uppercase tracking-wider text-black/30">Email</label>
+                <label className="font-nunito mb-1 block text-xs font-semibold uppercase tracking-wider text-black/30">{t("email")}</label>
                 <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
               </div>
               <div>
-                <label className="font-nunito mb-1 block text-xs font-semibold uppercase tracking-wider text-black/30">Password</label>
+                <label className="font-nunito mb-1 block text-xs font-semibold uppercase tracking-wider text-black/30">{t("password")}</label>
                 <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className={inputClass} />
               </div>
               {error && (
@@ -57,15 +60,15 @@ function LoginForm() {
                 disabled={logging !== null}
                 className="font-nunito w-full rounded-xl bg-brand-900 px-8 py-3 text-sm font-semibold text-white transition-all hover:bg-brand-900/90 disabled:opacity-50"
               >
-                {logging === "form" ? "Signing in..." : "Sign In"}
+                {logging === "form" ? t("signingIn") : t("signIn")}
               </button>
             </form>
 
             <p className="font-nunito mt-8 text-center text-sm text-black">
-              Don&apos;t have an account?{" "}
-              <a href="/#contact" className="font-semibold underline underline-offset-2 transition-colors hover:text-brand-900">
-                Contact your restaurant administrator.
-              </a>
+              {t("noAccount")}{" "}
+              <Link href="/#contact" className="font-semibold underline underline-offset-2 transition-colors hover:text-brand-900">
+                {t("contactAdmin")}
+              </Link>
             </p>
           </div>
         </div>

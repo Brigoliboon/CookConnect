@@ -3,11 +3,13 @@
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Trash2, Minus, Plus, X, CheckCircle2, User, Mail, Phone, MapPin, Check, MessageCircle } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { getCart, setCart, type CartItem } from "@/utils/cart"
 import { LocationPicker, type Coordinates } from "@/components/ui/LocationPicker"
 import { resolveDeliveryAddress, formatPrice } from "@/utils/mapbox"
 
 export function CartDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const t = useTranslations("cart")
   const [cart, setCartState] = useState<CartItem[]>([])
   const [submitted, setSubmitted] = useState(false)
   const [location, setLocation] = useState<Coordinates | null>(null)
@@ -75,7 +77,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
 
   function handleConfirmLocation() {
     if (!location) {
-      setLocationError("Please set a delivery location")
+      setLocationError(t("locError"))
       return
     }
     setLocationError("")
@@ -95,14 +97,14 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
         }
       })
       .catch(() => {
-        setLocationError("Unable to resolve delivery address. Please try again.")
+        setLocationError(t("resolveError"))
       })
       .finally(() => setLocating(false))
   }
 
   async function handleSubmit() {
     if (!confirmed || feeCents === null) {
-      setLocationError("Please confirm a supported delivery location")
+      setLocationError(t("confirmError"))
       return
     }
     if (!form.name || !form.email || !form.mobile || !form.address) {
@@ -133,11 +135,11 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
       })
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error ?? "Failed to place order")
+        throw new Error(err.error ?? t("failError"))
       }
       setSubmitted(true)
     } catch (e) {
-      setSubmitError(e instanceof Error ? e.message : "Failed to place order")
+      setSubmitError(e instanceof Error ? e.message : t("failError"))
     } finally {
       setSubmitting(false)
     }
@@ -174,14 +176,14 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-neutral-900">Your Order</h2>
+              <h2 className="text-lg font-bold text-neutral-900">{t("title")}</h2>
               <button onClick={onClose} className="text-neutral-400 transition-colors hover:text-neutral-700">
                 <X size={20} />
               </button>
             </div>
 
             {cart.length === 0 ? (
-              <p className="py-10 text-center text-sm text-neutral-400">Your cart is empty.</p>
+              <p className="py-10 text-center text-sm text-neutral-400">{t("empty")}</p>
             ) : (
               <div className="space-y-3">
                 {cart.map((item) => (
@@ -201,7 +203,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                         <button
                           onClick={() => changeQty(item.name, -1)}
                           className="flex size-7 items-center justify-center rounded-lg border border-neutral-200 text-neutral-600 transition-colors hover:bg-neutral-100"
-                          aria-label="Decrease quantity"
+                          aria-label={t("decrease")}
                         >
                           <Minus size={12} />
                         </button>
@@ -209,7 +211,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                         <button
                           onClick={() => changeQty(item.name, 1)}
                           className="flex size-7 items-center justify-center rounded-lg border border-neutral-200 text-neutral-600 transition-colors hover:bg-neutral-100"
-                          aria-label="Increase quantity"
+                          aria-label={t("increase")}
                         >
                           <Plus size={12} />
                         </button>
@@ -217,14 +219,14 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                       <button
                         onClick={() => setNoteOpen(noteOpen === item.name ? null : item.name)}
                         className={`transition-colors ${item.note ? "text-brand-900" : "text-neutral-400 hover:text-neutral-700"}`}
-                        aria-label={item.note ? "Edit note" : "Add note"}
+                        aria-label={item.note ? t("editNote") : t("addNote")}
                       >
                         <MessageCircle size={16} />
                       </button>
                       <button
                         onClick={() => removeItem(item.name)}
                         className="text-neutral-400 transition-colors hover:text-red-500"
-                        aria-label="Remove item"
+                        aria-label={t("remove")}
                       >
                         <Trash2 size={16} />
                       </button>
@@ -234,13 +236,13 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                         <div className="flex items-center gap-1.5">
                           <MessageCircle size={12} className="text-neutral-400" />
                           <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
-                            Note for this item
+                            {t("noteTitle")}
                           </span>
                         </div>
                         <input
                           value={item.note ?? ""}
                           onChange={(e) => setItemNote(item.name, e.target.value)}
-                          placeholder="e.g. no onions, extra spicy"
+                          placeholder={t("notePlaceholder")}
                           className="mt-1 w-full rounded-lg border border-neutral-200 px-3 py-2 text-xs text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900"
                         />
                       </div>
@@ -248,7 +250,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                   </div>
                 ))}
                 <div className="flex items-center justify-between border-t border-neutral-100 pt-3 text-sm">
-                  <span className="text-neutral-500">Subtotal</span>
+                  <span className="text-neutral-500">{t("subtotal")}</span>
                   <span className="font-bold text-neutral-900">{subtotal} AED</span>
                 </div>
               </div>
@@ -258,20 +260,20 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
               <div>
                 <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
                   <User size={13} />
-                  Full Name
+                  {t("fullName")}
                 </label>
                 <input
                   required
                   value={form.name}
                   onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                   className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900"
-                  placeholder="John Doe"
+                  placeholder={t("namePlaceholder")}
                 />
               </div>
               <div>
                 <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
                   <Mail size={13} />
-                  Email
+                  {t("email")}
                 </label>
                 <input
                   type="email"
@@ -279,13 +281,13 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                   value={form.email}
                   onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
                   className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900"
-                  placeholder="john@example.com"
+                  placeholder={t("emailPlaceholder")}
                 />
               </div>
               <div>
                 <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
                   <Phone size={13} />
-                  Mobile Number
+                  {t("mobile")}
                 </label>
                 <input
                   type="tel"
@@ -293,13 +295,13 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                   value={form.mobile}
                   onChange={(e) => setForm((p) => ({ ...p, mobile: e.target.value }))}
                   className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900"
-                  placeholder="+971 50 123 4567"
+                  placeholder={t("mobilePlaceholder")}
                 />
               </div>
               <div>
                 <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
                   <MapPin size={13} />
-                  Delivery Location
+                  {t("deliveryLocation")}
                   <span className="text-red-500">*</span>
                 </label>
                 <LocationPicker value={location} onChange={(loc) => { setLocation(loc); setConfirmed(false); setFeeCents(null); setUnsupported(false); setLocationError("") }} />
@@ -309,21 +311,21 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                   className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-900/20 py-2 text-xs font-semibold text-neutral-900 transition-all hover:bg-neutral-900 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {locating ? (
-                    "Resolving address..."
+                    t("resolving")
                   ) : confirmed ? (
                     <>
                       <Check size={14} />
-                      Address Confirmed
+                      {t("confirmed")}
                     </>
                   ) : (
-                    "Confirm Location"
+                    t("confirmLocation")
                   )}
                 </button>
                 {unsupported && (
                   <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-4">
-                    <p className="text-sm font-bold text-red-600">Delivery Not Available</p>
+                    <p className="text-sm font-bold text-red-600">{t("unsupportedTitle")}</p>
                     <p className="mt-1 text-sm font-medium leading-relaxed text-red-500">
-                      Delivery is not supported to your location. We currently deliver to Dubai, Sharjah, Um Al Quwain, and Ajman.
+                      {t("unsupportedBody")}
                     </p>
                   </div>
                 )}
@@ -331,7 +333,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
               </div>
               {form.address && (
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-neutral-500">Delivery Address</label>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-neutral-500">{t("deliveryAddress")}</label>
                   <input
                     readOnly
                     value={form.address}
@@ -343,15 +345,15 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
               {feeCents !== null && (
                 <div className="rounded-xl bg-neutral-50 p-4 text-sm">
                   <div className="flex items-center justify-between text-neutral-500">
-                    <span>{itemCount} item{itemCount !== 1 ? "s" : ""}</span>
+                    <span>{t("itemCount", { count: itemCount })}</span>
                     <span>{formatPrice(subtotal * 100)}</span>
                   </div>
                   <div className="mt-1.5 flex items-center justify-between text-neutral-500">
-                    <span>Shipping fee</span>
-                    <span>{feeCents === 0 ? "Free" : formatPrice(feeCents)}</span>
+                    <span>{t("shipping")}</span>
+                    <span>{feeCents === 0 ? t("free") : formatPrice(feeCents)}</span>
                   </div>
                   <div className="mt-3 flex items-center justify-between border-t border-neutral-200 pt-3 font-bold text-neutral-900">
-                    <span>Total</span>
+                    <span>{t("total")}</span>
                     <span>{formatPrice(total * 100)}</span>
                   </div>
                 </div>
@@ -366,23 +368,23 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                 className="mt-0.5 size-4 shrink-0 cursor-pointer accent-neutral-900"
               />
               <span>
-                By placing an order, I agree to the{" "}
+                {t("consentPrefix")}{" "}
                 <a
                   href="/terms"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-semibold text-neutral-900 underline underline-offset-2 hover:text-brand-900"
                 >
-                  Terms and Conditions
-                </a>{" "}
-                and{" "}
+                  {t("termsLink")}
+                </a>
+                {t("and")}
                 <a
                   href="/privacy"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-semibold text-neutral-900 underline underline-offset-2 hover:text-brand-900"
                 >
-                  Privacy Policy
+                  {t("privacyLink")}
                 </a>
                 .
               </span>
@@ -393,11 +395,11 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
               disabled={cart.length === 0 || !confirmed || feeCents === null || !consent || submitting}
               className="mt-3 w-full rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white shadow-lg shadow-neutral-900/20 transition-all hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {submitting ? "Placing order..." : "Place Order"}
+              {submitting ? t("placing") : t("placeOrder")}
             </button>
             {submitError && <p className="mt-2 text-center text-xs text-red-500">{submitError}</p>}
             <p className="mt-2 text-center text-xs text-neutral-400">
-              You will be placing an inquiry with the restaurant — our team will confirm your order shortly.
+              {t("inquiryNote")}
             </p>
           </motion.div>
         </motion.div>
@@ -425,15 +427,15 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
             >
               <CheckCircle2 size={32} />
             </motion.div>
-            <h2 className="mt-5 text-xl font-bold text-neutral-900">Order Received!</h2>
+            <h2 className="mt-5 text-xl font-bold text-neutral-900">{t("successTitle")}</h2>
             <p className="mt-2 text-sm leading-relaxed text-neutral-500">
-              Your order has been received successfully. CookConnect will reach out to you soon about your order.
+              {t("successBody")}
             </p>
             <button
               onClick={handleDone}
               className="mt-6 w-full rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white shadow-lg shadow-neutral-900/20 transition-all hover:bg-neutral-800"
             >
-              Done
+              {t("done")}
             </button>
           </motion.div>
         </motion.div>

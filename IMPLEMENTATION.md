@@ -11,8 +11,9 @@
 | Auth | Supabase Auth — *not yet wired* |
 | Maps | react-map-gl (Mapbox GL JS wrapper) |
 | Animation | framer-motion |
-| Backend | Next.js API Routes — *not yet created* |
+| Backend | Next.js API Routes |
 | Icons | lucide-react |
+| i18n | next-intl v4 (routing + messages) — locales `en` / `ar` |
 
 ## Color Palette
 
@@ -35,26 +36,30 @@
 
 ```
 app/
-├── (authenticated)/                    # Protected — checks user role, mounts Navbar
-│   ├── layout.tsx                      # AuthProvider + AuthGuard + Navbar wrapper
+├── [locale]/                             # Public pages — locale-prefixed (en/ar, as-needed)
+│   ├── layout.tsx                        # Root layout: <html lang/dir>, fonts, Providers, NextIntlClientProvider
+│   ├── page.tsx                          # / — Landing page (en canonical at /, ar at /ar)
+│   ├── login/page.tsx                    # /login — Quick-role buttons + email/password form
+│   ├── terms/page.tsx                    # /terms — Service Agreement (message-driven)
+│   └── privacy/page.tsx                  # /privacy — Privacy Policy (message-driven)
+├── (authenticated)/                      # Protected — checks user role, mounts Navbar (root layout #2)
+│   ├── layout.tsx                        # AuthProvider + AuthGuard + Navbar wrapper
 │   ├── customer/
-│   │   ├── page.tsx                    # /customer — Dashboard (stats, map image, meal plan)
-│   │   └── profile/page.tsx            # /customer/profile — Edit profile
+│   │   ├── page.tsx                      # /customer — Dashboard (stats, map image, meal plan)
+│   │   └── profile/page.tsx              # /customer/profile — Edit profile
 │   ├── employee/
-│   │   ├── page.tsx                    # /employee — Dashboard (stats, map, quick actions, StatusGallery)
-│   │   ├── customers/page.tsx          # /employee/customers — Table with search + status icons
-│   │   ├── customers/[id]/page.tsx     # /employee/customers/[id] — Detail/edit
-│   │   ├── subscriptions/page.tsx      # /employee/subscriptions — Gallery + create form (same page)
-│   │   ├── deliveries/page.tsx         # /employee/deliveries — Map + inline edit table
-│   │   └── accounts/page.tsx           # /employee/accounts — Table with filters + CSV export
+│   │   ├── page.tsx                      # /employee — Dashboard (stats, map, quick actions, StatusGallery)
+│   │   ├── customers/page.tsx            # /employee/customers — Table with search + status icons
+│   │   ├── customers/[id]/page.tsx       # /employee/customers/[id] — Detail/edit
+│   │   ├── subscriptions/page.tsx        # /employee/subscriptions — Gallery + create form (same page)
+│   │   ├── deliveries/page.tsx           # /employee/deliveries — Map + inline edit table
+│   │   └── accounts/page.tsx             # /employee/accounts — Table with filters + CSV export
 │   └── rider/
-│       └── page.tsx                    # /rider — Full-screen map + bottom sheet (was /rider/dashboard)
-├── (unauthenticated)/                  # Public pages
-│   ├── layout.tsx                      # No auth guard
-│   ├── page.tsx                        # / — Landing page (server component)
-│   └── login/page.tsx                  # /login — Quick-role buttons + email/password form
-├── layout.tsx                          # Root layout (fonts, metadata)
-└── globals.css                         # Tailwind v4 theme + base styles
+│       └── page.tsx                      # /rider — Full-screen map + bottom sheet
+├── sticker-preview/                      # Root layout #3 — minimal standalone page
+│   └── page.tsx
+├── proxy.ts                              # Middleware (Next 16): supabase auth + next-intl locale
+└── globals.css                           # Tailwind v4 theme + base styles
 ```
 
 ## Components
@@ -180,6 +185,19 @@ Checkpoint (all must pass before marking complete):
 - [x] Lint + typecheck pass
 - [ ] **Pending:** Postman verification of `tests/SUBSCRIPTIONS_BACKEND_TESTCASE.md` (P1–P2, S1–S7) + RLS checks across customer/employee/anonymous sessions
 
+### Module 9: Public Landing — Arabic (i18n) — ✅ Complete
+
+- next-intl v4 wiring: `i18n/routing.ts` (locales en/ar, `as-needed` prefix), `i18n/navigation.ts` (locale-aware Link/useRouter), `i18n/request.ts` (getRequestConfig + hasLocale fallback), `next.config.ts` via `createNextIntlPlugin`
+- `proxy.ts` merges supabase auth middleware with `createMiddleware(routing)` (Next 16 renamed middleware → proxy)
+- Three root layouts: `app/[locale]` (public), `app/(authenticated)` (dashboards), `app/sticker-preview`
+- `messages/en.json` + `messages/ar.json` namespaces: meta, nav, hero, featured, healthy, subscription, about, contact, footer, cart, gallery, meals, login, terms, privacy, lang
+- `lib/fonts.ts` + `globals.css`: Cairo font for Arabic; RTL font-variable swap via `html[dir="rtl"]`
+- `constants/translations.ts`: `AR_CONTENT` dictionary + `translateContent(text, locale)` for menu/category/plan data (English fallback; DB bilingual columns deferred)
+- Landing components converted to `useTranslations`: Nav (+language toggle), CartButton, Hero, Footer, Contact, AboutUs, Subscription, MealCard, CartDialog, HealthyCampaign, FeaturedMeals, FeaturedSection, MealsDisplay, DrinkCard, GalleryCard, PremiumGallery
+- Pages converted: `[locale]/page`, `[locale]/login`, `[locale]/terms`, `[locale]/privacy` (legal content message-driven)
+- English canonical at `/`; Arabic at `/ar/*` — no `/en` prefix in URLs
+- Checkpoints: `npx tsc --noEmit` clean; `eslint` no errors on converted files; `npm run build` SSG for `/`, `/en/*`, `/ar/*`; auth dashboards unchanged
+
 ---
 
 ## Key Decisions
@@ -192,19 +210,23 @@ Checkpoint (all must pass before marking complete):
 - Rider location tracking uses browser Geolocation API (`watchPosition` + high accuracy)
 - Table uses unconstrained generic `<T>` with internal casting for interface flexibility
 - Login page has quick-role buttons for development/testing
+- next-intl over manual i18n; `as-needed` prefix keeps English canonical at `/` (Arabic only at `/ar`)
+- Menu/category/plan content translated via `AR_CONTENT` dictionary + fallback instead of DB columns (bilingual admin UI = future module)
+- Cairo font loaded once; RTL font-variable swap in CSS instead of per-locale font loading
 
 ---
 
 ## Gaps / Next Steps
 
 1. **Supabase Auth** — wire signIn/signOut, session management, role-based redirects
-2. **API Routes** — create REST endpoints under `app/api/`
-3. **Database** — create Supabase project, run schema migrations
-4. **Replace mock data** — connect pages to API layer
-5. **Test files** — create testcase files per module (no test coverage exists)
-6. **`lib/` directory** — create Supabase client/server helpers
-7. **Middleware** — server-side route protection
+2. **API Routes** — create REST endpoints under `app/api/` (most exist now; wire remaining dashboards)
+3. **Database** — create Supabase project, run schema migrations (deployed live for subscriptions/servings/orders)
+4. **Replace mock data** — connect remaining pages to API layer
+5. **Test files** — create testcase files per module (module testcases exist for subscriptions backend)
+6. **`lib/` directory** — Supabase client/server helpers (`lib/supabase/...`)
+7. **Middleware** — server-side route protection ✅ (via `proxy.ts`)
 8. **Update IMPLEMENTATION.md** — keep in sync with actual route structure ✅
+9. **Bilingual DB columns** (`name_ar`, `description_ar`, ...) + bilingual admin UI — separate future module (currently via `AR_CONTENT` dictionary)
 
 ---
 

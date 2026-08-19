@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import Link from "next/link"
+import { useTranslations, useLocale } from "next-intl"
+import { translateContent } from "@/constants/translations"
 import type { MenuCategory, MenuItem } from "@/constants"
 import { MENU_CATEGORIES } from "@/constants"
 import { GalleryCard } from "@/components/landing/GalleryCard"
@@ -23,6 +25,8 @@ const fadeUp = {
 const categories = MENU_CATEGORIES.map((c) => c.value)
 
 export function HealthyCampaign() {
+  const t = useTranslations("healthy")
+  const locale = useLocale()
   const [allItems, setAllItems] = useState<MenuItem[]>([])
   const [active, setActive] = useState<MenuCategory>("chicken")
   const [page, setPage] = useState(0)
@@ -86,7 +90,7 @@ export function HealthyCampaign() {
           custom={1}
           className="font-nunito mt-6 text-center text-base text-black/40 max-sm:text-sm"
         >
-          Fresh ingredients, vibrant meals — eat the rainbow every day.
+          {t("tagline")}
         </motion.p>
 
         <motion.div
@@ -96,26 +100,23 @@ export function HealthyCampaign() {
         >
           <div className="relative z-10 w-[55%] max-sm:w-full">
             <h2 className="font-nunito text-3xl font-semibold leading-tight text-white sm:text-4xl lg:text-5xl max-sm:text-2xl">
-              Eat Healthy,
-              <br />
-              Stay Healthy.
+              {t("campaignTitle")}
             </h2>
             <p className="font-nunito mt-4 max-w-sm text-base leading-relaxed text-white/60 max-sm:text-sm">
-              Every plate is built around fresh produce, lean proteins,
-              and whole grains — because the best fuel comes from nature.
+              {t("campaignBody")}
             </p>
             <a
               href="#subscription"
               className="font-nunito mt-6 inline-flex items-center rounded-xl bg-white/10 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/20"
             >
-              View Healthy Plan
+              {t("campaignCta")}
             </a>
           </div>
 
           <div className="absolute bottom-0 right-0 top-0 z-0 flex w-[55%] items-end justify-end overflow-visible max-sm:hidden">
             <img
               src="/health-section.png"
-              alt="Fresh salad bowl"
+              alt={t("imgAlt")}
               className="mr-[-10%] h-[130%] w-auto translate-y-[5%] object-contain drop-shadow-2xl max-sm:mr-[-20%] max-sm:h-[100%]"
             />
           </div>
@@ -123,10 +124,10 @@ export function HealthyCampaign() {
 
         <motion.div variants={fadeUp} custom={3} className="mt-24 max-sm:mt-16">
           <span className="font-nunito inline-block text-[11px] font-semibold uppercase tracking-[0.3em] text-black/30">
-            Health Bites
+            {t("sectionLabel")}
           </span>
           <h3 className="font-playfair mt-4 text-4xl font-medium leading-tight text-black sm:text-5xl max-sm:text-3xl">
-            Did You Know?
+            {t("didYouKnow")}
           </h3>
           <div className="mt-6 h-px w-12 bg-black/20" />
           <div className="mt-10 flex flex-col gap-4">
@@ -136,12 +137,7 @@ export function HealthyCampaign() {
                 alt=""
                 className="w-32 h-48 shrink-0 rounded object-cover max-sm:w-24 max-sm:h-36"
               />
-              <p className="font-nunito text-xl leading-loose text-black/50 max-sm:text-lg">
-                Every plate at CookConnect starts with farm-fresh greens — crisp kale,
-                peppery arugula, and tender spinach harvested within 48 hours of your
-                delivery. Packed with iron and nitrates that boost oxygen flow, these
-                leafy foundations fuel natural energy without the afternoon crash.
-              </p>
+              <p className="font-nunito text-xl leading-loose text-black/50 max-sm:text-lg">{t("fact1")}</p>
             </div>
             <div className="flex flex-col items-center gap-6 rounded-xl p-4 transition-transform duration-300 hover:-translate-y-1 sm:flex-row">
               <img
@@ -149,12 +145,7 @@ export function HealthyCampaign() {
                 alt=""
                 className="w-32 h-48 shrink-0 rounded object-cover max-sm:w-24 max-sm:h-36"
               />
-              <p className="font-nunito text-xl leading-loose text-black/50 max-sm:text-lg">
-                Calorie-counting shouldn&apos;t mean flavour-counting. Our chef team
-                crafts each meal using bold spices, citrus marinades,
-                and umami-rich reductions — so every bite hits hard while your
-                daily targets stay on track.
-              </p>
+              <p className="font-nunito text-xl leading-loose text-black/50 max-sm:text-lg">{t("fact2")}</p>
             </div>
             <div className="flex flex-col items-center gap-6 rounded-xl p-4 transition-transform duration-300 hover:-translate-y-1 sm:flex-row">
               <img
@@ -162,29 +153,24 @@ export function HealthyCampaign() {
                 alt=""
                 className="w-32 h-48 shrink-0 rounded object-cover max-sm:w-24 max-sm:h-36"
               />
-              <p className="font-nunito text-xl leading-loose text-black/50 max-sm:text-lg">
-                Within your first week, our members tell us the fatigue 
-                lifts. Lean proteins, complex carbs, and dense greens fuel your muscles 
-                and steady your blood sugar — turning afternoon crashes into sustained 
-                power, set after set.
-              </p>
+              <p className="font-nunito text-xl leading-loose text-black/50 max-sm:text-lg">{t("fact3")}</p>
             </div>
           </div>
         </motion.div>
 
         <motion.div variants={fadeUp} custom={4} className="mt-24 max-sm:mt-16">
           <span className="font-nunito inline-block text-[11px] font-semibold uppercase tracking-[0.3em] text-black/30">
-            The Fresh Pantry
+            {t("pantryLabel")}
           </span>
           <h3 className="font-playfair mt-4 text-4xl font-medium leading-tight text-black sm:text-5xl max-sm:text-3xl">
-            Real Ingredients, Real Results
+            {t("pantryTitle")}
           </h3>
         </motion.div>
 
         <div className="mt-16 max-sm:mt-10">
           <div className="flex gap-1 overflow-x-auto rounded-xl bg-neutral-100 p-1">
             {categories.map((cat) => {
-              const label = MENU_CATEGORIES.find((c) => c.value === cat)!.label
+              const label = translateContent(MENU_CATEGORIES.find((c) => c.value === cat)!.label, locale)
               const isActive = active === cat
               return (
                 <button
@@ -234,13 +220,13 @@ export function HealthyCampaign() {
                       className="flex justify-center max-sm:shrink-0"
                     >
                       <GalleryCard
-                        name={item.name}
+                        name={translateContent(item.name, locale)}
                         price={item.price}
                         calories={item.calories}
                         protein={item.protein}
                         carbs={item.carbs}
                         fats={item.fats}
-                        description={item.description}
+                        description={translateContent(item.description, locale)}
                         image={item.image_path ?? `https://picsum.photos/seed/${item.id}/400/280`}
                         onClick={() => setSelected(item)}
                         className="w-full max-w-[241px]"
@@ -254,7 +240,7 @@ export function HealthyCampaign() {
                     className="col-span-full flex h-[290px] flex-col items-center justify-center gap-3 text-black/30"
                   >
                     <span className="text-4xl">🍽️</span>
-                    <p className="text-sm">No meals in this category yet.</p>
+                    <p className="text-sm">{t("emptyState")}</p>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -265,7 +251,7 @@ export function HealthyCampaign() {
               href="/employee/meals"
               className="font-nunito inline-flex items-center gap-2 rounded-xl border border-brand-900/30 px-6 py-3 text-sm font-semibold text-brand-900 drop-shadow-md transition-all hover:bg-brand-900/5 max-sm:px-5 max-sm:py-2.5 max-sm:text-xs"
             >
-              View Full Menu
+              {t("viewMenu")}
             </Link>
           </div>
         </div>

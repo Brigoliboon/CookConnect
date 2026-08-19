@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
+import { useTranslations, useLocale } from "next-intl"
+import { translateContent } from "@/constants/translations"
 import { PremiumGallery } from "@/components/landing/PremiumGallery"
 import { MealCard } from "@/components/landing/MealCard"
 import type { MealServingOption } from "@/constants"
@@ -70,21 +72,21 @@ function mapRecipe(r: Record<string, unknown>): MenuItem {
 }
 
 const categories = [
-  { id: "meals", label: "Meals", image: "/menus/beef-steak.png", subs: ["Beef", "Chicken", "Seafood", "Soup", "Breakfast"] },
-  { id: "salad", label: "Salad", image: "/menus/salad.png" },
-  { id: "pasta", label: "Pasta", image: "/icons/pasta_model.svg" },
-  { id: "wraps", label: "Wraps", image: "/icons/wraps_model.svg" },
-  { id: "pizza", label: "Pizza", image: "/icons/pizza_model.svg" },
-  { id: "burgers", label: "Burgers 'n Fries", image: "/icons/burgernfries_model.svg" },
-  { id: "drinks", label: "Drinks", image: "/drink_sample.svg" },
+  { id: "meals", image: "/menus/beef-steak.png", subs: ["beef", "chicken", "seafood", "soup", "breakfast"] },
+  { id: "salad", image: "/menus/salad.png" },
+  { id: "pasta", image: "/icons/pasta_model.svg" },
+  { id: "wraps", image: "/icons/wraps_model.svg" },
+  { id: "pizza", image: "/icons/pizza_model.svg" },
+  { id: "burgers", image: "/icons/burgernfries_model.svg" },
+  { id: "drinks", image: "/drink_sample.svg" },
 ]
 
 const subValues: Record<string, string> = {
-  Beef: "beef",
-  Chicken: "chicken",
-  Seafood: "seafood",
-  Soup: "soup",
-  Breakfast: "breakfast",
+  beef: "beef",
+  chicken: "chicken",
+  seafood: "seafood",
+  soup: "soup",
+  breakfast: "breakfast",
 }
 
 const catValues: Record<string, string> = {
@@ -97,10 +99,12 @@ const catValues: Record<string, string> = {
 }
 
 export function FeaturedMeals() {
+  const t = useTranslations("featured")
+  const locale = useLocale()
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState("meals")
-  const [activeSub, setActiveSub] = useState("Beef")
+  const [activeSub, setActiveSub] = useState("beef")
   const activeCat = categories.find((c) => c.id === activeCategory)
 
   useEffect(() => {
@@ -130,7 +134,7 @@ export function FeaturedMeals() {
           custom={0}
           className="font-nunito text-[11px] font-semibold uppercase tracking-[0.3em] text-white/50"
         >
-          Chef&apos;s Selection
+          {t("eyebrow")}
         </motion.p>
 
         <motion.h2
@@ -141,7 +145,7 @@ export function FeaturedMeals() {
           custom={1}
           className="font-playfair mt-4 text-4xl font-medium leading-tight text-white sm:text-5xl max-sm:text-3xl"
         >
-          Curated Plates
+          {t("title")}
         </motion.h2>
 
         <motion.p
@@ -152,7 +156,7 @@ export function FeaturedMeals() {
           custom={2}
           className="font-nunito mt-3 text-sm font-light text-white/55 max-sm:text-xs"
         >
-          The image shown is for presentation only — the actual dish may vary from what is displayed.
+          {t("disclaimer")}
         </motion.p>
 
         {/* Gallery */}
@@ -163,11 +167,11 @@ export function FeaturedMeals() {
             </div>
           ) : filtered.length > 0 ? (
             filtered.map((item) => (
-              <MealCard key={item.name} {...item} scale={1} />
+              <MealCard key={item.name} {...item} scale={1} name={translateContent(item.name, locale)} description={translateContent(item.description, locale)} />
             ))
           ) : (
             <div className="flex h-full w-full items-center justify-center">
-              <p className="font-nunito text-sm text-white/50">Nothing here yet — coming soon.</p>
+              <p className="font-nunito text-sm text-white/50">{t("emptyState")}</p>
             </div>
           )}
         </PremiumGallery>
@@ -181,7 +185,7 @@ export function FeaturedMeals() {
             variants={fadeUp}
             className="font-nunito text-2xl font-medium leading-tight text-white max-sm:text-xl"
           >
-            Want something else?
+            {t("navHeading")}
           </motion.p>
 
           <div className="mt-4 flex flex-wrap justify-center gap-3 max-sm:gap-2">
@@ -198,8 +202,8 @@ export function FeaturedMeals() {
                     : "border-white/10 bg-white/10 text-white hover:bg-white/20"
                 }`}
               >
-                <img src={cat.image} alt={cat.label} className="size-8 rounded-full object-cover max-sm:size-6" />
-                <span className="font-nunito text-sm font-semibold max-sm:text-xs">{cat.label}</span>
+                <img src={cat.image} alt={t(`cats.${cat.id}`)} className="size-8 rounded-full object-cover max-sm:size-6" />
+                <span className="font-nunito text-sm font-semibold max-sm:text-xs">{t(`cats.${cat.id}`)}</span>
               </motion.button>
             ))}
           </div>
@@ -221,7 +225,7 @@ export function FeaturedMeals() {
                         : "border-white/10 bg-white/5 text-white/70 hover:bg-white/15 hover:text-white"
                     }`}
                   >
-                    {sub}
+                    {t(`subs.${sub}`)}
                   </button>
                 ))}
               </div>

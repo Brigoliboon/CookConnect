@@ -47,6 +47,12 @@ html {
   scroll-behavior: smooth;
 }
 
+html[dir="rtl"] {
+  --font-sans: var(--font-cairo);
+  --font-nunito: var(--font-cairo);
+  --font-playfair: var(--font-cairo);
+}
+
 body {
   background: var(--color-surface);
   color: var(--color-text-primary);

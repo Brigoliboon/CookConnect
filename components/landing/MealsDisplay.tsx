@@ -1,6 +1,8 @@
 "use client"
 
 import { motion } from "framer-motion"
+import { useTranslations, useLocale } from "next-intl"
+import { translateContent } from "@/constants/translations"
 import { getMenuByCategory } from "@/constants"
 
 const categories = ["chicken", "beef", "seafood", "salad"] as const
@@ -21,7 +23,16 @@ const cardReveal = {
   }),
 }
 
+const catKeys = {
+  chicken: "categoryChicken",
+  beef: "categoryBeef",
+  seafood: "categorySeafood",
+  salad: "categorySalad",
+} as const
+
 export function MealsDisplay() {
+  const t = useTranslations("meals")
+  const locale = useLocale()
   return (
     <motion.section
       id="meals"
@@ -33,14 +44,14 @@ export function MealsDisplay() {
       <div className="mx-auto max-w-7xl">
         <motion.div variants={fadeUp} custom={0} className="text-center">
           <span className="font-nunito inline-block text-[11px] font-semibold uppercase tracking-[0.3em] text-black/30">
-            Our Selection
+            {t("ourSelection")}
           </span>
           <h2 className="font-playfair mt-4 text-5xl font-medium leading-tight text-black sm:text-6xl lg:text-7xl">
-            Curated for You
+            {t("curatedForYou")}
           </h2>
           <div className="mx-auto mt-6 h-px w-12 bg-black/20" />
           <p className="font-nunito mx-auto mt-6 max-w-md text-sm leading-relaxed text-black/50">
-            Every dish is thoughtfully composed — from protein to plate.
+            {t("subtitle")}
           </p>
         </motion.div>
 
@@ -50,9 +61,9 @@ export function MealsDisplay() {
             return (
               <motion.div key={cat} variants={fadeUp} custom={ci + 1}>
                 <div className="mb-10 flex items-center gap-4">
-                  <h3 className="font-playfair text-3xl font-medium capitalize text-black">{cat}</h3>
+                  <h3 className="font-playfair text-3xl font-medium capitalize text-black">{t(catKeys[cat])}</h3>
                   <div className="flex-1 border-t border-neutral-200" />
-                  <span className="font-nunito text-xs text-black/30">{items.length} items</span>
+                  <span className="font-nunito text-xs text-black/30">{t("items", { count: items.length })}</span>
                 </div>
                 <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                   {items.slice(0, 4).map((item, ii) => (
@@ -70,15 +81,15 @@ export function MealsDisplay() {
                       </div>
                       <div className="mt-4 space-y-1.5">
                         <div className="flex items-start justify-between gap-2">
-                          <p className="font-nunito text-sm font-semibold text-black">{item.name}</p>
+                          <p className="font-nunito text-sm font-semibold text-black">{translateContent(item.name, locale)}</p>
                           <p className="font-nunito shrink-0 text-sm font-semibold text-black/60">{item.price} DH</p>
                         </div>
-                        <p className="font-nunito text-xs leading-relaxed text-black/40 line-clamp-2">{item.description}</p>
+                        <p className="font-nunito text-xs leading-relaxed text-black/40 line-clamp-2">{translateContent(item.description, locale)}</p>
                         <div className="flex gap-3 pt-1.5">
-                          <span className="font-nunito text-[11px] text-black/30">{item.calories} cal</span>
-                          <span className="font-nunito text-[11px] text-black/30">P {item.protein}g</span>
-                          <span className="font-nunito text-[11px] text-black/30">C {item.carbs}g</span>
-                          <span className="font-nunito text-[11px] text-black/30">F {item.fats}g</span>
+                          <span className="font-nunito text-[11px] text-black/30">{t("calories", { value: item.calories })}</span>
+                          <span className="font-nunito text-[11px] text-black/30">{t("protein", { value: item.protein })}</span>
+                          <span className="font-nunito text-[11px] text-black/30">{t("carbs", { value: item.carbs })}</span>
+                          <span className="font-nunito text-[11px] text-black/30">{t("fats", { value: item.fats })}</span>
                         </div>
                       </div>
                     </motion.div>

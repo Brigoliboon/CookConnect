@@ -3,6 +3,8 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { useTranslations, useLocale } from "next-intl"
+import { translateContent } from "@/constants/translations"
 import { MealCard } from "@/components/landing/MealCard"
 
 const ITEMS_PER_PAGE = 4
@@ -46,6 +48,7 @@ const itemVar = {
 }
 
 function CarouselRow({ title, items }: { title: string; items: typeof meals }) {
+  const locale = useLocale()
   const [page, setPage] = useState(0)
   const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE)
   const start = page * ITEMS_PER_PAGE
@@ -85,7 +88,7 @@ function CarouselRow({ title, items }: { title: string; items: typeof meals }) {
               exit={{ opacity: 0, y: -40 }}
               transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
             >
-              <MealCard {...item} />
+              <MealCard {...item} name={translateContent(item.name, locale)} description={translateContent(item.description, locale)} />
             </motion.div>
           ))}
         </AnimatePresence>
@@ -95,11 +98,12 @@ function CarouselRow({ title, items }: { title: string; items: typeof meals }) {
 }
 
 export function FeaturedSection() {
+  const t = useTranslations("featured")
   return (
     <section className="bg-[#9A8678] px-8 py-16">
       <div className="space-y-16">
-        <CarouselRow title="From Our Kitchen" items={meals} />
-        <CarouselRow title="Refreshments" items={drinks} />
+        <CarouselRow title={t("fromOurKitchen")} items={meals} />
+        <CarouselRow title={t("refreshments")} items={drinks} />
       </div>
     </section>
   )

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { ShoppingCart, Check, Flame, Sun, Moon } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { getCart, setCart } from "@/utils/cart"
 
 interface GalleryCardProps {
@@ -21,6 +22,8 @@ interface GalleryCardProps {
 }
 
 export function GalleryCard({ name, price, calories, protein, carbs, fats, description, image, variant = "order", timeSlot, className, onClick, onAdd }: GalleryCardProps) {
+  const t = useTranslations("meals")
+  const tg = useTranslations("gallery")
   const [added, setAdded] = useState(false)
 
   function handleAdd() {
@@ -60,7 +63,7 @@ export function GalleryCard({ name, price, calories, protein, carbs, fats, descr
           {variant === "display" && timeSlot && (
             <p className="font-nunito mt-1 inline-flex items-center gap-1 text-xs text-black/30">
               {timeSlot === "morning" ? <Sun size={12} /> : <Moon size={12} />}
-              {timeSlot === "morning" ? "Morning" : "Night"}
+              {timeSlot === "morning" ? tg("morning") : tg("night")}
             </p>
           )}
         </div>
@@ -95,12 +98,12 @@ export function GalleryCard({ name, price, calories, protein, carbs, fats, descr
             {added ? (
               <>
                 <Check size={13} />
-                Added to Order
+                {t("added")}
               </>
             ) : (
               <>
                 <ShoppingCart size={13} />
-                Add to Order
+                {t("add")}
               </>
             )}
           </button>

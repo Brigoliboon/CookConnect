@@ -1,0 +1,428 @@
+{
+  "meta": {
+    "title": "CookConnect",
+    "description": "Subscription-based meal plan platform"
+  },
+  "nav": {
+    "menu": "Menu",
+    "pricing": "Pricing",
+    "about": "About",
+    "contact": "Contact",
+    "signIn": "Sign In",
+    "toggleTheme": "Toggle theme",
+    "toggleMenu": "Toggle menu",
+    "openCart": "Open cart"
+  },
+  "hero": {
+    "eyebrow": "Subscription Meal Plans",
+    "title": "Fresh, Custom Meal Plans — Delivered",
+    "subtitle": "CookConnect makes it easy to subscribe to a meal plan that fits your lifestyle.",
+    "subtitle2": "Customize your weekly menu, and we'll handle the rest.",
+    "cta": "View Subscriptions",
+    "ctaSecondary": "Explore Menu",
+    "imageAlt": "Menu preview"
+  },
+  "featured": {
+    "eyebrow": "Chef's Selection",
+    "title": "Curated Plates",
+    "disclaimer": "The image shown is for presentation only — the actual dish may vary from what is displayed.",
+    "emptyState": "Nothing here yet — coming soon.",
+    "navHeading": "Want something else?",
+    "cats": {
+      "meals": "Meals",
+      "salad": "Salad",
+      "pasta": "Pasta",
+      "wraps": "Wraps",
+      "pizza": "Pizza",
+      "burgers": "Burgers 'n Fries",
+      "drinks": "Drinks"
+    },
+    "subs": {
+      "beef": "Beef",
+      "chicken": "Chicken",
+      "seafood": "Seafood",
+      "soup": "Soup",
+      "breakfast": "Breakfast"
+    },
+    "fromOurKitchen": "From Our Kitchen",
+    "refreshments": "Refreshments"
+  },
+  "healthy": {
+    "tagline": "Fresh ingredients, vibrant meals — eat the rainbow every day.",
+    "campaignTitle": "Eat Healthy, Stay Healthy.",
+    "campaignBody": "Every plate is built around fresh produce, lean proteins, and whole grains — because the best fuel comes from nature.",
+    "campaignCta": "View Healthy Plan",
+    "sectionLabel": "Health Bites",
+    "didYouKnow": "Did You Know?",
+    "fact1": "Every plate at CookConnect starts with farm-fresh greens — crisp kale, peppery arugula, and tender spinach harvested within 48 hours of your delivery. Packed with iron and nitrates that boost oxygen flow, these leafy foundations fuel natural energy without the afternoon crash.",
+    "fact2": "Calorie-counting shouldn't mean flavour-counting. Our chef team crafts each meal using bold spices, citrus marinades, and umami-rich reductions — so every bite hits hard while your daily targets stay on track.",
+    "fact3": "Within your first week, our members tell us the fatigue lifts. Lean proteins, complex carbs, and dense greens fuel your muscles and steady your blood sugar — turning afternoon crashes into sustained power, set after set.",
+    "pantryLabel": "The Fresh Pantry",
+    "pantryTitle": "Real Ingredients, Real Results",
+    "emptyState": "No meals in this category yet.",
+    "viewMenu": "View Full Menu",
+    "imgAlt": "Fresh salad bowl"
+  },
+  "subscription": {
+    "eyebrow": "Pricing",
+    "title": "Choose Your Plan",
+    "subtitle": "Transparent pricing, no surprises. Change or cancel anytime.",
+    "recommended": "Recommended",
+    "currency": "AED",
+    "cta": "Subscribe"
+  },
+  "about": {
+    "eyebrow": "About Us",
+    "title": "Cooking with Purpose",
+    "p1Start": "We started the healthy food concept in ",
+    "p1Strong": "September 2016",
+    "p1Mid": " after realizing that food to us isn't just food. To us, it is a pathway to ",
+    "p1Strong2": "better energy levels, sharper mental clarity, improved mood, better health, and overall wellbeing",
+    "p1End": ". We saw that when you connect the dots between eating well and feeling refreshed, that's when good things happen. Our ingredients work their magic on your health and wellbeing, and that's what drives everything we do.",
+    "p2Start": "We are on a ",
+    "p2Strong": "mission to help people see, understand, and consume food in a totally new way",
+    "p2Mid": ". We want people to eat our food and feel amazing afterwards, and we want them to be surprised by just how delicious healthy food can be. More than that, we hope our food inspires people to eat healthier for good, to make better choices, and to be conscious of where their food comes from. It's about ",
+    "p2Strong2": "creating a lasting shift in how people think about nourishment",
+    "p2End": ". ",
+    "p3Strong": "Everything we serve is made by us",
+    "p3Mid": ". We know exactly where all our ingredients come from and we know how to cook them to get the most out of them, both in terms of flavour and nutrients. This commitment ensures that every meal is ",
+    "p3Strong2": "crafted with intention, delivering an exceptional and nourishing experience",
+    "p3End": " that leaves you feeling your best.",
+    "imgAlt": "CookConnect team"
+  },
+  "contact": {
+    "eyebrow": "Contact",
+    "title": "Let's Talk",
+    "subtitle": "We'll get back to you within 24 hours.",
+    "name": "Your Name",
+    "email": "Your Email",
+    "message": "Your Message",
+    "send": "Send Message",
+    "addressLabel": "Address",
+    "phoneLabel": "Phone",
+    "emailLabel": "Email",
+    "hoursLabel": "Hours"
+  },
+  "footer": {
+    "brand": "CookConnect",
+    "tagline": "Fresh, custom meal plans delivered to your door.",
+    "quickLinks": "Quick Links",
+    "contact": "Contact",
+    "menu": "Menu",
+    "pricing": "Pricing",
+    "about": "About",
+    "copyright": "CookConnect. All rights reserved.",
+    "loveWhatYouSee": "Love what you see?",
+    "contactDev": "Contact the developer"
+  },
+  "cart": {
+    "title": "Your Order",
+    "empty": "Your cart is empty.",
+    "decrease": "Decrease quantity",
+    "increase": "Increase quantity",
+    "editNote": "Edit note",
+    "addNote": "Add note",
+    "noteTitle": "Note for this item",
+    "notePlaceholder": "e.g. no onions, extra spicy",
+    "remove": "Remove item",
+    "subtotal": "Subtotal",
+    "fullName": "Full Name",
+    "namePlaceholder": "John Doe",
+    "email": "Email",
+    "emailPlaceholder": "john@example.com",
+    "mobile": "Mobile Number",
+    "mobilePlaceholder": "+971 50 123 4567",
+    "deliveryLocation": "Delivery Location",
+    "resolving": "Resolving address...",
+    "confirmed": "Address Confirmed",
+    "confirmLocation": "Confirm Location",
+    "locError": "Please set a delivery location",
+    "resolveError": "Unable to resolve delivery address. Please try again.",
+    "confirmError": "Please confirm a supported delivery location",
+    "failError": "Failed to place order",
+    "unsupportedTitle": "Delivery Not Available",
+    "unsupportedBody": "Delivery is not supported to your location. We currently deliver to Dubai, Sharjah, Um Al Quwain, and Ajman.",
+    "deliveryAddress": "Delivery Address",
+    "itemCount": "{count, plural, =1 {# item} other {# items}}",
+    "shipping": "Shipping fee",
+    "free": "Free",
+    "total": "Total",
+    "consentPrefix": "By placing an order, I agree to the ",
+    "termsLink": "Terms and Conditions",
+    "and": " and ",
+    "privacyLink": "Privacy Policy",
+    "placing": "Placing order...",
+    "placeOrder": "Place Order",
+    "inquiryNote": "You will be placing an inquiry with the restaurant — our team will confirm your order shortly.",
+    "successTitle": "Order Received!",
+    "successBody": "Your order has been received successfully. CookConnect will reach out to you soon about your order.",
+    "done": "Done"
+  },
+  "gallery": {
+    "morning": "Morning",
+    "night": "Night",
+    "prev": "Previous",
+    "next": "Next"
+  },
+  "meals": {
+    "added": "Added to Order",
+    "add": "Add to Order",
+    "servingAria": "Select serving size",
+    "servingFallback": "Serving {index}",
+    "ourSelection": "Our Selection",
+    "curatedForYou": "Curated for You",
+    "subtitle": "Every dish is thoughtfully composed — from protein to plate.",
+    "items": "{count, plural, =1 {# item} other {# items}}",
+    "categoryChicken": "Chicken",
+    "categoryBeef": "Beef",
+    "categorySeafood": "Seafood",
+    "categorySalad": "Salad",
+    "calories": "{value} Cal",
+    "protein": "P {value}g",
+    "carbs": "C {value}g",
+    "fats": "F {value}g"
+  },
+  "login": {
+    "email": "Email",
+    "password": "Password",
+    "signingIn": "Signing in...",
+    "signIn": "Sign In",
+    "invalid": "Invalid email or password.",
+    "noAccount": "Don't have an account?",
+    "contactAdmin": "Contact your restaurant administrator."
+  },
+  "terms": {
+    "title": "Service Agreement",
+    "license": "License No. 77454 · TRN: 100385961600003",
+    "intro": "This Meal Plan Service Agreement is entered into between Cook Connect Restaurant LLC and the individual purchasing a meal subscription. By purchasing, subscribing to, or renewing a meal plan, you acknowledge that you have read, understood, and agreed to be bound by this Agreement.",
+    "declarationTitle": "Customer Declaration",
+    "declarationItems": [
+      "I have read and understood this Meal Plan Service Agreement.",
+      "The information provided by me is complete and accurate.",
+      "I understand the refund and cancellation policy.",
+      "I agree to comply with the terms of this Agreement."
+    ],
+    "copyright": "© {year} Cook Connect Restaurant LLC. All rights reserved.",
+    "sections": [
+      {
+        "title": "Definitions",
+        "items": [
+          { "term": "Agreement", "desc": "This Meal Plan Service Agreement." },
+          { "term": "Meal Plan", "desc": "The subscription package purchased by the Customer." },
+          { "term": "Subscription", "desc": "The agreed duration of the Meal Plan." },
+          { "term": "Delivery Day", "desc": "Any scheduled day on which meals are delivered." },
+          { "term": "Website", "desc": "Cook Connect's official website or QR-code information portal containing operational information, policies, menus, FAQs, and customer forms." }
+        ]
+      },
+      {
+        "title": "Our Services",
+        "clauses": [
+          "Cook Connect provides freshly prepared meals delivered within our designated service areas in the United Arab Emirates.",
+          "Meal Plans are prepared according to the Customer's selected subscription, nutritional goal, meal frequency, dietary preferences, and food restrictions as provided during registration.",
+          "Operational information, including delivery schedules, menu publication dates, ordering deadlines, heating instructions, storage guidance, and similar procedures, is published on our Website and may be updated from time to time."
+        ]
+      },
+      {
+        "title": "Subscription",
+        "clauses": [
+          "A Meal Plan becomes active only after payment has been successfully received and the agreed commencement date has been confirmed.",
+          "The Customer shall provide complete and accurate information during registration.",
+          "Subscription plans are personal to the Customer and may not be transferred without Cook Connect's prior written approval."
+        ]
+      },
+      {
+        "title": "Payment",
+        "clauses": [
+          "The Customer shall pay the Meal Plan fees either (a) in full before the commencement of the Subscription; or (b) through an approved installment payment plan offered by Cook Connect.",
+          "Where an installment payment plan has been approved, the Customer agrees to pay each installment on or before its scheduled due date.",
+          "Cook Connect may provide a grace period for overdue installment payments in accordance with its payment policy or as otherwise communicated to the Customer.",
+          "If any installment remains unpaid after the applicable grace period, Cook Connect reserves the right to suspend the Customer's Subscription, including the preparation and delivery of meals, until all outstanding amounts have been paid in full.",
+          "During any suspension resulting from overdue payment, missed deliveries shall not be replaced, credited, or refunded unless otherwise approved by Cook Connect in writing.",
+          "Once all outstanding payments have been received, the Subscription may resume from the next available delivery date, subject to Cook Connect's production schedule and operational availability.",
+          "Unless otherwise expressly stated, all prices and fees charged by Cook Connect are inclusive of applicable Value Added Tax (VAT)."
+        ]
+      },
+      {
+        "title": "Meal Plans",
+        "clauses": [
+          "Meals are prepared from Cook Connect's rotating menu.",
+          "Customers may either (a) receive the Chef's recommended weekly meal rotation; or (b) select meals from the weekly menu before the published selection deadline.",
+          "If no meal selections are received before the applicable deadline, Cook Connect shall prepare meals based on the Chef's recommended rotation.",
+          "Cook Connect reserves the right to substitute meals with alternatives of comparable quality and nutritional value where ingredients become unavailable or operational circumstances require."
+        ]
+      },
+      {
+        "title": "Dietary Requests",
+        "clauses": [
+          "Cook Connect will make reasonable efforts to accommodate dietary preferences and ingredient exclusions.",
+          "Requests remain subject to ingredient availability, production schedules, food safety requirements, and operational capacity.",
+          "Requests requiring significant recipe modifications or premium ingredients may incur additional charges or require enrolment in a customized meal plan."
+        ]
+      },
+      {
+        "title": "Delivery",
+        "clauses": [
+          "Delivery shall be made to the address provided by the Customer.",
+          "The Customer is responsible for ensuring that the delivery address is accurate, contact information remains current, and access instructions are provided where necessary.",
+          "Where the Customer authorizes meals to be left with reception, security personnel, or another designated location, responsibility for the meals transfers to the Customer upon delivery.",
+          "Cook Connect shall not be responsible for delays arising from traffic conditions, severe weather, government restrictions, building access limitations, or other events beyond its reasonable control."
+        ]
+      },
+      {
+        "title": "Pausing or Rescheduling",
+        "clauses": [
+          "Subject to operational requirements, Customers may request to pause or reschedule deliveries in accordance with the procedures published on the Website.",
+          "Any unused subscription days must be utilized within three (3) months from the original subscription commencement date.",
+          "Subscription days remaining after this period shall expire unless otherwise approved by Cook Connect."
+        ]
+      },
+      {
+        "title": "Food Allergies",
+        "clauses": [
+          "Customers are responsible for informing Cook Connect of all allergies, intolerances, and dietary restrictions before commencing a Meal Plan.",
+          "While Cook Connect follows appropriate food preparation procedures, meals are prepared in a kitchen that handles common allergens, including but not limited to dairy, eggs, seafood, soy, gluten, peanuts, and tree nuts.",
+          "Cook Connect cannot guarantee that meals are entirely free from allergens."
+        ]
+      },
+      {
+        "title": "Customer Responsibilities",
+        "items": [
+          { "desc": "Provide complete and accurate information." },
+          { "desc": "Consume meals within the recommended storage period." },
+          { "desc": "Store and reheat meals in accordance with the instructions provided." },
+          { "desc": "Promptly notify Cook Connect of any delivery issues." },
+          { "desc": "Communicate respectfully with Company personnel." }
+        ]
+      },
+      {
+        "title": "Refunds and Cancellations",
+        "clauses": [
+          "Requests for cancellation shall be considered only for the unused portion of the Subscription.",
+          "Approved refunds shall be calculated after deducting: bank processing charges of 3%, an administrative service fee of 5%, and a delivery charge of AED 10 for each completed delivery day.",
+          "Meals already prepared or delivered are non-refundable.",
+          "Refunds, where approved, shall be processed using the original payment method where reasonably practicable.",
+          "Nothing contained in this Agreement shall exclude or restrict any rights available to consumers under applicable laws of the United Arab Emirates."
+        ]
+      },
+      {
+        "title": "Limitation of Liability",
+        "clauses": [
+          "Cook Connect shall not be liable for losses arising from: incorrect information supplied by the Customer; failure by the Customer to receive deliveries; improper storage or handling after delivery; undisclosed allergies or medical conditions; or circumstances beyond Cook Connect's reasonable control.",
+          "To the maximum extent permitted by law, Cook Connect's total liability shall not exceed the value of the affected meal(s) or the unused portion of the Subscription giving rise to the claim."
+        ]
+      },
+      {
+        "title": "Privacy",
+        "clauses": [
+          "Cook Connect collects and processes Customer information solely for the purpose of administering Meal Plans, preparing meals, arranging deliveries, communicating with Customers, and complying with applicable legal obligations."
+        ]
+      },
+      {
+        "title": "Amendments",
+        "clauses": [
+          "Cook Connect may amend this Agreement from time to time.",
+          "Any amendments shall apply to future purchases and renewals. Existing subscriptions shall continue to be governed by the version accepted by the Customer unless otherwise required by law."
+        ]
+      },
+      {
+        "title": "Governing Law",
+        "clauses": [
+          "This Agreement shall be governed by and construed in accordance with the laws of the United Arab Emirates.",
+          "The parties agree to attempt to resolve any dispute amicably before commencing formal legal proceedings."
+        ]
+      }
+    ]
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "license": "Cook Connect Restaurant LLC · License No. 77454 · TRN: 100385961600003",
+    "intro": "This Privacy Policy explains how Cook Connect collects and uses your personal information when you place an order, submit an inquiry, or use our Website. By using our Website, you agree to the collection and use of your information as described in this Policy.",
+    "copyright": "© {year} Cook Connect Restaurant LLC. All rights reserved.",
+    "sections": [
+      {
+        "title": "Introduction",
+        "clauses": [
+          "This Privacy Policy explains how Cook Connect Restaurant LLC (\"Cook Connect\", \"we\", \"us\") collects, uses, and protects your personal information when you use our Website, place an inquiry, or subscribe to a Meal Plan.",
+          "By using our Website or submitting an inquiry, you acknowledge and agree to the practices described in this Policy."
+        ]
+      },
+      {
+        "title": "Information We Collect",
+        "clauses": [
+          "Contact details, including your full name, email address, and mobile number, which you provide when placing an order or submitting an inquiry.",
+          "Delivery location, including the address you provide and the coordinates selected through our location picker, so we can determine delivery availability and arrange delivery.",
+          "Order details, including the meal items selected, quantities, notes, and payment-related information provided through our payment partners.",
+          "Technical information such as your IP address, browser type, and device information, collected automatically when you visit the Website."
+        ]
+      },
+      {
+        "title": "How We Use Your Information",
+        "clauses": [
+          "To process your inquiry and place your order with our team.",
+          "To confirm delivery availability, calculate delivery fees, and arrange delivery to your specified location.",
+          "To contact you regarding your order, delivery updates, and any questions related to your inquiry.",
+          "To administer Meal Plans, prepare meals in accordance with your dietary preferences and restrictions, and manage payments.",
+          "To comply with applicable legal obligations and to improve our Website, services, and customer experience."
+        ]
+      },
+      {
+        "title": "Legal Basis for Processing",
+        "clauses": [
+          "We process your personal information where it is necessary to perform the contract between you and Cook Connect (such as processing your order and arranging delivery).",
+          "We also process your information where we have a legitimate interest, such as improving our services and maintaining the security of our systems, and where required to comply with legal obligations."
+        ]
+      },
+      {
+        "title": "Sharing of Information",
+        "clauses": [
+          "We do not sell your personal information to third parties.",
+          "We may share your information with service providers who assist us in operating the Website and delivering our services, such as delivery partners, payment processors, and hosting providers, only to the extent necessary to provide those services.",
+          "We may disclose your information where required by law, regulation, or legal process, or to protect the rights, property, or safety of Cook Connect, our customers, or others."
+        ]
+      },
+      {
+        "title": "Data Security",
+        "clauses": [
+          "We implement appropriate technical and organizational measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.",
+          "While we take reasonable precautions, no method of transmission over the internet or electronic storage is completely secure, and we cannot guarantee absolute security."
+        ]
+      },
+      {
+        "title": "Data Retention",
+        "clauses": [
+          "We retain your personal information only for as long as necessary to fulfill the purposes described in this Policy, comply with legal obligations, and resolve any disputes."
+        ]
+      },
+      {
+        "title": "Your Rights",
+        "clauses": [
+          "You have the right to request access to, correction of, or deletion of the personal information we hold about you.",
+          "You may also object to or request restrictions on certain processing activities where applicable under law.",
+          "To exercise any of these rights, please contact us using the details provided in the \"Contact Us\" section below."
+        ]
+      },
+      {
+        "title": "Children's Privacy",
+        "clauses": [
+          "Our Website and services are not directed to children under the age of 18, and we do not knowingly collect personal information from children."
+        ]
+      },
+      {
+        "title": "Changes to This Policy",
+        "clauses": [
+          "We may update this Privacy Policy from time to time. Any changes will be posted on this page, and the revised Policy will apply to information collected after the date of the change."
+        ]
+      },
+      {
+        "title": "Contact Us",
+        "clauses": [
+          "If you have any questions or concerns about this Privacy Policy or how we handle your personal information, please contact us at the details published on our Website."
+        ]
+      }
+    ]
+  },
+  "lang": {
+    "switchTo": "العربية",
+    "label": "Language"
+  }
+}
