@@ -6,9 +6,6 @@ export interface DeliveryArea {
 
 const DELIVERY_FEES: Record<string, number> = {
   ajman: 0,
-  "um al quwain": 2000,
-  sharjah: 1800,
-  dubai: 1500,
 }
 
 const NORMALIZED_FEES: [string, number][] = Object.entries(DELIVERY_FEES).map(([k, v]) => [

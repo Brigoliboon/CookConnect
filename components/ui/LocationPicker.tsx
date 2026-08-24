@@ -15,7 +15,7 @@ interface LocationPickerProps {
   onChange: (coords: Coordinates) => void
 }
 
-const DEFAULT_CENTER: Coordinates = { lat: 25.2048, lng: 55.2708 }
+const DEFAULT_CENTER: Coordinates = { lat: 25.393622643399027, lng: 55.44532884811787 }
 
 export function LocationPicker({ value, onChange }: LocationPickerProps) {
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ""

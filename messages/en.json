@@ -140,7 +140,7 @@
     "confirmError": "Please confirm a supported delivery location",
     "failError": "Failed to place order",
     "unsupportedTitle": "Delivery Not Available",
-    "unsupportedBody": "Delivery is not supported to your location. We currently deliver to Dubai, Sharjah, Um Al Quwain, and Ajman.",
+    "unsupportedBody": "Delivery is not supported to your location. We currently deliver to Ajman only.",
     "deliveryAddress": "Delivery Address",
     "itemCount": "{count, plural, =1 {# item} other {# items}}",
     "shipping": "Shipping fee",

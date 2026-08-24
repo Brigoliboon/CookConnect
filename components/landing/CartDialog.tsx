@@ -153,7 +153,8 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
 
   const itemCount = cart.reduce((sum, i) => sum + i.qty, 0)
   const subtotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0)
-  const total = feeCents === null ? subtotal : subtotal + feeCents / 100
+  const vat = subtotal * 0.05
+  const total = feeCents === null ? subtotal + vat : subtotal + vat + feeCents / 100
 
   return (
     <AnimatePresence>
@@ -351,6 +352,10 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                   <div className="mt-1.5 flex items-center justify-between text-neutral-500">
                     <span>{t("shipping")}</span>
                     <span>{feeCents === 0 ? t("free") : formatPrice(feeCents)}</span>
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between text-neutral-500">
+                    <span>VAT (5%)</span>
+                    <span>{formatPrice(vat * 100)}</span>
                   </div>
                   <div className="mt-3 flex items-center justify-between border-t border-neutral-200 pt-3 font-bold text-neutral-900">
                     <span>{t("total")}</span>
