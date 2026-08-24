@@ -188,7 +188,7 @@ export function FeaturedMeals() {
             {t("navHeading")}
           </motion.p>
 
-          <div className="mt-4 flex flex-wrap justify-center gap-3 max-sm:gap-2">
+          <div className="mt-4 flex flex-wrap justify-center gap-3 max-sm:w-full max-sm:flex-nowrap max-sm:justify-start max-sm:overflow-x-auto max-sm:gap-2 max-sm:px-4 max-sm:snap-x max-sm:snap-mandatory max-sm:pb-2">
             {categories.map((cat) => (
               <motion.button
                 key={cat.id}
@@ -196,7 +196,7 @@ export function FeaturedMeals() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
-                className={`flex items-center gap-2 rounded-full border px-4 py-2 backdrop-blur-sm transition-all max-sm:gap-1.5 max-sm:px-3 max-sm:py-1.5 ${
+                className={`flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 backdrop-blur-sm transition-all max-sm:gap-1.5 max-sm:px-3 max-sm:py-1.5 max-sm:snap-center ${
                   activeCategory === cat.id
                     ? "border-white bg-white/10 text-white"
                     : "border-white/10 bg-white/10 text-white hover:bg-white/20"
@@ -214,12 +214,12 @@ export function FeaturedMeals() {
             }`}
           >
             <div className="overflow-hidden">
-              <div className="flex flex-wrap justify-center gap-2">
+              <div className="flex flex-wrap justify-center gap-2 max-sm:w-full max-sm:flex-nowrap max-sm:justify-start max-sm:overflow-x-auto max-sm:px-4 max-sm:snap-x max-sm:snap-mandatory max-sm:pb-2">
                 {activeCat?.subs?.map((sub) => (
                   <button
                     key={sub}
                     onClick={() => setActiveSub(sub)}
-                    className={`font-nunito rounded-full border px-4 py-1.5 text-xs font-medium backdrop-blur-sm transition-colors ${
+                    className={`font-nunito shrink-0 rounded-full border px-4 py-1.5 text-xs font-medium backdrop-blur-sm transition-colors max-sm:snap-center ${
                       activeSub === sub
                         ? "border-white bg-white/20 text-white"
                         : "border-white/10 bg-white/5 text-white/70 hover:bg-white/15 hover:text-white"

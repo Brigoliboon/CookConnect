@@ -27,6 +27,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
+  // Protected routes are outside the [locale] group — skip intl middleware
+  if (isProtected) {
+    return supabaseResponse
+  }
+
   const response = intlMiddleware(request)
   supabaseResponse.cookies.getAll().forEach((cookie) => {
     response.cookies.set(cookie.name, cookie.value)
