@@ -542,7 +542,7 @@ export default function EmployeeAccountsPage() {
                       <option value="" disabled>Select a plan...</option>
                       {SUBSCRIPTION_PLANS.map((plan) => (
                         <option key={plan.id} value={plan.id}>
-                          {plan.name} — {plan.priceAED} AED
+                          {plan.name}
                         </option>
                       ))}
                     </select>

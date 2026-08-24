@@ -187,7 +187,7 @@ export default function EmployeeSubscriptionsPage() {
             planName: selectedPlan?.name ?? null,
             planType: selectedPlan?.type ?? null,
             durationDays: selectedPlan?.durationDays ?? null,
-            priceAED: selectedPlan?.priceAED ?? null,
+            priceAED: null,
             planVariant: planVariant,
             familySize: planVariant === "family" ? Number(familySize) : null,
             mealsPerWeek: Number(form.mealsPerWeek),
@@ -319,7 +319,7 @@ export default function EmployeeSubscriptionsPage() {
                         </div>
                         <p className={`mt-1 text-xs ${selectedPlan?.id === plan.id ? "text-white/60" : "text-neutral-400"}`}>{plan.description}</p>
                         <div className="mt-3 flex items-center justify-between">
-                          <span className="text-sm font-bold">{plan.priceAED} AED</span>
+                          <span className="text-sm font-bold">{plan.durationDays} Days</span>
                           <span className={`rounded-lg px-2 py-0.5 text-[10px] font-medium uppercase ${plan.type === "healthy" ? "bg-brand-900/20 text-brand-700" : selectedPlan?.id === plan.id ? "bg-white/10 text-white/70" : "bg-neutral-100 text-neutral-500"}`}>
                             {plan.type}
                           </span>
