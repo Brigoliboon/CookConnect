@@ -64,12 +64,11 @@
     "imgAlt": "Fresh salad bowl"
   },
   "subscription": {
-    "eyebrow": "Pricing",
+    "eyebrow": "Subscriptions",
     "title": "Choose Your Plan",
-    "subtitle": "Transparent pricing, no surprises. Change or cancel anytime.",
+    "subtitle": "Flexible meal plans tailored to your goals. Contact us for pricing.",
     "recommended": "Recommended",
-    "currency": "AED",
-    "cta": "Subscribe"
+    "contactSales": "Contact Sales"
   },
   "about": {
     "eyebrow": "About Us",

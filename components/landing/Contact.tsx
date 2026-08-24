@@ -39,7 +39,7 @@ export function Contact() {
     >
       <div className="flex flex-col gap-16 lg:flex-row">
         <motion.div variants={fadeUp} className="flex flex-col gap-6 lg:w-[55%]">
-          <div className="grid grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             {details.map((d) => (
               <div key={d.label} className="flex items-start gap-3">
                 <d.icon size={15} className="mt-0.5 shrink-0 text-black/50" />

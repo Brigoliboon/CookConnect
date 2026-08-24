@@ -52,56 +52,50 @@ export interface SubscriptionPlan {
   name: string
   type: PlanType
   durationDays: number
-  priceAED: number
   description: string
   features: string[]
 }
 
 export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
-    id: "standard-7",
-    name: "7-Day Meal Plan",
+    id: "standard-15",
+    name: "15-Day Meal Plan",
     type: "standard",
-    durationDays: 7,
-    priceAED: 399,
+    durationDays: 15,
     description: "For individuals who want choice and flexibility.",
-    features: ["7-day meal plan", "Full menu access", "Macro preferences", "Priority support"],
+    features: ["Flexible meal count", "Full menu access", "Macro preferences", "Priority support"],
   },
   {
-    id: "standard-14",
-    name: "14-Day Meal Plan",
+    id: "standard-20",
+    name: "20-Day Meal Plan",
     type: "standard",
-    durationDays: 14,
-    priceAED: 699,
+    durationDays: 20,
     description: "For individuals who want choice and flexibility.",
-    features: ["14-day meal plan", "Full menu access", "Macro preferences", "Priority support"],
+    features: ["Flexible meal count", "Full menu access", "Macro preferences", "Priority support"],
   },
   {
     id: "healthy",
     name: "Healthy Diet Plan",
     type: "healthy",
     durationDays: 30,
-    priceAED: 1099,
     description: "Curated clean-eating meals for a healthier you.",
-    features: ["30-day meal plan", "Dietitian-approved menu", "Organic produce", "Macro-optimized meals", "Priority support"],
+    features: ["Dietitian-approved menu", "Organic produce", "Macro-optimized meals", "Priority support"],
   },
   {
     id: "standard-26",
     name: "26-Day Meal Plan",
     type: "standard",
     durationDays: 26,
-    priceAED: 999,
     description: "For individuals who want choice and flexibility.",
-    features: ["26-day meal plan", "Full menu access", "Macro preferences", "Priority support"],
+    features: ["Flexible meal count", "Full menu access", "Macro preferences", "Priority support"],
   },
   {
-    id: "standard-30",
-    name: "30-Day Meal Plan",
+    id: "standard-45",
+    name: "45-Day Meal Plan",
     type: "standard",
-    durationDays: 30,
-    priceAED: 1199,
+    durationDays: 45,
     description: "For individuals who want choice and flexibility.",
-    features: ["30-day meal plan", "Full menu access", "Macro preferences", "Priority support"],
+    features: ["Flexible meal count", "Full menu access", "Macro preferences", "Priority support"],
   },
 ]
 

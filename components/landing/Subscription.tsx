@@ -1,7 +1,6 @@
 "use client"
 
 import { useTranslations } from "next-intl"
-import { Link } from "@/i18n/navigation"
 import { motion } from "framer-motion"
 import { SUBSCRIPTION_PLANS } from "@/constants"
 import { translateContent } from "@/constants/translations"
@@ -41,7 +40,7 @@ export function Subscription() {
           </p>
         </motion.div>
 
-        <div className="mt-20 flex flex-wrap justify-center gap-6">
+        <div className="mt-20 flex flex-col items-center gap-6 md:flex-row md:flex-wrap md:justify-center">
           {SUBSCRIPTION_PLANS.map((plan, i) => {
             const isHealthy = plan.type === "healthy"
             return (
@@ -49,7 +48,7 @@ export function Subscription() {
                 key={plan.id}
                 variants={fadeUp}
                 custom={i + 1}
-                className={`group relative flex w-72 flex-col rounded-3xl border p-8 transition-all duration-500 ${
+                className={`group relative flex w-full max-w-[280px] flex-1 flex-col rounded-3xl border p-8 transition-all duration-500 ${
                   isHealthy
                     ? "border-transparent bg-gradient-to-br from-brand-900 to-[#0d6e3f] text-white shadow-xl [background-image:url(/healthy_sub-banner.png),linear-gradient(to_bottom_right,var(--tw-gradient-from),var(--tw-gradient-to))] bg-cover bg-no-repeat bg-right"
                     : "border-neutral-200 bg-white text-black hover:border-black/30 hover:shadow-lg"
@@ -62,10 +61,6 @@ export function Subscription() {
                 )}
                 <p className="font-playfair text-3xl font-medium">{translateContent(plan.name, locale)}</p>
                 <p className={`font-nunito mt-2 text-sm ${isHealthy ? "text-white/50" : "text-black/40"}`}>{translateContent(plan.description, locale)}</p>
-                <div className="mt-6 flex items-baseline gap-2">
-                  <span className="font-playfair text-5xl font-medium tracking-tight">{plan.priceAED}</span>
-                  <span className={`font-nunito text-sm ${isHealthy ? "text-white/40" : "text-black/30"}`}>{t("currency")}</span>
-                </div>
                 <ul className={`font-nunito mt-6 space-y-3 text-sm ${isHealthy ? "text-white/70" : "text-black/50"}`}>
                   {plan.features.map((f) => (
                     <li key={f} className="flex items-center gap-3">
@@ -75,16 +70,18 @@ export function Subscription() {
                   ))}
                 </ul>
                 <div className="mt-auto pt-8">
-                  <Link
-                    href="/login"
+                  <a
+                    href={`https://wa.me/971556634050?text=${encodeURIComponent(`Hi! I'm interested in the ${plan.name}.`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className={`font-nunito flex w-full items-center justify-center rounded-xl py-3.5 text-sm font-semibold transition-all duration-300 ${
                       isHealthy
                         ? "bg-white text-brand-900 hover:bg-neutral-100"
                         : "bg-black text-white hover:bg-neutral-800"
                     }`}
                   >
-                    {t("cta")}
-                  </Link>
+                    {t("contactSales")}
+                  </a>
                 </div>
               </motion.div>
             )
