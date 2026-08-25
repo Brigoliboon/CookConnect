@@ -34,7 +34,7 @@
       "pasta": "Pasta",
       "wraps": "Wraps",
       "pizza": "Pizza",
-      "burgers": "Burgers 'n Fries",
+      "burgers": "Burger & Sandwiches",
       "drinks": "Drinks"
     },
     "subs": {
@@ -44,7 +44,10 @@
       "soup": "Soup",
       "breakfast": "Breakfast",
       "biryani": "Biryani",
-      "risotto": "Risotto"
+      "risotto": "Risotto",
+      "smoothie": "Smoothie",
+      "juice": "Juice",
+      "beverages": "Beverages"
     },
     "fromOurKitchen": "From Our Kitchen",
     "refreshments": "Refreshments"

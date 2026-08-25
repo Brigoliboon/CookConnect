@@ -60,6 +60,9 @@ export type MenuCategory =
   | "drinks"
   | "biryani"
   | "risotto"
+  | "smoothie"
+  | "juice"
+  | "beverages"
 
 export const MENU_CATEGORIES: { label: string; value: MenuCategory }[] = [
   { label: "Chicken", value: "chicken" },
@@ -71,10 +74,13 @@ export const MENU_CATEGORIES: { label: string; value: MenuCategory }[] = [
   { label: "Pasta", value: "pasta" },
   { label: "Soup", value: "soup" },
   { label: "Pizza", value: "pizza" },
-  { label: "Burgers 'n Fries", value: "burgers" },
+  { label: "Burger & Sandwiches", value: "burgers" },
   { label: "Drinks", value: "drinks" },
   { label: "Biryani", value: "biryani" },
   { label: "Risotto", value: "risotto" },
+  { label: "Smoothie", value: "smoothie" },
+  { label: "Juice", value: "juice" },
+  { label: "Beverages", value: "beverages" },
 ]
 
 type RawMenuItem = Omit<MenuItem, "ingredients"> & { ingredients: string[] }
@@ -338,6 +344,9 @@ export const MENU_CATEGORY_COUNTS: Record<MenuCategory, { min: number; max: numb
   drinks: { min: 3, max: 5 },
   biryani: { min: 2, max: 4 },
   risotto: { min: 2, max: 4 },
+  smoothie: { min: 2, max: 4 },
+  juice: { min: 2, max: 4 },
+  beverages: { min: 2, max: 4 },
 }
 
 export function getMenuByCategory(category: MenuCategory): MenuItem[] {
@@ -403,5 +412,8 @@ export const CURRENT_WEEKLY_MENU: WeeklyMenu = {
     drinks: [],
     biryani: [],
     risotto: [],
+    smoothie: [],
+    juice: [],
+    beverages: [],
   },
 }

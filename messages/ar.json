@@ -34,7 +34,7 @@
       "pasta": "معكرونة",
       "wraps": "وربات",
       "pizza": "بيتزا",
-      "burgers": "برجر وبطاطس",
+      "burgers": "برجر وساندويتشات",
       "drinks": "مشروبات"
     },
     "subs": {
@@ -44,7 +44,10 @@
       "soup": "شوربة",
       "breakfast": "فطور",
       "biryani": "برياني",
-      "risotto": "ريزوتو"
+      "risotto": "ريزوتو",
+      "smoothie": "سموذي",
+      "juice": "عصير",
+      "beverages": "مشروبات"
     },
     "fromOurKitchen": "من مطبخنا",
     "refreshments": "مشروبات منعشة"
