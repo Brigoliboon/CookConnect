@@ -42,6 +42,8 @@ const fallbackImages: Record<string, string> = {
   pizza: "/menus/salmon-salad.png",
   burgers: "/menus/beef-steak.png",
   drinks: "/drink_sample.svg",
+  biryani: "/menus/beef-steak.png",
+  risotto: "/menus/beef-steak.png",
 }
 
 function mapRecipe(r: Record<string, unknown>): MenuItem {
