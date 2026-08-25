@@ -1,5 +1,4 @@
 import { updateRecipe, deleteRecipe, getRecipe, type CreateRecipeInput } from "@/lib/supabase/tables/recipes"
-import { replaceServingIngredients, linkServingIngredients, type ServingIngredientInput } from "@/lib/supabase/tables/servings"
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
 
@@ -17,19 +16,7 @@ export async function PATCH(
 
   const { id } = await params
 
-  type PatchBody = Partial<CreateRecipeInput> & {
-    servings?: {
-      id?: string | null
-      name?: string | null
-      price?: number | null
-      calories?: number | null
-      nutrition?: Record<string, unknown> | null
-      is_active?: boolean
-      ingredients?: ServingIngredientInput[]
-    }[]
-  }
-
-  let body: PatchBody
+  let body: Partial<CreateRecipeInput>
   try {
     body = await request.json()
   } catch {
@@ -37,18 +24,7 @@ export async function PATCH(
   }
 
   try {
-    const { servings: newServings, ...recipeFields } = body
-
-    await updateRecipe(supabase, id, recipeFields)
-
-    if (newServings !== undefined) {
-      for (const serving of newServings) {
-        if (serving.id) {
-          const linkedIngredients = await linkServingIngredients(supabase, serving.ingredients ?? [])
-          await replaceServingIngredients(supabase, serving.id, linkedIngredients)
-        }
-      }
-    }
+    await updateRecipe(supabase, id, body)
 
     const updated = await getRecipe(supabase, id)
     return Response.json(updated)

@@ -13,6 +13,10 @@ interface ServingInput {
 }
 
 interface CreateMealBody extends CreateRecipeInput {
+  price?: number | null
+  calories?: number | null
+  nutrition?: Record<string, unknown> | null
+  ingredients?: ServingIngredientInput[]
   servings?: ServingInput[]
 }
 
@@ -54,6 +58,7 @@ export async function POST(request: Request) {
     const recipe = await createRecipe(supabase, body)
 
     const createdServings = []
+
     if (body.servings?.length) {
       for (const serving of body.servings) {
         const servingIngredients = serving.ingredients ?? []
@@ -73,6 +78,22 @@ export async function POST(request: Request) {
         )
         createdServings.push(created)
       }
+    } else if (body.ingredients?.length || body.price || body.calories || body.nutrition) {
+      const linkedIngredients = await linkServingIngredients(supabase, body.ingredients ?? [])
+
+      const created = await createServing(
+        supabase,
+        recipe.id,
+        {
+          name: "Regular",
+          price: body.price ?? null,
+          calories: body.calories ?? null,
+          nutrition: body.nutrition ?? null,
+          is_active: true,
+        },
+        linkedIngredients,
+      )
+      createdServings.push(created)
     }
 
     return Response.json({ ...recipe, servings: createdServings }, { status: 201 })
