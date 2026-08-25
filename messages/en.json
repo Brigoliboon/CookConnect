@@ -42,7 +42,9 @@
       "chicken": "Chicken",
       "seafood": "Seafood",
       "soup": "Soup",
-      "breakfast": "Breakfast"
+      "breakfast": "Breakfast",
+      "biryani": "Biryani",
+      "risotto": "Risotto"
     },
     "fromOurKitchen": "From Our Kitchen",
     "refreshments": "Refreshments"

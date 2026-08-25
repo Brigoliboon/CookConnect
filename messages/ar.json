@@ -42,7 +42,9 @@
       "chicken": "دجاج",
       "seafood": "مأكولات بحرية",
       "soup": "شوربة",
-      "breakfast": "فطور"
+      "breakfast": "فطور",
+      "biryani": "برياني",
+      "risotto": "ريزوتو"
     },
     "fromOurKitchen": "من مطبخنا",
     "refreshments": "مشروبات منعشة"

@@ -72,7 +72,7 @@ function mapRecipe(r: Record<string, unknown>): MenuItem {
 }
 
 const categories = [
-  { id: "meals", image: "/menus/beef-steak.png", subs: ["beef", "chicken", "seafood", "soup", "breakfast"] },
+  { id: "meals", image: "/menus/beef-steak.png", subs: ["beef", "chicken", "seafood", "soup", "breakfast", "biryani", "risotto"] },
   { id: "salad", image: "/menus/salad.png" },
   { id: "pasta", image: "/icons/pasta_model.svg" },
   { id: "wraps", image: "/icons/wraps_model.svg" },
@@ -87,6 +87,8 @@ const subValues: Record<string, string> = {
   seafood: "seafood",
   soup: "soup",
   breakfast: "breakfast",
+  biryani: "biryani",
+  risotto: "risotto",
 }
 
 const catValues: Record<string, string> = {
