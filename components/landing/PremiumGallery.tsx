@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, Children, type ReactElement, type ReactNode } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { useTranslations } from "next-intl"
 
@@ -27,6 +27,8 @@ export function PremiumGallery({
   itemScale = 1,
 }: PremiumGalleryProps) {
   const t = useTranslations("gallery")
+  const items = Children.toArray(children) as ReactElement[]
+  const prevCountRef = useRef(items.length)
   const [page, setPage] = useState(0)
   const [itemsPerPage, setItemsPerPage] = useState(5)
   const itemsPerPageRef = useRef(itemsPerPage)
@@ -34,6 +36,13 @@ export function PremiumGallery({
   useEffect(() => {
     itemsPerPageRef.current = itemsPerPage
   }, [itemsPerPage])
+
+  useEffect(() => {
+    if (prevCountRef.current !== items.length) {
+      setPage(0)
+      prevCountRef.current = items.length
+    }
+  }, [items.length])
 
   useEffect(() => {
     const update = () => {
@@ -48,9 +57,9 @@ export function PremiumGallery({
     return () => window.removeEventListener("resize", update)
   }, [getItemsPerPage])
 
-  const items = Children.toArray(children) as ReactElement[]
   const totalPages = Math.max(1, Math.ceil(items.length / itemsPerPage))
-  const start = page * itemsPerPage
+  const safePage = Math.min(page, totalPages - 1)
+  const start = safePage * itemsPerPage
   const visible = itemsPerPage < 2 ? items : items.slice(start, start + itemsPerPage)
 
   return (
@@ -79,21 +88,18 @@ export function PremiumGallery({
       <div
         className={`flex items-stretch gap-8 overflow-hidden pb-2 max-sm:-mx-4 max-sm:justify-start max-sm:overflow-x-auto max-sm:gap-5 max-sm:snap-x max-sm:snap-mandatory max-sm:scroll-smooth max-sm:px-4 ${trackClassName}`}
       >
-        <AnimatePresence mode="wait">
-          {visible.map((item, i) => (
-            <motion.div
-              key={item.key ?? i}
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -40 }}
-              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-              className="shrink-0 max-sm:snap-center"
-              style={{scale:itemScale}}
-            >
-              {item}
-            </motion.div>
-          ))}
-        </AnimatePresence>
+        {visible.map((item, i) => (
+          <motion.div
+            key={item.key ? String(item.key) : `item-${start + i}`}
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+            className="shrink-0 max-sm:snap-center"
+            style={{scale:itemScale}}
+          >
+            {item}
+          </motion.div>
+        ))}
       </div>
     </div>
   )

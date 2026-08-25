@@ -18,6 +18,7 @@ const fadeUp = {
 }
 
 interface MenuItem {
+  id: string
   name: string
   category: string
   price: number
@@ -44,6 +45,9 @@ const fallbackImages: Record<string, string> = {
   drinks: "/drink_sample.svg",
   biryani: "/menus/beef-steak.png",
   risotto: "/menus/beef-steak.png",
+  smoothie: "/drink_sample.svg",
+  juice: "/drink_sample.svg",
+  beverages: "/drink_sample.svg",
 }
 
 function mapRecipe(r: Record<string, unknown>): MenuItem {
@@ -60,6 +64,7 @@ function mapRecipe(r: Record<string, unknown>): MenuItem {
     }))
   const first = servings[0]
   return {
+    id: (r.id as string) ?? "",
     name: (r.name as string) ?? "",
     category,
     price: first?.price ?? 0,
@@ -80,7 +85,7 @@ const categories = [
   { id: "wraps", image: "/icons/wraps_model.svg" },
   { id: "pizza", image: "/icons/pizza_model.svg" },
   { id: "burgers", image: "/icons/burgernfries_model.svg" },
-  { id: "drinks", image: "/drink_sample.svg" },
+  { id: "drinks", image: "/drink_sample.svg", subs: ["smoothie", "juice", "beverages"] },
 ]
 
 const subValues: Record<string, string> = {
@@ -91,6 +96,9 @@ const subValues: Record<string, string> = {
   breakfast: "breakfast",
   biryani: "biryani",
   risotto: "risotto",
+  smoothie: "smoothie",
+  juice: "juice",
+  beverages: "beverages",
 }
 
 const catValues: Record<string, string> = {
@@ -171,7 +179,7 @@ export function FeaturedMeals() {
             </div>
           ) : filtered.length > 0 ? (
             filtered.map((item) => (
-              <MealCard key={item.name} {...item} scale={1} name={translateContent(item.name, locale)} description={translateContent(item.description, locale)} />
+              <MealCard key={item.id} {...item} scale={1} name={translateContent(item.name, locale)} description={translateContent(item.description, locale)} />
             ))
           ) : (
             <div className="flex h-full w-full items-center justify-center">
