@@ -120,6 +120,12 @@ export function FeaturedMeals() {
   const activeCat = categories.find((c) => c.id === activeCategory)
 
   useEffect(() => {
+    if (activeCat?.subs && activeCat.subs.length > 0) {
+      setActiveSub(activeCat.subs[0])
+    }
+  }, [activeCategory])
+
+  useEffect(() => {
     fetch("/api/recipe")
       .then(async (res) => {
         if (!res.ok) throw new Error("Failed to fetch recipes")
@@ -130,7 +136,7 @@ export function FeaturedMeals() {
       .finally(() => setLoading(false))
   }, [])
 
-  const activeValue = activeCategory === "meals" ? (subValues[activeSub] ?? "beef") : catValues[activeCategory]
+  const activeValue = activeCat?.subs ? (subValues[activeSub] ?? activeCat.subs[0]) : catValues[activeCategory]
   const filtered = menuItems.filter((item) => item.category === activeValue)
 
   return (
