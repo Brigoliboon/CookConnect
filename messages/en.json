@@ -31,10 +31,13 @@
     "cats": {
       "meals": "Meals",
       "salad": "Salad",
+      "rice-sides": "Rice & Sides",
+      "platters": "Platters",
       "pasta": "Pasta",
       "wraps": "Wraps",
       "pizza": "Pizza",
       "burgers": "Burger & Sandwiches",
+      "desserts": "Desserts",
       "drinks": "Drinks"
     },
     "subs": {
@@ -45,6 +48,7 @@
       "breakfast": "Breakfast",
       "biryani": "Biryani",
       "risotto": "Risotto",
+      "vegetable": "Vegetable Meal",
       "smoothie": "Smoothie",
       "juice": "Juice",
       "beverages": "Beverages"

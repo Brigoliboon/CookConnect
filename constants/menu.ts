@@ -63,6 +63,10 @@ export type MenuCategory =
   | "smoothie"
   | "juice"
   | "beverages"
+  | "desserts"
+  | "rice-sides"
+  | "vegetable"
+  | "platters"
 
 export const MENU_CATEGORIES: { label: string; value: MenuCategory }[] = [
   { label: "Chicken", value: "chicken" },
@@ -81,6 +85,10 @@ export const MENU_CATEGORIES: { label: string; value: MenuCategory }[] = [
   { label: "Smoothie", value: "smoothie" },
   { label: "Juice", value: "juice" },
   { label: "Beverages", value: "beverages" },
+  { label: "Desserts", value: "desserts" },
+  { label: "Rice & Sides", value: "rice-sides" },
+  { label: "Platters", value: "platters" },
+  { label: "Vegetable Meal", value: "vegetable" },
 ]
 
 type RawMenuItem = Omit<MenuItem, "ingredients"> & { ingredients: string[] }
@@ -347,6 +355,10 @@ export const MENU_CATEGORY_COUNTS: Record<MenuCategory, { min: number; max: numb
   smoothie: { min: 2, max: 4 },
   juice: { min: 2, max: 4 },
   beverages: { min: 2, max: 4 },
+  desserts: { min: 2, max: 4 },
+  "rice-sides": { min: 2, max: 4 },
+  platters: { min: 2, max: 4 },
+  vegetable: { min: 2, max: 4 },
 }
 
 export function getMenuByCategory(category: MenuCategory): MenuItem[] {
@@ -415,5 +427,9 @@ export const CURRENT_WEEKLY_MENU: WeeklyMenu = {
     smoothie: [],
     juice: [],
     beverages: [],
+    desserts: [],
+    "rice-sides": [],
+    platters: [],
+    vegetable: [],
   },
 }

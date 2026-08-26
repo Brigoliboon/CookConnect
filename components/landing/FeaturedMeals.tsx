@@ -48,6 +48,10 @@ const fallbackImages: Record<string, string> = {
   smoothie: "/drink_sample.svg",
   juice: "/drink_sample.svg",
   beverages: "/drink_sample.svg",
+  desserts: "/drink_sample.svg",
+  "rice-sides": "/menus/beef-steak.png",
+  platters: "/drink_sample.svg",
+  vegetable: "/menus/salad.png",
 }
 
 function mapRecipe(r: Record<string, unknown>): MenuItem {
@@ -79,12 +83,15 @@ function mapRecipe(r: Record<string, unknown>): MenuItem {
 }
 
 const categories = [
-  { id: "meals", image: "/menus/beef-steak.png", subs: ["beef", "chicken", "seafood", "soup", "breakfast", "biryani", "risotto"] },
+  { id: "meals", image: "/menus/beef-steak.png", subs: ["beef", "chicken", "seafood", "soup", "biryani", "risotto", "vegetable", "breakfast"] },
   { id: "salad", image: "/menus/salad.png" },
+  { id: "rice-sides", image: "/icons/ricensides_model.svg" },
+  { id: "platters", image: "/icons/platters_model.svg" },
   { id: "pasta", image: "/icons/pasta_model.svg" },
   { id: "wraps", image: "/icons/wraps_model.svg" },
   { id: "pizza", image: "/icons/pizza_model.svg" },
   { id: "burgers", image: "/icons/burgernfries_model.svg" },
+  { id: "desserts", image: "/icons/dessert_model.svg" },
   { id: "drinks", image: "/drink_sample.svg", subs: ["smoothie", "juice", "beverages"] },
 ]
 
@@ -96,6 +103,7 @@ const subValues: Record<string, string> = {
   breakfast: "breakfast",
   biryani: "biryani",
   risotto: "risotto",
+  vegetable: "vegetable",
   smoothie: "smoothie",
   juice: "juice",
   beverages: "beverages",
@@ -103,10 +111,13 @@ const subValues: Record<string, string> = {
 
 const catValues: Record<string, string> = {
   salad: "salad",
+  "rice-sides": "rice-sides",
+  platters: "platters",
   pasta: "pasta",
   wraps: "wrap",
   pizza: "pizza",
   burgers: "burgers",
+  desserts: "desserts",
   drinks: "drinks",
 }
 

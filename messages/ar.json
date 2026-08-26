@@ -31,10 +31,13 @@
     "cats": {
       "meals": "الوجبات",
       "salad": "سلطة",
+      "rice-sides": "أرز وأطباق جانبية",
+      "platters": "أطباق",
       "pasta": "معكرونة",
       "wraps": "وربات",
       "pizza": "بيتزا",
       "burgers": "برجر وساندويتشات",
+      "desserts": "حلويات",
       "drinks": "مشروبات"
     },
     "subs": {
@@ -45,6 +48,7 @@
       "breakfast": "فطور",
       "biryani": "برياني",
       "risotto": "ريزوتو",
+      "vegetable": "وجبة خضروات",
       "smoothie": "سموذي",
       "juice": "عصير",
       "beverages": "مشروبات"
