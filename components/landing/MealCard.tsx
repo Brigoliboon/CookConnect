@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { motion } from "framer-motion"
-import { ShoppingCart, Check, Flame, ChevronDown } from "lucide-react"
+import { ShoppingCart, Check, Flame, ChevronDown, Beef, Wheat, Bubbles } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { getCart, setCart } from "@/utils/cart"
 import type { MealServingOption } from "@/constants"
@@ -122,22 +122,22 @@ export function MealCard({
 
         <div className="mt-1 flex items-center justify-between gap-2">
           <p className="font-nunito flex items-center gap-1 text-xs text-white/50">
-            <Flame size={12} className="text-orange-400" /> {displayCalories} Cal
+            <Flame size={16} className="text-orange-400" /> {displayCalories} Cal
           </p>
           <p className="font-nunito shrink-0 text-xs md:text-base font-semibold text-white/90">{displayPrice} AED</p>
         </div>
 
         <div className="mt-3 flex items-center gap-4 text-[10px] md:text-xs text-white/40">
           <span className="flex items-center gap-1.5">
-            <span className="size-2.5 rounded-sm bg-macro-protein" />
+            <Beef size={13} className="text-macro-protein" />
             {displayProtein.toFixed(1)}g
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="size-2.5 rounded-sm bg-macro-carbs" />
+            <Wheat size={13} className="text-macro-carbs" />
             {displayCarbs.toFixed(1)}g
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="size-2.5 rounded-sm bg-macro-fat" />
+            <Bubbles size={13} className="text-macro-fat" />
             {displayFats.toFixed(1)}g
           </span>
         </div>
