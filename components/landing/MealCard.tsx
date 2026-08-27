@@ -116,38 +116,18 @@ export function MealCard({
         transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
         className="group/detail -mt-16 rounded-2xl border border-white/10 bg-white/10 px-5 pb-5 pt-15 backdrop-blur-sm opacity-0"
       >
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="font-nunito truncate text-base font-semibold text-white/90" title={name}>{name}</p>
-          </div>
-          <p className="font-nunito shrink-0 text-base font-bold text-white/90">{displayPrice} AED</p>
+        <div className="flex justify-center mb-2">
+          <p className="font-nunito truncate text-sm md:text-base font-bold text-white/90" title={name}>{name}</p>
         </div>
 
         <div className="mt-1 flex items-center justify-between gap-2">
           <p className="font-nunito flex items-center gap-1 text-xs text-white/50">
             <Flame size={12} className="text-orange-400" /> {displayCalories} Cal
           </p>
-          {servings && servings.length > 1 && (
-            <div className="relative">
-              <select
-                value={servingIndex}
-                onChange={(e) => setServingIndex(Number(e.target.value))}
-                aria-label={t("servingAria")}
-                className="font-nunito w-20 cursor-pointer appearance-none rounded-full border border-white/15 bg-white/10 pb-1 pe-5 ps-2.5 pt-1 text-[11px] font-medium text-white/80 outline-none transition-colors hover:bg-white/15 focus:border-white/40"
-              >
-                {servings.map((s, i) => (
-                  <option key={s.id} value={i}>{s.name ?? t("servingFallback", { index: i + 1 })}</option>
-                ))}
-              </select>
-              <ChevronDown
-                size={12}
-                className="pointer-events-none absolute end-2 top-1/2 -translate-y-1/2 text-white/50"
-              />
-            </div>
-          )}
+          <p className="font-nunito shrink-0 text-xs md:text-base font-semibold text-white/90">{displayPrice} AED</p>
         </div>
 
-        <div className="mt-3 flex items-center gap-4 text-xs text-white/40">
+        <div className="mt-3 flex items-center gap-4 text-[10px] md:text-xs text-white/40">
           <span className="flex items-center gap-1.5">
             <span className="size-2.5 rounded-sm bg-macro-protein" />
             {displayProtein.toFixed(1)}g
