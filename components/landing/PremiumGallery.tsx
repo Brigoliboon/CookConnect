@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, Children, type ReactElement, type ReactNode } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { useTranslations } from "next-intl"
 
@@ -88,18 +88,21 @@ export function PremiumGallery({
       <div
         className={`flex items-stretch gap-8 overflow-hidden pb-2 max-sm:-mx-4 max-sm:justify-start max-sm:overflow-x-auto max-sm:gap-5 max-sm:snap-x max-sm:snap-mandatory max-sm:scroll-smooth max-sm:px-4 ${trackClassName}`}
       >
-        {visible.map((item, i) => (
-          <motion.div
-            key={item.key ? String(item.key) : `item-${start + i}`}
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-            className="shrink-0 max-sm:snap-center"
-            style={{scale:itemScale}}
-          >
-            {item}
-          </motion.div>
-        ))}
+        <AnimatePresence mode="wait">
+          {visible.map((item, i) => (
+            <motion.div
+              key={item.key ? String(item.key) : `item-${start + i}`}
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -40 }}
+              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+              className="shrink-0 max-sm:snap-center"
+              style={{scale:itemScale}}
+            >
+              {item}
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
     </div>
   )
