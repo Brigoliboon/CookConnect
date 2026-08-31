@@ -29,6 +29,7 @@
     "emptyState": "Nothing here yet — coming soon.",
     "navHeading": "Want something else?",
     "cats": {
+      "all": "All",
       "meals": "Meals",
       "salad": "Salad",
       "rice-sides": "Rice & Sides",
@@ -54,7 +55,38 @@
       "beverages": "Beverages"
     },
     "fromOurKitchen": "From Our Kitchen",
-    "refreshments": "Refreshments"
+    "refreshments": "Refreshments",
+    "viewMenu": "View Full Menu"
+  },
+  "catalog": {
+    "eyebrow": "Our Menu",
+    "title": "Find Your Next Favorite Meal",
+    "subtitle": "Browse freshly prepared meals made to fit your day.",
+    "searchPlaceholder": "Search meals...",
+    "filters": "Filters",
+    "hideFilters": "Hide filters",
+    "filterHint": "Narrow the menu to what suits you.",
+    "categories": "Categories",
+    "sortBy": "Sort by",
+    "default": "Default",
+    "sortName": "Name A–Z",
+    "sortNameDesc": "Name Z–A",
+    "sortCalories": "Calories: low to high",
+    "sortCaloriesDesc": "Calories: high to low",
+    "sortPrice": "Price: low to high",
+    "sortPriceDesc": "Price: high to low",
+    "calories": "Calories",
+    "price": "Price",
+    "minCal": "Min cal",
+    "maxCal": "Max cal",
+    "minPrice": "Min price",
+    "maxPrice": "Max price",
+    "clearAll": "Clear all",
+    "applyFilters": "Apply filters",
+    "prev": "Previous",
+    "next": "Next",
+    "showing": "Showing {from}–{to} of {total} meals",
+    "noResults": "No meals match your filters."
   },
   "healthy": {
     "tagline": "Fresh ingredients, vibrant meals — eat the rainbow every day.",

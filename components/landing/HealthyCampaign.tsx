@@ -33,11 +33,11 @@ export function HealthyCampaign() {
   const [selected, setSelected] = useState<MenuItem | null>(null)
 
   useEffect(() => {
-    fetch("/api/recipe")
+    fetch(`/api/recipe?${new URLSearchParams({ category: active, sort: "name" })}`)
       .then(async (res) => {
         const data = await res.json()
         if (!res.ok) throw new Error(data.error ?? "Failed to fetch recipes")
-        return data as Record<string, unknown>[]
+        return data.data as Record<string, unknown>[]
       })
       .then((data) => {
         const items: MenuItem[] = data.map((r: Record<string, unknown>) => {
@@ -62,9 +62,9 @@ export function HealthyCampaign() {
         setAllItems(items)
       })
       .catch((e) => console.error("[HEALTHY_CAMPAIGN] Failed to fetch recipes:", e.message || e))
-  }, [])
+  }, [active])
 
-  const items = allItems.filter((item) => item.category === active)
+  const items = allItems
   const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE)
   const start = page * ITEMS_PER_PAGE
   const visible = items.slice(start, start + ITEMS_PER_PAGE)

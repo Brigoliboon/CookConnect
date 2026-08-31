@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
+import { ArrowRight } from "lucide-react"
 import { useTranslations, useLocale } from "next-intl"
+import { Link } from "@/i18n/navigation"
 import { translateContent } from "@/constants/translations"
 import { PremiumGallery } from "@/components/landing/PremiumGallery"
 import { MealCard } from "@/components/landing/MealCard"
@@ -129,26 +131,32 @@ export function FeaturedMeals() {
   const [activeCategory, setActiveCategory] = useState("meals")
   const [activeSub, setActiveSub] = useState("beef")
   const activeCat = categories.find((c) => c.id === activeCategory)
+  const activeValue = activeCat?.subs ? (subValues[activeSub] ?? activeCat.subs[0]) : catValues[activeCategory]
 
   useEffect(() => {
-    if (activeCat?.subs && activeCat.subs.length > 0) {
-      setActiveSub(activeCat.subs[0])
-    }
-  }, [activeCategory])
+    const controller = new AbortController()
+    const params = new URLSearchParams({ sort: "name" })
+    if (activeValue) params.set("category", activeValue)
 
-  useEffect(() => {
-    fetch("/api/recipe")
+    fetch(`/api/recipe?${params.toString()}`, { signal: controller.signal })
       .then(async (res) => {
         if (!res.ok) throw new Error("Failed to fetch recipes")
-        return res.json() as Promise<Record<string, unknown>[]>
+        return res.json() as Promise<{ data: Record<string, unknown>[] }>
       })
-      .then((data) => setMenuItems(data.map(mapRecipe)))
-      .catch((e) => console.error("[FEATURED] Failed to fetch recipes:", e))
-      .finally(() => setLoading(false))
-  }, [])
+      .then(({ data }) => {
+        if (!controller.signal.aborted) setMenuItems(data.map(mapRecipe))
+      })
+      .catch((e) => {
+        if (e.name !== "AbortError") console.error("[FEATURED] Failed to fetch recipes:", e)
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false)
+      })
 
-  const activeValue = activeCat?.subs ? (subValues[activeSub] ?? activeCat.subs[0]) : catValues[activeCategory]
-  const filtered = menuItems.filter((item) => item.category === activeValue)
+    return () => controller.abort()
+  }, [activeValue])
+
+  const filtered = menuItems
 
   return (
     <section id="meals" className="relative h-screen overflow-hidden overflow-hidden bg-[#aa9a88]">
@@ -188,8 +196,25 @@ export function FeaturedMeals() {
           {t("disclaimer")}
         </motion.p>
 
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-60px" }}
+          variants={fadeUp}
+          custom={3}
+          className="mt-5 flex justify-end"
+        >
+          <Link
+            href="/catalog"
+            className="font-nunito inline-flex items-center gap-2 border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-white hover:text-neutral-900"
+          >
+            {t("viewMenu")}
+            <ArrowRight size={15} />
+          </Link>
+        </motion.div>
+
         {/* Gallery */}
-        <PremiumGallery key={activeValue} className=" h-[340px] md:h-[412px] mt-8 w-full max-sm:mt-6" itemScale={1}>
+        <PremiumGallery key={activeValue} className=" h-[340px] md:h-[412px] mt-5 w-full max-sm:mt-4" itemScale={1}>
           {loading ? (
             <div className="flex h-full w-full items-center justify-center">
               <div className="size-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -221,7 +246,12 @@ export function FeaturedMeals() {
             {categories.map((cat) => (
               <motion.button
                 key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
+                onClick={() => {
+                  if (cat.id === activeCategory) return
+                  setLoading(true)
+                  setActiveCategory(cat.id)
+                  if (cat.subs?.length) setActiveSub(cat.subs[0])
+                }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
@@ -247,7 +277,11 @@ export function FeaturedMeals() {
                 {activeCat?.subs?.map((sub) => (
                   <button
                     key={sub}
-                    onClick={() => setActiveSub(sub)}
+                    onClick={() => {
+                      if (sub === activeSub) return
+                      setLoading(true)
+                      setActiveSub(sub)
+                    }}
                     className={`font-nunito shrink-0 rounded-full border px-4 py-1.5 text-xs font-medium backdrop-blur-sm transition-colors max-sm:snap-center ${
                       activeSub === sub
                         ? "border-white bg-white/20 text-white"

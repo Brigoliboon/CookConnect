@@ -29,6 +29,7 @@
     "emptyState": "لا شيء هنا بعد — قريباً.",
     "navHeading": "تريد شيئاً آخر؟",
     "cats": {
+      "all": "الكل",
       "meals": "الوجبات",
       "salad": "سلطة",
       "rice-sides": "أرز وأطباق جانبية",
@@ -54,7 +55,38 @@
       "beverages": "مشروبات"
     },
     "fromOurKitchen": "من مطبخنا",
-    "refreshments": "مشروبات منعشة"
+    "refreshments": "مشروبات منعشة",
+    "viewMenu": "عرض القائمة الكاملة"
+  },
+  "catalog": {
+    "eyebrow": "قائمتنا",
+    "title": "اكتشف وجبتك المفضلة التالية",
+    "subtitle": "تصفح وجبات طازجة مُحضّرة لتناسب يومك.",
+    "searchPlaceholder": "ابحث عن وجبات...",
+    "filters": "التصفية",
+    "hideFilters": "إخفاء التصفية",
+    "filterHint": "ضيّق القائمة لتناسب ما تبحث عنه.",
+    "categories": "الفئات",
+    "sortBy": "ترتيب حسب",
+    "default": "الافتراضي",
+    "sortName": "الاسم أ–ي",
+    "sortNameDesc": "الاسم ي–أ",
+    "sortCalories": "السعرات: من الأقل إلى الأعلى",
+    "sortCaloriesDesc": "السعرات: من الأعلى إلى الأقل",
+    "sortPrice": "السعر: من الأقل إلى الأعلى",
+    "sortPriceDesc": "السعر: من الأعلى إلى الأقل",
+    "calories": "السعرات الحرارية",
+    "price": "السعر",
+    "minCal": "الحد الأدنى",
+    "maxCal": "الحد الأقصى",
+    "minPrice": "أقل سعر",
+    "maxPrice": "أعلى سعر",
+    "clearAll": "مسح الكل",
+    "applyFilters": "تطبيق التصفية",
+    "prev": "السابق",
+    "next": "التالي",
+    "showing": "عرض {from}–{to} من أصل {total} وجبة",
+    "noResults": "لا توجد وجبات تطابق عوامل التصفية."
   },
   "healthy": {
     "tagline": "مكونات طازجة، وجبات نابضة — كل ألوان الطيف كل يوم.",

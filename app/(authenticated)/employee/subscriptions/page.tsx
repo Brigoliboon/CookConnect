@@ -95,7 +95,7 @@ export default function EmployeeSubscriptionsPage() {
         const [subsRes, custRes, recipeRes] = await Promise.all([
           fetch("/api/subscriptions"),
           fetch("/api/customers"),
-          fetch("/api/recipe"),
+          fetch("/api/recipe?sort=name"),
         ])
 
         if (subsRes.ok) {
@@ -107,7 +107,7 @@ export default function EmployeeSubscriptionsPage() {
           setCustomers(data.map((c: { id: string; name: string; email: string }) => ({ id: c.id, name: c.name, email: c.email })))
         }
         if (recipeRes.ok) {
-          const data = await recipeRes.json()
+          const { data } = await recipeRes.json()
           const active = (data as { id: string; name: string; category: string | null; is_active: boolean }[]).filter(
             (r) => r.is_active !== false,
           )

@@ -24,6 +24,27 @@ export interface RecipeWithServings extends Recipe {
   servings: RecipeServing[]
 }
 
+export type RecipeSort = "name" | "name_desc" | "calories" | "calories_desc" | "price" | "price_desc"
+
+/** Filters accepted by `GET /api/recipe`. */
+export interface ListRecipesFilters {
+  search?: string
+  category?: string
+  isActive?: boolean
+  minCalories?: number
+  maxCalories?: number
+  minPrice?: number
+  maxPrice?: number
+  sort?: RecipeSort
+  offset?: number
+  limit?: number
+}
+
+export interface RecipeListResult {
+  data: RecipeWithServings[]
+  total: number
+}
+
 export async function createRecipe(
   supabase: import("@supabase/supabase-js").SupabaseClient,
   input: CreateRecipeInput,
@@ -76,16 +97,56 @@ export async function deleteRecipe(
 
 export async function listRecipes(
   supabase: import("@supabase/supabase-js").SupabaseClient,
-): Promise<RecipeWithServings[]> {
-  const { data: recipes, error } = await supabase
+  filters: ListRecipesFilters = {},
+): Promise<RecipeListResult> {
+  let query = supabase
     .from("recipes")
     .select(
       "*, servings(name, price, calories, nutrition, is_active, serving_ingredients(quantity_g, unit, ingredient:ingredients(name, nutrition, fatsecret_id)))",
     )
 
+  if (filters.search) {
+    query = query.ilike("name", `%${escapeLike(filters.search)}%`)
+  }
+  if (filters.category) {
+    query = query.eq("category", filters.category)
+  }
+  if (filters.isActive !== undefined) {
+    query = query.eq("is_active", filters.isActive)
+  }
+
+  const { data: recipes, error } = await query
+
   if (error) throw error
 
-  return (recipes as Record<string, unknown>[]).map((r) => ({
+  let data = (recipes as Record<string, unknown>[]).map(mapRecipeWithServings)
+
+  data = data.filter((recipe) => {
+    const serving = recipe.servings[0]
+    const calories = serving?.calories
+    const price = serving?.price
+
+    return (
+      (filters.minCalories === undefined || (calories !== null && calories !== undefined && calories >= filters.minCalories)) &&
+      (filters.maxCalories === undefined || (calories !== null && calories !== undefined && calories <= filters.maxCalories)) &&
+      (filters.minPrice === undefined || (price !== null && price !== undefined && price >= filters.minPrice)) &&
+      (filters.maxPrice === undefined || (price !== null && price !== undefined && price <= filters.maxPrice))
+    )
+  })
+
+  sortRecipes(data, filters.sort)
+
+  const total = data.length
+  const offset = filters.offset ?? 0
+  const limit = filters.limit
+  if (limit !== undefined) data = data.slice(offset, offset + limit)
+  else if (offset > 0) data = data.slice(offset)
+
+  return { data, total }
+}
+
+function mapRecipeWithServings(r: Record<string, unknown>): RecipeWithServings {
+  return {
     id: r.id as string,
     name: r.name as string,
     category: (r.category as string | null) ?? null,
@@ -103,7 +164,25 @@ export async function listRecipes(
         is_active: s.is_active as boolean,
         ingredients: mapServingIngredients(s.serving_ingredients),
       })),
-  })) as RecipeWithServings[]
+  }
+}
+
+function sortRecipes(recipes: RecipeWithServings[], sort: RecipeSort | undefined) {
+  if (!sort) return
+
+  const direction = sort.endsWith("_desc") ? -1 : 1
+  recipes.sort((a, b) => {
+    if (sort.startsWith("name")) return direction * a.name.localeCompare(b.name)
+
+    const field = sort.startsWith("calories") ? "calories" : "price"
+    const aValue = a.servings[0]?.[field] ?? Number.POSITIVE_INFINITY
+    const bValue = b.servings[0]?.[field] ?? Number.POSITIVE_INFINITY
+    return direction * (aValue - bValue)
+  })
+}
+
+function escapeLike(value: string) {
+  return value.replace(/[\\%_]/g, "\\\\$&")
 }
 
 export async function getRecipe(

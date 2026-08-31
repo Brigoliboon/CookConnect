@@ -27,11 +27,11 @@ export default function EmployeeMealsPage() {
   const [editItem, setEditItem] = useState<MenuItem | null>(null)
 
   useEffect(() => {
-    fetch("/api/recipe")
+    fetch("/api/recipe?sort=name")
       .then(async (res) => {
         const data = await res.json()
         if (!res.ok) throw new Error(data.error ?? "Failed to fetch recipes")
-        return data as Record<string, unknown>[]
+        return data.data as Record<string, unknown>[]
       })
       .then((data) => {
         console.log("[MEALS] API response:", data)
