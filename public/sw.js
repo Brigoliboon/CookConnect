@@ -1,3 +1,6 @@
+self.addEventListener("install", () => self.skipWaiting())
+self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()))
+
 self.addEventListener("push", (event) => {
   let payload = { title: "CookConnect", body: "You have a new update", data: { url: "/employee/deliveries" } }
   try {
