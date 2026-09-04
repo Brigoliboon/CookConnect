@@ -7,7 +7,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useAuth } from "@/hooks/AuthProvider"
 import { NAV_ITEMS } from "@/constants"
 import { Button } from "@/components/ui"
-import { Menu, X, LayoutDashboard, Users, ClipboardList, Truck, UserPlus, MapPin, UserCircle, Utensils, Receipt } from "lucide-react"
+import { Menu, X, LayoutDashboard, Users, ClipboardList, Truck, UserPlus, MapPin, UserCircle, Utensils, Receipt, Bell, BellOff } from "lucide-react"
+import { enablePush, disablePush } from "@/lib/notifications/client"
 
 const iconMap: Record<string, typeof LayoutDashboard> = {
   Dashboard: LayoutDashboard,
@@ -27,6 +28,8 @@ export function Navbar() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [pushOn, setPushOn] = useState(false)
+  const [pushLoading, setPushLoading] = useState(false)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
@@ -34,6 +37,23 @@ export function Navbar() {
     window.addEventListener("scroll", onScroll, { passive: true })
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
+
+  useEffect(() => {
+    if (user?.role !== "employee") return
+    navigator.serviceWorker?.getRegistration("/sw.js").then(async (reg) => {
+      const sub = await reg?.pushManager.getSubscription()
+      setPushOn(!!sub)
+    }).catch(() => {})
+  }, [user?.role])
+
+  const togglePush = async () => {
+    setPushLoading(true)
+    try {
+      setPushOn(pushOn ? !(await disablePush()) : await enablePush())
+    } finally {
+      setPushLoading(false)
+    }
+  }
 
   if (!user) return null
 
@@ -64,6 +84,16 @@ export function Navbar() {
         </div>
       </div>
       <div className="flex items-center gap-4">
+        {user.role === "employee" && (
+          <button
+            onClick={togglePush}
+            disabled={pushLoading}
+            title={pushOn ? "Disable notifications" : "Enable notifications"}
+            className="text-white/80 transition-transform hover:scale-110 hover:text-white disabled:opacity-50"
+          >
+            {pushOn ? <Bell size={18} /> : <BellOff size={18} />}
+          </button>
+        )}
         <span className="hidden sm:inline text-sm text-white/60">{user.name}</span>
         <Button variant="ghost" size="sm" className="text-white/80 hover:text-white" onClick={async () => { await signOut(); router.push("/login") }}>
           Sign Out

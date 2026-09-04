@@ -11,6 +11,8 @@ const PROTECTED_PREFIXES = ["/employee", "/rider", "/customer"]
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  if (pathname === "/sw.js") return NextResponse.next()
+
   const { supabase, supabaseResponse } = createClient(request)
 
   const {

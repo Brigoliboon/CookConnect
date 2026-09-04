@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
 import { updateOrderStatus } from "@/lib/supabase/tables/orders"
+import { notifyOrderStatusChanged } from "@/lib/notifications/orders"
 import type { OrderStatus } from "@/lib/supabase/models"
 
 const ORDER_STATUSES: OrderStatus[] = [
@@ -36,6 +37,9 @@ export async function PATCH(
 
   try {
     const data = await updateOrderStatus(supabase, id, body.status as OrderStatus)
+    void notifyOrderStatusChanged(supabase, data).catch((err) =>
+      console.error("[API] PATCH /api/orders/[id] push failed:", err),
+    )
     return Response.json(data)
   } catch (err) {
     console.error("[API] PATCH /api/orders/[id] error:", err)

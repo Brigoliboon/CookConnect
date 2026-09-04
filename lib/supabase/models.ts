@@ -182,3 +182,25 @@ export interface OrderItem {
   note: string | null; // customer note for this item (e.g. "no onions", "extra spicy")
   image_path: string | null;
 }
+
+export interface PushSubscription {
+  id: UUID;
+  user_id: UUID; // -> public.accounts.id
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  user_agent: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AppNotification {
+  id: UUID;
+  recipient_user_id: UUID; // -> public.accounts.id
+  type: string;
+  title: string;
+  body: string;
+  data: Record<string, unknown>;
+  read_at: string | null;
+  created_at: string;
+}

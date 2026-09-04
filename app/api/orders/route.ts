@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
 import { listOrders, createOrder, type CreateOrderItemInput } from "@/lib/supabase/tables/orders"
+import { notifyOrderCreated } from "@/lib/notifications/orders"
 import type { OrderStatus } from "@/lib/supabase/models"
 
 const ORDER_STATUSES: OrderStatus[] = [
@@ -28,7 +29,6 @@ export async function GET(request: Request) {
 
   try {
     const data = await listOrders(supabase, (status as OrderStatus) ?? undefined)
-    console.log(JSON.stringify(data))
     return Response.json(data)
   } catch (err) {
     console.error("[API] GET /api/orders error:", err)
@@ -82,6 +82,9 @@ export async function POST(request: Request) {
         shipping_cents: body.shipping_cents ?? 0,
       },
       body.items,
+    )
+    void notifyOrderCreated(supabase, data, body.items.length).catch((err) =>
+      console.error("[API] POST /api/orders push failed:", err),
     )
     return Response.json(data, { status: 201 })
   } catch (err) {
