@@ -106,7 +106,10 @@ export async function listRecipes(
     )
 
   if (filters.search) {
-    query = query.ilike("name", `%${escapeLike(filters.search)}%`)
+    for (const tok of filters.search.split(/\s+/).filter(Boolean)) {
+      const p = `%${escapeLike(tok)}%`
+      query = query.or(`name.ilike.${p},description.ilike.${p},category.ilike.${p}`)
+    }
   }
   if (filters.category) {
     query = query.eq("category", filters.category)
