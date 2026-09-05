@@ -3,24 +3,16 @@
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { MapboxMap } from "@/components/ui/MapboxMap"
-import { CUSTOMERS, SUBSCRIPTIONS, DELIVERIES } from "@/constants"
+import { CUSTOMERS, SUBSCRIPTIONS } from "@/constants"
 import { Package, Truck, Users, UserPlus, ClipboardList, Receipt, LayoutDashboard, type LucideIcon } from "lucide-react"
-import { StatCard, StatusGallery, WeeklyMenu, QuickActionCard } from "@/components/ui"
+import { StatCard, WeeklyMenu, QuickActionCard } from "@/components/ui"
 import { PopularMealsChart, CarbPreferenceChart, RestrictionsChart, GoalsChart } from "@/components/charts"
-
-type MapFilter = "all" | "today" | "skip"
 
 const quickActions = [
   { label: "New Subscription", href: "/employee/subscriptions/", icon: Package, from: "#059669", to: "#047857" },
   { label: "Deliveries", href: "/employee/deliveries", icon: Truck, from: "#2563eb", to: "#1d4ed8" },
   { label: "Create Account", href: "/employee/accounts", icon: UserPlus, from: "#7c3aed", to: "#6d28d9" },
   { label: "Customers", href: "/employee/customers", icon: Users, from: "#d97706", to: "#b45309" },
-]
-
-const FILTERS: { label: string; value: MapFilter }[] = [
-  { label: "All", value: "all" },
-  { label: "Today", value: "today" },
-  { label: "Skip", value: "skip" },
 ]
 
 const containerVariants = {
@@ -36,35 +28,65 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 }
 
+interface DashboardOrder {
+  id: string
+  name: string
+  status: string
+  location: unknown
+}
+
+function parseOrderLocation(location: unknown): { lat: number; lng: number } | null {
+  if (!location) return null
+  if (typeof location === "object") {
+    const o = location as { lat?: number; lng?: number; coordinates?: [number, number] }
+    if (typeof o.lat === "number" && typeof o.lng === "number") return { lat: o.lat, lng: o.lng }
+    if (Array.isArray(o.coordinates)) return { lng: o.coordinates[0], lat: o.coordinates[1] }
+    return null
+  }
+  if (typeof location !== "string") return null
+  try {
+    const bytes = new Uint8Array(location.match(/../g)!.map((b) => parseInt(b, 16)))
+    const view = new DataView(bytes.buffer)
+    const offset = bytes.length - 16
+    return { lng: view.getFloat64(offset, true), lat: view.getFloat64(offset + 8, true) }
+  } catch {
+    return null
+  }
+}
+
 export default function EmployeeDashboardPage() {
-  const [mapFilter, setMapFilter] = useState<MapFilter>("all")
   const [activeOrders, setActiveOrders] = useState(0)
+  const [orders, setOrders] = useState<DashboardOrder[]>([])
 
   useEffect(() => {
-    fetch("/api/orders")
-      .then(async (res) => {
+    Promise.all([
+      fetch("/api/orders").then(async (res) => {
         const data = await res.json()
         if (!res.ok) throw new Error(data.error ?? "Failed to fetch orders")
-        return data as { status: string }[]
-      })
-      .then((orders) => {
-        setActiveOrders(orders.filter((o) => !["cancelled", "delivered"].includes(o.status)).length)
+        return data as DashboardOrder[]
+      }),
+      fetch("/api/orders?status=confirmed&location_only=true").then(async (res) => {
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error ?? "Failed to fetch map orders")
+        return data as DashboardOrder[]
+      }),
+    ])
+      .then(([all, located]) => {
+        setOrders(located)
+        setActiveOrders(all.filter((o) => !["cancelled", "delivered"].includes(o.status)).length)
       })
       .catch((e) => console.error("[DASHBOARD] Orders fetch error:", e.message || e))
   }, [])
 
-  const mapMarkers = DELIVERIES
-    .filter((d) => {
-      if (mapFilter === "all") return true
-      return d.intent === mapFilter
-    })
-    .filter((d) => d.location)
-    .map((d) => ({
-      id: d.id,
-      lat: d.location!.lat,
-      lng: d.location!.lng,
-      label: `${d.customerName} — ${d.intent}${d.note ? `: ${d.note}` : ""}`,
-      type: d.intent,
+  const mapMarkers = orders
+    .map((o) => ({ order: o, coords: parseOrderLocation(o.location) }))
+    .filter((o): o is { order: DashboardOrder; coords: { lat: number; lng: number } } => o.coords !== null)
+    .map(({ order, coords }) => ({
+      id: order.id,
+      lat: coords.lat,
+      lng: coords.lng,
+      label: `${order.name} — ${order.status.replaceAll("_", " ")}`,
+      type: "orders",
     }))
 
   return (
@@ -87,7 +109,7 @@ export default function EmployeeDashboardPage() {
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard icon={Users as LucideIcon} label="Total Customers" value={CUSTOMERS.length} />
           <StatCard icon={ClipboardList as LucideIcon} label="Active Subscriptions" value={SUBSCRIPTIONS.length} />
-          <StatCard icon={Truck as LucideIcon} label="Delivering Today" value={DELIVERIES.filter((d) => d.intent === "today").length} />
+          <StatCard icon={Truck as LucideIcon} label="Confirmed Orders" value={orders.filter((o) => o.status === "confirmed").length} />
           <StatCard icon={Receipt as LucideIcon} label="Active Orders" value={activeOrders} />
         </div>
       </motion.div>
@@ -96,21 +118,6 @@ export default function EmployeeDashboardPage() {
         <motion.div variants={itemVariants} className="lg:col-span-2 flex flex-col space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-neutral-900">Delivery Map</h2>
-            <div className="flex items-center gap-2">
-              {FILTERS.map((f) => (
-                <button
-                  key={f.value}
-                  onClick={() => setMapFilter(f.value)}
-                  className={`rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
-                    mapFilter === f.value
-                      ? "bg-neutral-900 text-white shadow-sm"
-                      : "bg-white text-neutral-600 border border-neutral-200 hover:border-neutral-400"
-                  }`}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
           </div>
           <div className="flex flex-col flex-1 min-h-0 overflow-hidden rounded-2xl border border-neutral-200/60 bg-white/80 backdrop-blur-sm shadow-sm">
             <MapboxMap markers={mapMarkers} height="full" defaultStyle="satellite" />
@@ -145,10 +152,6 @@ export default function EmployeeDashboardPage() {
         <WeeklyMenu data={{ weekOf: "", items: { chicken: [], beef: [], seafood: [], salad: [], wrap: [], breakfast: [], pasta: [], soup: [], pizza: [], burgers: [], drinks: [], biryani: [], risotto: [], smoothie: [], juice: [], beverages: [], desserts: [], "rice-sides": [], platters: [], vegetable: [] } }} />
       </motion.div>
 
-      <motion.div variants={itemVariants}>
-        <h2 className="mb-4 text-lg font-semibold text-neutral-900">Today&apos;s Status</h2>
-        <StatusGallery deliveries={DELIVERIES} />
-      </motion.div>
     </motion.div>
   )
 }

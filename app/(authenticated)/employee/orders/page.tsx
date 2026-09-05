@@ -1,14 +1,14 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Search, Download, ChevronDown, Mail, Phone, Receipt, Package, Check } from "lucide-react"
+import { motion } from "framer-motion"
+import { Search, Download, Mail, Phone, Receipt, Package, Check } from "lucide-react"
 import type { Order, OrderItem } from "@/lib/supabase/models"
 import { formatPrice } from "@/utils/mapbox"
 import { OrderPrintButton } from "@/components/ui/OrderPrintButton"
-import { OrderStatusDialog, type StatusOption } from "@/components/ui/OrderStatusDialog"
+import { Modal } from "@/components/ui/Modal"
 
-const STATUSES = ["inquiry", "confirmed", "preparing", "out_for_delivery", "delivered", "cancelled"] as const
+const STATUSES = ["inquiry", "confirmed", "cancelled"] as const
 
 type StatusFilter = (typeof STATUSES)[number] | "all"
 
@@ -39,15 +39,6 @@ const statusAvatar: Record<string, string> = {
   cancelled: "from-neutral-400 to-neutral-500",
 }
 
-const statusDot: Record<string, string> = {
-  inquiry: "bg-amber-500",
-  confirmed: "bg-blue-500",
-  preparing: "bg-purple-500",
-  out_for_delivery: "bg-orange-500",
-  delivered: "bg-green-500",
-  cancelled: "bg-neutral-400",
-}
-
 interface OrderRow {
   id: string
   name: string
@@ -57,6 +48,7 @@ interface OrderRow {
   status: string
   subtotalCents: number
   shippingCents: number
+  vatCents: number
   currency: string
   createdAt: string
   items: OrderItem[]
@@ -71,10 +63,8 @@ export default function EmployeeOrdersPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("inquiry")
-  const [showFilters, setShowFilters] = useState(false)
-  const [expanded, setExpanded] = useState<string | null>(null)
   const [updating, setUpdating] = useState<string | null>(null)
-  const [statusDialogId, setStatusDialogId] = useState<string | null>(null)
+  const [itemsDialogId, setItemsDialogId] = useState<string | null>(null)
 
   async function updateStatus(orderId: string, status: string) {
     setUpdating(orderId)
@@ -119,6 +109,7 @@ export default function EmployeeOrdersPage() {
           status: o.status,
           subtotalCents: Number(o.subtotal_cents),
           shippingCents: Number(o.shipping_cents),
+          vatCents: Number(o.vat_cents ?? Math.round(Number(o.subtotal_cents) * 0.05)),
           currency: o.currency ?? "AED",
           createdAt: (o.created_at ?? "").split("T")[0],
           items: o.order_items ?? [],
@@ -140,14 +131,8 @@ export default function EmployeeOrdersPage() {
     [orders, search]
   )
 
-  const statusOptions: StatusOption[] = STATUSES.map((s) => ({
-    value: s,
-    label: s.replaceAll("_", " "),
-    dotClass: statusDot[s] ?? "bg-neutral-400",
-  }))
-
-  const statusDialogOrder = statusDialogId
-    ? orders.find((o) => o.id === statusDialogId) ?? null
+  const itemsDialogOrder = itemsDialogId
+    ? orders.find((o) => o.id === itemsDialogId) ?? null
     : null
 
   function exportCSV() {
@@ -158,7 +143,7 @@ export default function EmployeeOrdersPage() {
       o.mobileNumber,
       o.status,
       o.items.reduce((sum, i) => sum + i.qty, 0),
-      formatPrice(o.subtotalCents + o.shippingCents),
+      formatPrice(o.subtotalCents + o.shippingCents + o.vatCents),
       o.createdAt,
     ])
     const csv = [headers, ...rows].map((r) => r.join(",")).join("\n")
@@ -198,13 +183,6 @@ export default function EmployeeOrdersPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2 rounded-2xl border border-neutral-200 bg-white/80 px-4 py-3 text-sm font-medium text-neutral-600 backdrop-blur-sm transition-all hover:border-neutral-400 hover:bg-white"
-            >
-              <ChevronDown size={15} className={`transition-transform ${showFilters ? "rotate-180" : ""}`} />
-              Filters
-            </button>
-            <button
               onClick={exportCSV}
               className="flex items-center gap-2 rounded-2xl border border-neutral-200 bg-white/80 px-4 py-3 text-sm font-medium text-neutral-600 backdrop-blur-sm transition-all hover:border-neutral-400 hover:bg-white"
             >
@@ -214,38 +192,25 @@ export default function EmployeeOrdersPage() {
           </div>
         </div>
 
-        <AnimatePresence>
-          {showFilters && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="mb-8 overflow-hidden"
+        <div className="mb-8 flex gap-2 overflow-x-auto pb-1">
+          {(["all", ...STATUSES] as StatusFilter[]).map((s) => (
+            <button
+              key={s}
+              onClick={() => {
+                setStatusFilter(s)
+                setLoading(true)
+                setOrders([])
+              }}
+              className={`shrink-0 rounded-xl px-4 py-2 text-sm font-medium capitalize transition-all ${
+                statusFilter === s
+                  ? "bg-neutral-900 text-white shadow-sm"
+                  : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+              }`}
             >
-              <div className="flex flex-wrap gap-3 rounded-2xl border border-neutral-200 bg-white/60 p-4 backdrop-blur-sm">
-                <div className="flex flex-wrap gap-2">
-                  {(["all", ...STATUSES] as StatusFilter[]).map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => {
-                        setStatusFilter(s)
-                        setLoading(true)
-                        setOrders([])
-                      }}
-                      className={`rounded-xl px-4 py-2 text-sm font-medium capitalize transition-all ${
-                        statusFilter === s
-                          ? "bg-neutral-900 text-white shadow-sm"
-                          : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-                      }`}
-                    >
-                      {s === "all" ? "All" : s.replaceAll("_", " ")}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              {s === "all" ? "All" : s.replaceAll("_", " ")}
+            </button>
+          ))}
+        </div>
 
         {loading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -262,8 +227,7 @@ export default function EmployeeOrdersPage() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filtered.map((order, i) => {
-              const total = order.subtotalCents + order.shippingCents
-              const isOpen = expanded === order.id
+              const total = order.subtotalCents + order.shippingCents + order.vatCents
               return (
                 <motion.div
                   key={order.id}
@@ -279,15 +243,18 @@ export default function EmployeeOrdersPage() {
                         {initials(order.name)}
                       </div>
                       <div>
-                        <button
-                          onClick={() => setStatusDialogId(order.id)}
+                        <select
+                          value={order.status}
+                          onChange={(e) => updateStatus(order.id, e.target.value)}
                           disabled={updating === order.id}
-                          className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold capitalize transition-all disabled:cursor-not-allowed disabled:opacity-50 ${statusBadge[order.status] ?? "bg-neutral-100 text-neutral-600"}`}
+                          className={`cursor-pointer rounded-lg px-2.5 py-1 text-xs font-semibold capitalize transition-all disabled:cursor-not-allowed disabled:opacity-50 ${statusBadge[order.status] ?? "bg-neutral-100 text-neutral-600"}`}
                         >
-                          <span className={`size-1.5 rounded-full ${statusDot[order.status] ?? "bg-neutral-400"}`} />
-                          {order.status.replaceAll("_", " ")}
-                          <ChevronDown size={12} />
-                        </button>
+                          {STATUSES.map((s) => (
+                            <option key={s} value={s}>
+                              {s.replaceAll("_", " ")}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
                     <div className="mt-4">
@@ -320,51 +287,12 @@ export default function EmployeeOrdersPage() {
                         />
                       )}
                       <button
-                        onClick={() => setExpanded(isOpen ? null : order.id)}
+                        onClick={() => setItemsDialogId(order.id)}
                         className="mt-0 flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-neutral-200 py-2 text-xs font-semibold text-neutral-600 transition-all hover:bg-neutral-900 hover:text-white"
                       >
-                        <ChevronDown size={14} className={`transition-transform ${isOpen ? "rotate-180" : ""}`} />
-                        {isOpen ? "Hide Items" : "View Items"}
+                        View Items
                       </button>
                     </div>
-                    <AnimatePresence>
-                      {isOpen && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="mt-3 space-y-2 rounded-xl bg-neutral-50 p-3">
-                            {order.items.map((item) => (
-                              <div key={item.id}>
-                                <div className="flex items-center justify-between text-sm">
-                                  <span className="flex items-center gap-2 text-neutral-700">
-                                    <Check size={12} className="text-brand-700" />
-                                    {item.name}
-                                    <span className="text-xs text-neutral-400">x{item.qty}</span>
-                                  </span>
-                                  <span className="font-semibold text-neutral-900">{formatPrice(Number(item.unit_price_cents) * item.qty)}</span>
-                                </div>
-                                {item.note && (
-                                  <p className="mt-0.5 pl-5 text-xs text-amber-700">{item.note}</p>
-                                )}
-                              </div>
-                            ))}
-                            {order.shippingCents > 0 && (
-                              <div className="flex items-center justify-between border-t border-neutral-200 pt-2 text-sm text-neutral-500">
-                                <span>Shipping</span>
-                                <span>{formatPrice(order.shippingCents)}</span>
-                              </div>
-                            )}
-                            <div className="flex items-center justify-between border-t border-neutral-200 pt-2 text-sm font-bold text-neutral-900">
-                              <span>Total</span>
-                              <span>{formatPrice(total)}</span>
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </div>
                   <div className={`h-1 w-full ${statusBar[order.status] ?? "bg-neutral-200"}`} />
                 </motion.div>
@@ -378,21 +306,45 @@ export default function EmployeeOrdersPage() {
         </div>
       </div>
 
-      {statusDialogOrder && (
-        <OrderStatusDialog
-          open={!!statusDialogOrder}
-          customerName={statusDialogOrder.name}
-          currentStatus={statusDialogOrder.status}
-          currentBadgeClass={statusBadge[statusDialogOrder.status] ?? "bg-neutral-100 text-neutral-600"}
-          updating={updating === statusDialogOrder.id}
-          options={statusOptions}
-          onSelect={(s) => {
-            updateStatus(statusDialogOrder.id, s)
-            setStatusDialogId(null)
-          }}
-          onClose={() => setStatusDialogId(null)}
-        />
-      )}
+      <Modal
+        open={!!itemsDialogOrder}
+        onClose={() => setItemsDialogId(null)}
+        title={itemsDialogOrder ? `Items for ${itemsDialogOrder.name}` : "Items"}
+      >
+        {itemsDialogOrder && (
+          <div className="space-y-2">
+            {itemsDialogOrder.items.map((item) => (
+              <div key={item.id}>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2 text-neutral-700">
+                    <Check size={12} className="text-brand-700" />
+                    {item.name}
+                    <span className="text-xs text-neutral-400">x{item.qty}</span>
+                  </span>
+                  <span className="font-semibold text-neutral-900">{formatPrice(Number(item.unit_price_cents) * item.qty)}</span>
+                </div>
+                {item.note && (
+                  <p className="mt-0.5 pl-5 text-xs text-amber-700">{item.note}</p>
+                )}
+              </div>
+            ))}
+            {itemsDialogOrder.shippingCents > 0 && (
+              <div className="flex items-center justify-between border-t border-neutral-200 pt-2 text-sm text-neutral-500">
+                <span>Shipping</span>
+                <span>{formatPrice(itemsDialogOrder.shippingCents)}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between pt-2 text-sm text-neutral-500">
+              <span>VAT (5%)</span>
+              <span>{formatPrice(itemsDialogOrder.vatCents)}</span>
+            </div>
+            <div className="flex items-center justify-between border-t border-neutral-200 pt-2 text-sm font-bold text-neutral-900">
+              <span>Total</span>
+              <span>{formatPrice(itemsDialogOrder.subtotalCents + itemsDialogOrder.shippingCents + itemsDialogOrder.vatCents)}</span>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

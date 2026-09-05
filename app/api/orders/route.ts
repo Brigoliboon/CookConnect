@@ -19,6 +19,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url)
   const status = searchParams.get("status")
+  const locationOnly = searchParams.get("location_only") === "true"
 
   if (status && !ORDER_STATUSES.includes(status as OrderStatus)) {
     return Response.json(
@@ -28,7 +29,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const data = await listOrders(supabase, (status as OrderStatus) ?? undefined)
+    const data = await listOrders(supabase, (status as OrderStatus) ?? undefined, locationOnly)
     return Response.json(data)
   } catch (err) {
     console.error("[API] GET /api/orders error:", err)

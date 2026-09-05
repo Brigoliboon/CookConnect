@@ -8,6 +8,7 @@ export interface CreateOrderInput {
   address?: string | null
   subtotal_cents: number
   shipping_cents: number
+  vat_cents?: number
   currency?: string
   location?: { lat: number; lng: number } | null
   details?: Record<string, unknown>
@@ -29,6 +30,7 @@ export interface OrderWithItems extends Order {
 export async function listOrders(
   supabase: import("@supabase/supabase-js").SupabaseClient,
   status?: OrderStatus,
+  locationOnly?: boolean,
 ): Promise<OrderWithItems[]> {
   let query = supabase
     .from("orders")
@@ -36,6 +38,9 @@ export async function listOrders(
 
   if (status) {
     query = query.eq("status", status)
+  }
+  if (locationOnly) {
+    query = query.not("location", "is", null)
   }
 
   const { data, error } = await query.order("created_at", { ascending: false })
@@ -49,6 +54,7 @@ export async function createOrder(
   input: CreateOrderInput,
   items: CreateOrderItemInput[],
 ): Promise<OrderWithItems> {
+  const vat_cents = input.vat_cents ?? Math.round(input.subtotal_cents * 0.05)
   const { data, error } = await supabase
     .from("orders")
     .insert({
@@ -60,6 +66,7 @@ export async function createOrder(
       status: "inquiry",
       subtotal_cents: input.subtotal_cents,
       shipping_cents: input.shipping_cents,
+      vat_cents,
       currency: input.currency ?? "AED",
       details: input.details ?? {},
     })

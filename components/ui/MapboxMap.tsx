@@ -8,6 +8,7 @@ const ICON_MAP: Record<string, string> = {
   today: "/icons/marker-active.png",
   delivered: "/icons/marker-delivered.png",
   skip: "/icons/marker-skip.png",
+  orders: "/icons/marker-order.png",
 }
 
 interface MarkerData {
@@ -65,6 +66,7 @@ export function MapboxMap({ markers, className = "", height = "default", default
     { type: "today", label: "Today" },
     { type: "skip", label: "Skip" },
     { type: "delivered", label: "Delivered" },
+    { type: "orders", label: "Orders" },
   ]
 
   return (
