@@ -20,6 +20,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState("")
   const [feeCents, setFeeCents] = useState<number | null>(null)
+  const [pickup, setPickup] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
   const [consent, setConsent] = useState(false)
   const [noteOpen, setNoteOpen] = useState<string | null>(null)
@@ -32,6 +33,22 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
       setCartState(getCart())
       setSubmitted(false)
       setConsent(false)
+      setPickup(false)
+    }
+  }
+
+  function togglePickup(checked: boolean) {
+    setPickup(checked)
+    setLocationError("")
+    setUnsupported(false)
+    if (checked) {
+      setFeeCents(0)
+      setConfirmed(true)
+      setForm((p) => ({ ...p, address: "Pickup" }))
+    } else {
+      setFeeCents(null)
+      setConfirmed(false)
+      setForm((p) => ({ ...p, address: "" }))
     }
   }
 
@@ -103,11 +120,11 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
   }
 
   async function handleSubmit() {
-    if (!confirmed || feeCents === null) {
+    if (!pickup && (!confirmed || feeCents === null)) {
       setLocationError(t("confirmError"))
       return
     }
-    if (!form.name || !form.email || !form.mobile || !form.address) {
+    if (!form.name || !form.email || !form.mobile || (!pickup && !form.address)) {
       return
     }
     setLocationError("")
@@ -121,9 +138,9 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
           name: form.name,
           email: form.email,
           mobile_number: form.mobile,
-          address: form.address,
-          location,
-          shipping_cents: feeCents,
+          address: pickup ? "Pickup" : form.address,
+          location: pickup ? null : location,
+          shipping_cents: pickup ? 0 : feeCents,
           items: cart.map((item) => ({
             name: item.name,
             unit_price_cents: Math.round(item.price * 100),
@@ -303,8 +320,21 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                 <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
                   <MapPin size={13} />
                   {t("deliveryLocation")}
-                  <span className="text-red-500">*</span>
+                  {!pickup && <span className="text-red-500">*</span>}
                 </label>
+                <label className="mb-2 flex cursor-pointer items-center gap-2 text-sm text-neutral-700">
+                  <input
+                    type="checkbox"
+                    checked={pickup}
+                    onChange={(e) => togglePickup(e.target.checked)}
+                    className="size-4 cursor-pointer accent-neutral-900"
+                  />
+                  {t("pickup")}
+                </label>
+                {pickup ? (
+                  <p className="rounded-xl bg-neutral-50 px-4 py-3 text-sm text-neutral-500">{t("pickupNote")}</p>
+                ) : (
+                <>
                 <LocationPicker value={location} onChange={(loc) => { setLocation(loc); setConfirmed(false); setFeeCents(null); setUnsupported(false); setLocationError("") }} />
                 <button
                   onClick={handleConfirmLocation}
@@ -331,6 +361,8 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                   </div>
                 )}
                 {locationError && !unsupported && <p className="mt-1.5 text-xs text-red-500">{locationError}</p>}
+                </>
+                )}
               </div>
               {form.address && (
                 <div>
@@ -397,7 +429,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
 
             <button
               onClick={handleSubmit}
-              disabled={cart.length === 0 || !confirmed || feeCents === null || !consent || submitting}
+              disabled={cart.length === 0 || (!pickup && (!confirmed || feeCents === null)) || !consent || submitting}
               className="mt-3 w-full rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white shadow-lg shadow-neutral-900/20 transition-all hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {submitting ? t("placing") : t("placeOrder")}

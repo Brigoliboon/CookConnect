@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { MapboxMap } from "@/components/ui/MapboxMap"
-import { CUSTOMERS, SUBSCRIPTIONS } from "@/constants"
+import { SUBSCRIPTIONS } from "@/constants"
 import { Package, Truck, Users, UserPlus, ClipboardList, Receipt, LayoutDashboard, type LucideIcon } from "lucide-react"
 import { StatCard, WeeklyMenu, QuickActionCard } from "@/components/ui"
 import { PopularMealsChart, CarbPreferenceChart, RestrictionsChart, GoalsChart } from "@/components/charts"
@@ -56,6 +56,7 @@ function parseOrderLocation(location: unknown): { lat: number; lng: number } | n
 
 export default function EmployeeDashboardPage() {
   const [activeOrders, setActiveOrders] = useState(0)
+  const [pendingOrders, setPendingOrders] = useState(0)
   const [orders, setOrders] = useState<DashboardOrder[]>([])
 
   useEffect(() => {
@@ -74,6 +75,7 @@ export default function EmployeeDashboardPage() {
       .then(([all, located]) => {
         setOrders(located)
         setActiveOrders(all.filter((o) => !["cancelled", "delivered"].includes(o.status)).length)
+        setPendingOrders(all.filter((o) => o.status === "inquiry").length)
       })
       .catch((e) => console.error("[DASHBOARD] Orders fetch error:", e.message || e))
   }, [])
@@ -107,7 +109,7 @@ export default function EmployeeDashboardPage() {
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard icon={Users as LucideIcon} label="Total Customers" value={CUSTOMERS.length} />
+          <StatCard icon={Package as LucideIcon} label="Pending Orders" value={pendingOrders} />
           <StatCard icon={ClipboardList as LucideIcon} label="Active Subscriptions" value={SUBSCRIPTIONS.length} />
           <StatCard icon={Truck as LucideIcon} label="Confirmed Orders" value={orders.filter((o) => o.status === "confirmed").length} />
           <StatCard icon={Receipt as LucideIcon} label="Active Orders" value={activeOrders} />

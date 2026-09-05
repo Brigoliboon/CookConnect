@@ -196,7 +196,9 @@
     "inquiryNote": "You will be placing an inquiry with the restaurant — our team will confirm your order shortly.",
     "successTitle": "Order Received!",
     "successBody": "Your order has been received successfully. CookConnect will reach out to you soon about your order.",
-    "done": "Done"
+    "done": "Done",
+    "pickup": "Pickup only (no delivery)",
+    "pickupNote": "Pickup order — no delivery address needed."
   },
   "gallery": {
     "morning": "Morning",
@@ -247,11 +249,26 @@
       {
         "title": "Definitions",
         "items": [
-          { "term": "Agreement", "desc": "This Meal Plan Service Agreement." },
-          { "term": "Meal Plan", "desc": "The subscription package purchased by the Customer." },
-          { "term": "Subscription", "desc": "The agreed duration of the Meal Plan." },
-          { "term": "Delivery Day", "desc": "Any scheduled day on which meals are delivered." },
-          { "term": "Website", "desc": "Cook Connect's official website or QR-code information portal containing operational information, policies, menus, FAQs, and customer forms." }
+          {
+            "term": "Agreement",
+            "desc": "This Meal Plan Service Agreement."
+          },
+          {
+            "term": "Meal Plan",
+            "desc": "The subscription package purchased by the Customer."
+          },
+          {
+            "term": "Subscription",
+            "desc": "The agreed duration of the Meal Plan."
+          },
+          {
+            "term": "Delivery Day",
+            "desc": "Any scheduled day on which meals are delivered."
+          },
+          {
+            "term": "Website",
+            "desc": "Cook Connect's official website or QR-code information portal containing operational information, policies, menus, FAQs, and customer forms."
+          }
         ]
       },
       {
@@ -327,11 +344,21 @@
       {
         "title": "Customer Responsibilities",
         "items": [
-          { "desc": "Provide complete and accurate information." },
-          { "desc": "Consume meals within the recommended storage period." },
-          { "desc": "Store and reheat meals in accordance with the instructions provided." },
-          { "desc": "Promptly notify Cook Connect of any delivery issues." },
-          { "desc": "Communicate respectfully with Company personnel." }
+          {
+            "desc": "Provide complete and accurate information."
+          },
+          {
+            "desc": "Consume meals within the recommended storage period."
+          },
+          {
+            "desc": "Store and reheat meals in accordance with the instructions provided."
+          },
+          {
+            "desc": "Promptly notify Cook Connect of any delivery issues."
+          },
+          {
+            "desc": "Communicate respectfully with Company personnel."
+          }
         ]
       },
       {
