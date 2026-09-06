@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { motion } from "framer-motion"
-import { Search, X, ChevronDown, ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react"
+import { Search, X, ChevronDown, SlidersHorizontal, ArrowUp } from "lucide-react"
 import { useTranslations, useLocale } from "next-intl"
 import { translateContent } from "@/constants/translations"
 import { Nav } from "@/components/landing/Nav"
@@ -10,7 +10,7 @@ import { Footer } from "@/components/landing/Footer"
 import { CatalogMealCard } from "@/components/landing/CatalogMealCard"
 import type { MealServingOption } from "@/constants"
 
-const PAGE_SIZE = 12
+const PAGE_SIZE = 24
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -149,21 +149,14 @@ interface RangeInputsProps {
 function RangeInputs({ label, minValue, maxValue, minPlaceholder, maxPlaceholder, onMinChange, onMaxChange }: RangeInputsProps) {
   return (
     <div>
-      <p className="font-nunito text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">{label}</p>
+      <p className="font-nunito text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">{label}</p>
       <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-        <input type="number" min="0" value={minValue} onChange={(event) => onMinChange(event.target.value)} placeholder={minPlaceholder} aria-label={minPlaceholder} className="min-w-0 border border-white/15 bg-white/10 px-2.5 py-2 text-sm text-white placeholder-white/30 outline-none transition-colors focus:border-white/40" />
-        <span className="text-xs text-white/35">–</span>
-        <input type="number" min="0" value={maxValue} onChange={(event) => onMaxChange(event.target.value)} placeholder={maxPlaceholder} aria-label={maxPlaceholder} className="min-w-0 border border-white/15 bg-white/10 px-2.5 py-2 text-sm text-white placeholder-white/30 outline-none transition-colors focus:border-white/40" />
+        <input type="number" min="0" value={minValue} onChange={(event) => onMinChange(event.target.value)} placeholder={minPlaceholder} aria-label={minPlaceholder} className="min-w-0 border border-neutral-200 bg-white px-2.5 py-2 text-sm text-neutral-900 placeholder-neutral-400 outline-none transition-colors focus:border-neutral-400" />
+        <span className="text-xs text-neutral-400">–</span>
+        <input type="number" min="0" value={maxValue} onChange={(event) => onMaxChange(event.target.value)} placeholder={maxPlaceholder} aria-label={maxPlaceholder} className="min-w-0 border border-neutral-200 bg-white px-2.5 py-2 text-sm text-neutral-900 placeholder-neutral-400 outline-none transition-colors focus:border-neutral-400" />
       </div>
     </div>
   )
-}
-
-function getPaginationItems(currentPage: number, totalPages: number): Array<number | "ellipsis"> {
-  if (totalPages <= 5) return Array.from({ length: totalPages }, (_, index) => index)
-  if (currentPage <= 2) return [0, 1, 2, "ellipsis", totalPages - 1]
-  if (currentPage >= totalPages - 3) return [0, "ellipsis", totalPages - 3, totalPages - 2, totalPages - 1]
-  return [0, "ellipsis", currentPage, "ellipsis", totalPages - 1]
 }
 
 export default function CatalogPage() {
@@ -173,11 +166,13 @@ export default function CatalogPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [showTop, setShowTop] = useState(false)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
   const [activeCategory, setActiveCategory] = useState("all")
   const [activeSub, setActiveSub] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [searchInput, setSearchInput] = useState("")
-  const [page, setPage] = useState(0)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [sort, setSort] = useState("default")
   const [minCal, setMinCal] = useState("")
@@ -188,7 +183,7 @@ export default function CatalogPage() {
   const activeCat = categories.find((c) => c.id === activeCategory)
   const hasActiveFilters = search !== "" || activeCategory !== "all" || sort !== "default" || minCal !== "" || maxCal !== "" || minPrice !== "" || maxPrice !== ""
 
-  const buildUrl = useCallback(() => {
+  const buildUrl = useCallback((offset: number) => {
     const params = new URLSearchParams()
     if (activeCategory !== "all") {
       const targetValue = activeCat?.subs ? (subValues[activeSub ?? ""] ?? activeCat.subs[0]) : catValues[activeCategory]
@@ -201,26 +196,27 @@ export default function CatalogPage() {
     if (minPrice) params.set("min_price", minPrice)
     if (maxPrice) params.set("max_price", maxPrice)
     params.set("is_active", "true")
-    params.set("offset", String(page * PAGE_SIZE))
+    params.set("offset", String(offset))
     params.set("limit", String(PAGE_SIZE))
     return `/api/recipe?${params.toString()}`
-  }, [activeCategory, activeSub, search, page, sort, minCal, maxCal, minPrice, maxPrice, activeCat])
+  }, [activeCategory, activeSub, search, sort, minCal, maxCal, minPrice, maxPrice, activeCat])
+
+  const fetchPage = useCallback(async (offset: number, append: boolean, signal?: AbortSignal) => {
+    const res = await fetch(buildUrl(offset), { signal })
+    if (!res.ok) throw new Error("Failed to fetch recipes")
+    const json = await res.json()
+    const raw = json.data ?? json
+    const count = json.total ?? (Array.isArray(raw) ? raw.length : 0)
+    const items = Array.isArray(raw) ? raw.map(mapRecipe) : []
+    if (signal?.aborted) return
+    setTotal(count)
+    setMenuItems((prev) => (append ? [...prev, ...items] : items))
+  }, [buildUrl])
 
   useEffect(() => {
     const controller = new AbortController()
-    fetch(buildUrl(), { signal: controller.signal })
-      .then(async (res) => {
-        if (!res.ok) throw new Error("Failed to fetch recipes")
-        return res.json()
-      })
-      .then((json) => {
-        if (controller.signal.aborted) return
-        const raw = json.data ?? json
-        const count = json.total ?? (Array.isArray(raw) ? raw.length : 0)
-        const items = Array.isArray(raw) ? raw.map(mapRecipe) : []
-        setMenuItems(items)
-        setTotal(count)
-      })
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchPage(0, false, controller.signal)
       .catch((e) => {
         if (e.name !== "AbortError") console.error("[CATALOG] Failed to fetch recipes:", e)
       })
@@ -228,17 +224,40 @@ export default function CatalogPage() {
         if (!controller.signal.aborted) setLoading(false)
       })
     return () => controller.abort()
-  }, [buildUrl])
+  }, [fetchPage])
 
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
-  const paginationItems = getPaginationItems(page, totalPages)
+  const hasMore = menuItems.length < total
+
+  useEffect(() => {
+    const onScroll = () => setShowTop(window.scrollY > 300)
+    onScroll()
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el || loading) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0]
+        if (!entry.isIntersecting || loadingMore || !hasMore) return
+        setLoadingMore(true)
+        fetchPage(menuItems.length, true)
+          .catch((e) => console.error("[CATALOG] Failed to fetch recipes:", e))
+          .finally(() => setLoadingMore(false))
+      },
+      { rootMargin: "400px" }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [loading, loadingMore, hasMore, menuItems.length, fetchPage])
 
   function handleSearchSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (searchInput === search) return
     setLoading(true)
     setSearch(searchInput)
-    setPage(0)
   }
 
   function handleCategoryClick(catId: string) {
@@ -247,14 +266,12 @@ export default function CatalogPage() {
     setLoading(true)
     setActiveCategory(catId)
     setActiveSub(category?.subs?.[0] ?? null)
-    setPage(0)
   }
 
   function handleSubClick(sub: string) {
     if (sub === activeSub) return
     setLoading(true)
     setActiveSub(sub)
-    setPage(0)
   }
 
   function handleClearFilters() {
@@ -269,35 +286,27 @@ export default function CatalogPage() {
     setMaxPrice("")
     setSearch("")
     setSearchInput("")
-    setPage(0)
-  }
-
-  function handlePageChange(nextPage: number) {
-    if (nextPage === page) return
-    setLoading(true)
-    setPage(nextPage)
-    document.getElementById("catalog")?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
   const filterPanel = (
-    <div className="border border-white/15 bg-black/35 p-4 backdrop-blur-md sm:p-5">
+    <div className="border border-neutral-200 bg-white p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="font-nunito text-sm font-semibold text-white">{t("filters")}</p>
-          <p className="font-nunito mt-0.5 text-xs text-white/45">{t("filterHint")}</p>
+          <p className="font-nunito text-sm font-semibold text-neutral-900">{t("filters")}</p>
+          <p className="font-nunito mt-0.5 text-xs text-neutral-500">{t("filterHint")}</p>
         </div>
         <button
           type="button"
           onClick={handleClearFilters}
           disabled={!hasActiveFilters}
-          className="border border-white/15 px-3 py-1.5 text-xs font-medium text-white/65 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
+          className="border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-35"
         >
           {t("clearAll")}
         </button>
       </div>
 
-      <div className="mt-5 border-t border-white/10 pt-4">
-        <p className="font-nunito text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">{t("categories")}</p>
+      <div className="mt-5 border-t border-neutral-100 pt-4">
+        <p className="font-nunito text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">{t("categories")}</p>
         <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
           {categories.map((cat) => (
             <button
@@ -306,8 +315,8 @@ export default function CatalogPage() {
               onClick={() => handleCategoryClick(cat.id)}
               className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                 activeCategory === cat.id
-                  ? "border-white bg-white text-neutral-900"
-                  : "border-white/15 bg-white/5 text-white/65 hover:bg-white/15 hover:text-white"
+                  ? "border-neutral-900 bg-neutral-900 text-white"
+                  : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300 hover:text-neutral-900"
               }`}
             >
               {ft(`cats.${cat.id}`)}
@@ -323,8 +332,8 @@ export default function CatalogPage() {
                 onClick={() => handleSubClick(sub)}
                 className={`rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors ${
                   activeSub === sub
-                    ? "border-white/50 bg-white/20 text-white"
-                    : "border-white/10 bg-transparent text-white/50 hover:border-white/25 hover:text-white"
+                    ? "border-neutral-900 bg-neutral-900 text-white"
+                    : "border-neutral-200 bg-transparent text-neutral-500 hover:border-neutral-300 hover:text-neutral-900"
                 }`}
               >
                 {ft(`subs.${sub}`)}
@@ -334,20 +343,20 @@ export default function CatalogPage() {
         )}
       </div>
 
-      <div className="mt-5 grid gap-4 border-t border-white/10 pt-4 md:grid-cols-3">
+      <div className="mt-5 grid gap-4 border-t border-neutral-100 pt-4 md:grid-cols-3">
         <label className="block">
-          <span className="block font-nunito text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">{t("sortBy")}</span>
+          <span className="block font-nunito text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">{t("sortBy")}</span>
           <select
             value={sort}
-            onChange={(e) => { setLoading(true); setSort(e.target.value); setPage(0) }}
-            className="mt-2 w-full border border-white/15 bg-white/10 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-white/40"
+            onChange={(e) => { setLoading(true); setSort(e.target.value) }}
+            className="mt-2 w-full border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none transition-colors focus:border-neutral-400"
           >
-            {sortOptions.map((option) => <option key={option.id} value={option.id} className="bg-neutral-900">{t(option.labelKey)}</option>)}
+            {sortOptions.map((option) => <option key={option.id} value={option.id}>{t(option.labelKey)}</option>)}
           </select>
         </label>
 
-        <RangeInputs label={t("calories")} minValue={minCal} maxValue={maxCal} minPlaceholder={t("minCal")} maxPlaceholder={t("maxCal")} onMinChange={(value) => { setLoading(true); setMinCal(value); setPage(0) }} onMaxChange={(value) => { setLoading(true); setMaxCal(value); setPage(0) }} />
-        <RangeInputs label={t("price")} minValue={minPrice} maxValue={maxPrice} minPlaceholder={t("minPrice")} maxPlaceholder={t("maxPrice")} onMinChange={(value) => { setLoading(true); setMinPrice(value); setPage(0) }} onMaxChange={(value) => { setLoading(true); setMaxPrice(value); setPage(0) }} />
+        <RangeInputs label={t("calories")} minValue={minCal} maxValue={maxCal} minPlaceholder={t("minCal")} maxPlaceholder={t("maxCal")} onMinChange={(value) => { setLoading(true); setMinCal(value) }} onMaxChange={(value) => { setLoading(true); setMaxCal(value) }} />
+        <RangeInputs label={t("price")} minValue={minPrice} maxValue={maxPrice} minPlaceholder={t("minPrice")} maxPlaceholder={t("maxPrice")} onMinChange={(value) => { setLoading(true); setMinPrice(value) }} onMaxChange={(value) => { setLoading(true); setMaxPrice(value) }} />
       </div>
     </div>
   )
@@ -356,14 +365,8 @@ export default function CatalogPage() {
     <>
       <Nav />
 
-      <section id="catalog" className="relative min-h-screen bg-[#aa9a88] pt-20 pb-16">
-        <div
-          className="absolute inset-0 opacity-[0.07]"
-          style={{ backgroundImage: "url(/meal-backgrounds/salad.jpg)", backgroundSize: "cover", backgroundPosition: "center" }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-black/75 to-black/90" />
-
-        <div className="relative z-10 px-4 sm:px-6">
+      <section id="catalog" className="min-h-screen bg-white pt-20 pb-16">
+        <div className="px-4 sm:px-6">
           <motion.div
             initial="hidden"
             animate="visible"
@@ -371,13 +374,13 @@ export default function CatalogPage() {
             custom={0}
             className="pb-6"
           >
-            <p className="font-nunito text-[11px] font-semibold uppercase tracking-[0.3em] text-white/50">
+            <p className="font-nunito text-[11px] font-semibold uppercase tracking-[0.3em] text-neutral-400">
               {t("eyebrow")}
             </p>
-            <h1 className="font-playfair mt-3 text-3xl font-medium leading-tight text-white sm:text-4xl">
+            <h1 className="font-playfair mt-3 text-3xl font-medium leading-tight text-neutral-900 sm:text-4xl">
               {t("title")}
             </h1>
-            <p className="font-nunito mt-2 text-xs font-light text-white/55 sm:text-sm">
+            <p className="font-nunito mt-2 text-xs font-light text-neutral-500 sm:text-sm">
               {t("subtitle")}
             </p>
           </motion.div>
@@ -390,19 +393,19 @@ export default function CatalogPage() {
             className="pb-4"
           >
             <form onSubmit={handleSearchSubmit} className="relative">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
               <input
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder={t("searchPlaceholder")}
-                className="w-full border border-white/15 bg-white/10 py-2 pl-9 pr-9 text-sm text-white placeholder-white/40 outline-none backdrop-blur-sm transition-colors focus:border-white/30 focus:bg-white/15"
+                className="w-full border border-neutral-200 bg-neutral-50 py-2 pl-9 pr-9 text-sm text-neutral-900 placeholder-neutral-400 outline-none transition-colors focus:border-neutral-400 focus:bg-white"
               />
               {searchInput && (
                 <button
                   type="button"
-                  onClick={() => { setLoading(true); setSearchInput(""); setSearch(""); setPage(0) }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70"
+                  onClick={() => { setLoading(true); setSearchInput(""); setSearch("") }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
                 >
                   <X size={15} />
                 </button>
@@ -415,12 +418,12 @@ export default function CatalogPage() {
               type="button"
               onClick={() => setFiltersOpen((isOpen) => !isOpen)}
               aria-expanded={filtersOpen}
-              className="flex w-full items-center justify-between border border-white/15 bg-white/10 px-3 py-2.5 text-sm font-medium text-white backdrop-blur-sm"
+              className="flex w-full items-center justify-between border border-neutral-200 bg-white px-3 py-2.5 text-sm font-medium text-neutral-900"
             >
               <span className="flex items-center gap-2">
                 <SlidersHorizontal size={15} />
                 {filtersOpen ? t("hideFilters") : t("filters")}
-                {hasActiveFilters && <span className="size-1.5 rounded-full bg-white" />}
+                {hasActiveFilters && <span className="size-1.5 rounded-full bg-neutral-900" />}
               </span>
               <ChevronDown size={16} className={`transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
             </button>
@@ -452,7 +455,7 @@ export default function CatalogPage() {
           >
             {loading ? (
               <div className="flex h-64 items-center justify-center">
-                <div className="size-7 animate-spin border-2 border-white/30 border-t-white" />
+                <div className="size-7 animate-spin border-2 border-neutral-200 border-t-neutral-900" />
               </div>
             ) : menuItems.length > 0 ? (
               <>
@@ -467,58 +470,35 @@ export default function CatalogPage() {
                   ))}
                 </div>
 
-                {totalPages > 1 && (
-                  <div className="mt-6 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
-                    <button
-                      onClick={() => handlePageChange(Math.max(0, page - 1))}
-                      disabled={page === 0}
-                      className="flex shrink-0 items-center gap-1 border border-white/15 bg-white/10 px-2.5 py-1.5 text-xs font-medium text-white/70 backdrop-blur-sm transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-30 sm:px-3"
-                    >
-                      <ChevronLeft size={14} />
-                      <span className="max-sm:sr-only">{t("prev")}</span>
-                    </button>
+                <div ref={sentinelRef} className="flex h-16 items-center justify-center">
+                  {loadingMore && (
+                    <div className="size-6 animate-spin border-2 border-neutral-200 border-t-neutral-900" />
+                  )}
+                </div>
 
-                    <div className="flex min-w-0 items-center justify-center gap-1">
-                      {paginationItems.map((item, index) => item === "ellipsis" ? (
-                        <span key={`ellipsis-${index}`} className="flex h-7 w-5 items-center justify-center text-xs text-white/45" aria-hidden>…</span>
-                      ) : (
-                        <button
-                          key={item}
-                          onClick={() => handlePageChange(item)}
-                          className={`h-7 w-7 shrink-0 text-xs font-medium transition-colors ${
-                            page === item
-                              ? "bg-white text-neutral-900"
-                              : "text-white/50 hover:bg-white/10 hover:text-white/80"
-                          }`}
-                        >
-                          {item + 1}
-                        </button>
-                      ))}
-                    </div>
-
-                    <button
-                      onClick={() => handlePageChange(Math.min(totalPages - 1, page + 1))}
-                      disabled={page >= totalPages - 1}
-                      className="flex shrink-0 items-center gap-1 border border-white/15 bg-white/10 px-2.5 py-1.5 text-xs font-medium text-white/70 backdrop-blur-sm transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-30 sm:px-3"
-                    >
-                      <span className="max-sm:sr-only">{t("next")}</span>
-                      <ChevronRight size={14} />
-                    </button>
-                  </div>
-                )}
-
-                <p className="mt-3 text-center text-[11px] text-white/30">
-                  {t("showing", { from: page * PAGE_SIZE + 1, to: Math.min((page + 1) * PAGE_SIZE, total), total })}
+                <p className="mt-2 text-center text-[11px] text-neutral-400">
+                  {menuItems.length} / {total}
                 </p>
               </>
             ) : (
-              <div className="flex h-64 items-center justify-center border border-white/10 bg-white/5">
-                <p className="font-nunito text-sm text-white/50">{t("noResults")}</p>
+              <div className="flex h-64 items-center justify-center border border-neutral-200 bg-neutral-50">
+                <p className="font-nunito text-sm text-neutral-500">{t("noResults")}</p>
               </div>
             )}
           </motion.div>
         </div>
       </section>
+
+      {showTop && (
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          aria-label="Scroll to top"
+          className="fixed bottom-6 right-6 z-40 flex size-11 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-900 shadow-lg transition-colors hover:bg-neutral-900 hover:text-white"
+        >
+          <ArrowUp size={18} />
+        </button>
+      )}
 
       <Footer />
     </>
