@@ -8,7 +8,7 @@ import { formatPrice } from "@/utils/mapbox"
 import { OrderPrintButton } from "@/components/ui/OrderPrintButton"
 import { Modal } from "@/components/ui/Modal"
 
-const STATUSES = ["inquiry", "confirmed", "cancelled"] as const
+const STATUSES = ["inquiry", "confirmed", "ready_for_pickup", "cancelled"] as const
 
 type StatusFilter = (typeof STATUSES)[number] | "all"
 
@@ -16,6 +16,7 @@ const statusBadge: Record<string, string> = {
   inquiry: "bg-amber-100 text-amber-700",
   confirmed: "bg-blue-100 text-blue-700",
   preparing: "bg-purple-100 text-purple-700",
+  ready_for_pickup: "bg-teal-100 text-teal-700",
   out_for_delivery: "bg-orange-100 text-orange-700",
   delivered: "bg-green-100 text-green-700",
   cancelled: "bg-red-100 text-red-600",
@@ -25,6 +26,7 @@ const statusBar: Record<string, string> = {
   inquiry: "bg-amber-500",
   confirmed: "bg-blue-500",
   preparing: "bg-purple-500",
+  ready_for_pickup: "bg-teal-500",
   out_for_delivery: "bg-orange-500",
   delivered: "bg-green-500",
   cancelled: "bg-neutral-300",
@@ -34,6 +36,7 @@ const statusAvatar: Record<string, string> = {
   inquiry: "from-amber-500 to-amber-600",
   confirmed: "from-blue-500 to-blue-600",
   preparing: "from-purple-500 to-purple-600",
+  ready_for_pickup: "from-teal-500 to-teal-600",
   out_for_delivery: "from-orange-500 to-orange-600",
   delivered: "from-green-500 to-green-600",
   cancelled: "from-neutral-400 to-neutral-500",

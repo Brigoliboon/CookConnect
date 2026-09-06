@@ -1,59 +1,138 @@
 "use client"
 
-import { useState, useMemo, useRef, useCallback } from "react"
+import { useState, useMemo, useRef, useCallback, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { RiderMap } from "@/components/ui"
-import { Button } from "@/components/ui"
-import { DELIVERIES, RIDERS } from "@/constants"
-import type { DeliveryIntent } from "@/constants"
-import { Bike, CheckCircle, Clock, XCircle, GripHorizontal, Navigation } from "lucide-react"
+import type { Delivery, DeliveryIntent } from "@/constants"
+import type { Order } from "@/lib/supabase/models"
+import { parseOrderLocation } from "@/lib/orders/location"
+import { useAuth } from "@/hooks/AuthProvider"
+import { GripHorizontal, MapPin, Plus, Check } from "lucide-react"
 
-const INTENT_ICONS: Record<DeliveryIntent, typeof CheckCircle> = {
-  today: Clock,
-  skip: XCircle,
-  delivered: CheckCircle,
-}
-
-const INTENT_COLORS: Record<DeliveryIntent, string> = {
-  today: "text-blue-600",
-  skip: "text-red-500",
-  delivered: "text-brand-900",
-}
-
-type DeliveryTab = "all" | DeliveryIntent
+type DeliveryTab = "active" | "mine"
 
 const TABS: { label: string; value: DeliveryTab }[] = [
-  { label: "All", value: "all" },
-  { label: "Pending", value: "today" },
-  { label: "Delivered", value: "delivered" },
+  { label: "My Deliveries", value: "mine" },
+  { label: "Open Orders", value: "active" },
 ]
 
 export default function RiderDashboardPage() {
-  const rider = RIDERS[0]
-  const [deliveries, setDeliveries] = useState(
-    DELIVERIES.filter((d) => d.riderId === rider.id)
-  )
+  const { user } = useAuth()
+  const [deliveries, setDeliveries] = useState<Delivery[]>([])
+  const [loading, setLoading] = useState(true)
   const [showPanel, setShowPanel] = useState(true)
-  const [activeTab, setActiveTab] = useState<DeliveryTab>("all")
+  const [activeTab, setActiveTab] = useState<DeliveryTab>("active")
+  const [takenIds, setTakenIds] = useState<string[]>([])
+  const [mapFocus, setMapFocus] = useState<{ lat: number; lng: number; key: number } | null>(null)
+
+  function toDelivery(order: Order): Delivery | null {
+    const coords = parseOrderLocation(order.location)
+    if (!coords) return null
+    return {
+      id: order.id,
+      customerId: order.customer_id ?? "",
+      customerName: order.name,
+      customerAddress: order.address ?? "",
+      riderId: null,
+      riderName: null,
+      subscriptionId: "",
+      intent: "today" as DeliveryIntent,
+      note: "",
+      location: { lat: coords.lat, lng: coords.lng, address: order.address ?? "" },
+      date: (order.created_at ?? "").split("T")[0],
+    }
+  }
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/orders?status=ready_for_pickup").then(async (res) => {
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error ?? "Failed to fetch open orders")
+        return data as Order[]
+      }),
+      fetch("/api/deliveries/mine").then(async (res) => {
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error ?? "Failed to fetch my deliveries")
+        return data as { assignment: { order_id: string }; order: Order }[]
+      }).catch((e) => {
+        console.error("[RIDER] My deliveries fetch error:", e.message || e)
+        return [] as { assignment: { order_id: string }; order: Order }[]
+      }),
+    ])
+      .then(([openOrders, mine]) => {
+        const mineDeliveries = mine
+          .map((r) => toDelivery(r.order))
+          .filter((d): d is Delivery => d !== null)
+        const seen = new Set(mineDeliveries.map((d) => d.id))
+        const openDeliveries = openOrders
+          .map(toDelivery)
+          .filter((d): d is Delivery => d !== null && !seen.has(d.id))
+        setDeliveries([...mineDeliveries, ...openDeliveries])
+        setTakenIds(mine.map((r) => r.assignment.order_id))
+      })
+      .catch((e) => console.error("[RIDER] Open orders fetch error:", e.message || e))
+      .finally(() => setLoading(false))
+  }, [])
   const panelRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef({ startY: 0, startHeight: 320 })
   const [panelHeight, setPanelHeight] = useState(320)
 
-  const stats = useMemo(() => {
-    const today = deliveries.filter((d) => d.intent === "today").length
-    const delivered = deliveries.filter((d) => d.intent === "delivered").length
-    const skipped = deliveries.filter((d) => d.intent === "skip").length
-    return { today, delivered, skip: skipped }
-  }, [deliveries])
+  const activeDeliveries = useMemo(
+    () => deliveries.filter((d) => d.intent === "today" && !takenIds.includes(d.id)),
+    [deliveries, takenIds],
+  )
+  const myDeliveries = useMemo(
+    () => deliveries.filter((d) => takenIds.includes(d.id)),
+    [deliveries, takenIds],
+  )
 
-  const filtered = activeTab === "all"
-    ? deliveries
-    : deliveries.filter((d) => d.intent === activeTab)
+  const counts: Record<DeliveryTab, number> = {
+    active: activeDeliveries.length,
+    mine: myDeliveries.length,
+  }
+
+  const filtered = activeTab === "active" ? activeDeliveries : myDeliveries
 
   function updateIntent(id: string, intent: DeliveryIntent) {
     setDeliveries((prev) =>
       prev.map((d) => (d.id === id ? { ...d, intent } : d))
     )
+  }
+
+  async function takeDelivery(id: string) {
+    if (!user) {
+      console.error("[RIDER] Take failed: not logged in")
+      return
+    }
+    try {
+      const res = await fetch(`/api/orders/${id}/assign`, { method: "POST" })
+      if (!res.ok) {
+        const err = await res.json()
+        if (res.status === 409) {
+          setDeliveries((prev) => prev.filter((d) => d.id !== id))
+          setTakenIds((prev) => prev.filter((t) => t !== id))
+        }
+        console.error("[RIDER] Take failed:", err.error)
+        return
+      }
+      setTakenIds((prev) => (prev.includes(id) ? prev : [...prev, id]))
+    } catch (e) {
+      console.error("[RIDER] Take error:", e)
+    }
+  }
+
+  async function completeOrder(id: string) {
+    try {
+      const res = await fetch(`/api/orders/${id}/assign`, { method: "PATCH" })
+      if (!res.ok) {
+        const err = await res.json()
+        console.error("[RIDER] Complete failed:", err.error)
+        return
+      }
+      updateIntent(id, "delivered")
+    } catch (e) {
+      console.error("[RIDER] Complete error:", e)
+    }
   }
 
   const startDrag = useCallback((e: React.MouseEvent | React.TouchEvent) => {
@@ -85,8 +164,9 @@ export default function RiderDashboardPage() {
   return (
     <div className="relative -m-6 h-[calc(100vh-64px)] lg:h-[calc(100vh-56px)] overflow-hidden">
       <RiderMap
-        deliveries={deliveries}
+        deliveries={filtered}
         onUpdateIntent={updateIntent}
+        focusRequest={mapFocus}
       />
 
       <AnimatePresence>
@@ -108,76 +188,66 @@ export default function RiderDashboardPage() {
               <GripHorizontal size={20} className="text-text-secondary" />
             </div>
 
-            <div className="flex items-center gap-3 px-5 pb-2">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-900 text-white">
-                  <Bike size={16} />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-brand-900">{rider.name}</p>
-                  <p className="text-[11px] text-text-secondary">{stats.today} pending · {stats.delivered} done</p>
-                </div>
+            <div className="flex items-center gap-2 px-5 pb-3">
+              <div className="flex flex-1 rounded-xl bg-neutral-900 p-1">
+                {TABS.map((tab) => (
+                  <button
+                    key={tab.value}
+                    onClick={() => setActiveTab(tab.value)}
+                    className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
+                      activeTab === tab.value
+                        ? "bg-white text-neutral-900 shadow-sm"
+                        : "text-white/60 hover:text-white"
+                    }`}
+                  >
+                    {tab.label} ({counts[tab.value]})
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div className="flex gap-1 px-5 pb-3 overflow-x-auto">
-              {TABS.map((tab) => (
-                <button
-                  key={tab.value}
-                  onClick={() => setActiveTab(tab.value)}
-                  className={`rounded-lg px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors ${
-                    activeTab === tab.value
-                      ? "bg-brand-900 text-white"
-                      : "bg-brand-400/10 text-text-secondary hover:bg-brand-400/20"
-                  }`}
-                >
-                  {tab.label}
-                  {tab.value !== "all" && (
-                    <span className="ml-1 opacity-70">({stats[tab.value]})</span>
-                  )}
-                </button>
-              ))}
-            </div>
-
             <div className="flex-1 overflow-y-auto px-5 pb-4">
-              <div className="divide-y divide-border-light rounded-xl border border-border-light">
-                {filtered.map((d) => {
-                  const Icon = INTENT_ICONS[d.intent]
-                  return (
-                    <div key={d.id} className="flex items-center justify-between px-3 py-2.5">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-brand-900">{d.customerName}</p>
-                        <p className="flex items-center gap-1 text-xs text-text-secondary">
-                          <Navigation size={11} />
-                          {d.customerAddress}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 ml-3 shrink-0">
-                        <span className={`inline-flex items-center gap-1 text-xs font-medium ${INTENT_COLORS[d.intent]}`}>
-                          <Icon size={12} />
-                          <span className="capitalize">{d.intent}</span>
-                        </span>
-                        <Button
-                          size="sm"
-                          variant={d.intent === "delivered" ? "primary" : "outline"}
-                          className="text-xs !px-2 !py-0.5"
-                          onClick={() => updateIntent(d.id, "delivered")}
-                        >
-                          Done
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={d.intent === "skip" ? "danger" : "outline"}
-                          className="text-xs !px-2 !py-0.5"
-                          onClick={() => updateIntent(d.id, "skip")}
-                        >
-                          Skip
-                        </Button>
-                      </div>
+              <div className="space-y-2">
+                {loading && (
+                  <p className="px-3 py-6 text-center text-sm text-text-secondary">Loading open orders…</p>
+                )}
+                {!loading && filtered.map((d) => (
+                  <div key={d.id} className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-neutral-900">{d.customerName}</p>
+                      <p className="mt-0.5 truncate text-xs text-neutral-500">{d.customerAddress}</p>
                     </div>
-                  )
-                })}
-                {filtered.length === 0 && (
+                    <div className="flex shrink-0 items-center gap-2">
+                      {d.location && (
+                        <button
+                          onClick={() => setMapFocus({ lat: d.location!.lat, lng: d.location!.lng, key: Date.now() })}
+                          aria-label="Focus on map"
+                          className="flex size-11 items-center justify-center rounded-full border border-neutral-300 text-neutral-700 transition-colors hover:bg-neutral-100"
+                        >
+                          <MapPin size={18} />
+                        </button>
+                      )}
+                      {activeTab === "active" ? (
+                        <button
+                          onClick={() => takeDelivery(d.id)}
+                          aria-label="Take delivery"
+                          className="flex size-11 items-center justify-center rounded-full bg-neutral-900 text-white transition-colors hover:bg-neutral-700"
+                        >
+                          <Plus size={18} />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => completeOrder(d.id)}
+                          aria-label="Mark delivered"
+                          className={`flex size-11 items-center justify-center rounded-full transition-colors ${d.intent === "delivered" ? "bg-neutral-200 text-neutral-400" : "bg-neutral-900 text-white hover:bg-neutral-700"}`}
+                        >
+                          <Check size={18} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {!loading && filtered.length === 0 && (
                   <p className="px-3 py-6 text-center text-sm text-text-secondary">No deliveries found.</p>
                 )}
               </div>

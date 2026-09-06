@@ -151,6 +151,7 @@ export type OrderStatus =
   | "inquiry"
   | "confirmed"
   | "preparing"
+  | "ready_for_pickup"
   | "out_for_delivery"
   | "delivered"
   | "cancelled";
@@ -171,6 +172,18 @@ export interface Order {
   details: any; // jsonb // default {}
   created_at: string; // ISO timestamptz
   updated_at: string; // ISO timestamptz
+}
+
+export type OrderDeliveryStatus = "assigned" | "delivered" | "cancelled";
+
+export interface OrderDelivery {
+  id: UUID;
+  order_id: UUID; // -> public.orders.id
+  rider_id: UUID; // -> public.accounts.id
+  status: OrderDeliveryStatus;
+  assigned_at: string;
+  delivered_at: string | null;
+  created_at: string;
 }
 
 export interface OrderItem {

@@ -8,6 +8,7 @@ const ORDER_STATUSES: OrderStatus[] = [
   "inquiry",
   "confirmed",
   "preparing",
+  "ready_for_pickup",
   "out_for_delivery",
   "delivered",
   "cancelled",

@@ -21,9 +21,10 @@ const ICON_MAP: Record<string, string> = {
 interface RiderMapProps {
   deliveries: Delivery[]
   onUpdateIntent: (id: string, intent: DeliveryIntent) => void
+  focusRequest?: { lat: number; lng: number; key: number } | null
 }
 
-export function RiderMap({ deliveries, onUpdateIntent }: RiderMapProps) {
+export function RiderMap({ deliveries, onUpdateIntent, focusRequest }: RiderMapProps) {
   const [popup, setPopup] = useState<Delivery | null>(null)
   const [mapStyle, setMapStyle] = useState(MAP_STYLES[0].value)
   const [showStyle, setShowStyle] = useState(false)
@@ -51,6 +52,11 @@ export function RiderMap({ deliveries, onUpdateIntent }: RiderMapProps) {
       if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current)
     }
   }, [])
+
+  useEffect(() => {
+    if (!focusRequest) return
+    mapRef.current?.flyTo({ center: [focusRequest.lng, focusRequest.lat], zoom: 14, duration: 1000 })
+  }, [focusRequest])
 
   const markers = useMemo(
     () =>

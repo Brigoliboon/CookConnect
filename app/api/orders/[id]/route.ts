@@ -8,6 +8,7 @@ const ORDER_STATUSES: OrderStatus[] = [
   "inquiry",
   "confirmed",
   "preparing",
+  "ready_for_pickup",
   "out_for_delivery",
   "delivered",
   "cancelled",
@@ -42,8 +43,9 @@ export async function PATCH(
     )
     return Response.json(data)
   } catch (err) {
-    console.error("[API] PATCH /api/orders/[id] error:", err)
+    console.error("[API] PATCH /api/orders/[id] error:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2))
     const message = err instanceof Error ? err.message : "Internal server error"
-    return Response.json({ error: message }, { status: 500 })
+    const detail = typeof err === "object" && err !== null ? (err as { code?: string; details?: string; hint?: string }) : {}
+    return Response.json({ error: message, code: detail.code, details: detail.details, hint: detail.hint }, { status: 500 })
   }
 }
