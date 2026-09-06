@@ -22,9 +22,10 @@ interface RiderMapProps {
   deliveries: Delivery[]
   onUpdateIntent: (id: string, intent: DeliveryIntent) => void
   focusRequest?: { lat: number; lng: number; key: number } | null
+  activeOrderIds?: string[]
 }
 
-export function RiderMap({ deliveries, onUpdateIntent, focusRequest }: RiderMapProps) {
+export function RiderMap({ deliveries, onUpdateIntent, focusRequest, activeOrderIds }: RiderMapProps) {
   const [popup, setPopup] = useState<Delivery | null>(null)
   const [mapStyle, setMapStyle] = useState(MAP_STYLES[0].value)
   const [showStyle, setShowStyle] = useState(false)
@@ -32,6 +33,8 @@ export function RiderMap({ deliveries, onUpdateIntent, focusRequest }: RiderMapP
   const mapRef = useRef<{ flyTo: (opts: { center: [number, number]; zoom?: number; duration?: number }) => void } | null>(null)
   const watchId = useRef<number | null>(null)
   const lastSent = useRef<{ lat: number; lng: number; at: number } | null>(null)
+  const orderIdsRef = useRef<string[]>([])
+  orderIdsRef.current = activeOrderIds ?? []
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ""
 
   function movedEnough(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
@@ -63,7 +66,7 @@ export function RiderMap({ deliveries, onUpdateIntent, focusRequest }: RiderMapP
         void fetch("/api/riders/location", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ lat, lng }),
+          body: JSON.stringify({ lat, lng, order_ids: orderIdsRef.current }),
         }).catch(() => {})
       },
       (err) => console.warn("Geolocation error:", err.message),

@@ -1,8 +1,9 @@
 "use client"
 
-import { use, useState } from "react"
+import { use, useEffect, useState } from "react"
 import { useTranslations } from "next-intl"
 import { formatPrice } from "@/utils/mapbox"
+import { TrackingMap, type TrackingMarker } from "@/components/ui/TrackingMap"
 import { Package, Check } from "lucide-react"
 
 const STEPS = ["inquiry", "confirmed", "preparing", "ready_for_pickup", "out_for_delivery", "delivered"] as const
@@ -16,6 +17,8 @@ interface TrackedOrder {
   vat_cents: number
   currency: string
   created_at: string
+  destination: { lat: number; lng: number } | null
+  rider: { lat: number; lng: number; updated_at: string | null } | null
 }
 
 export default function OrderTrackingPage({ params }: { params: Promise<{ code: string }> }) {
@@ -26,10 +29,12 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ code: 
   const [checking, setChecking] = useState(false)
   const [error, setError] = useState("")
 
-  async function verify() {
+  async function verify(silent = false) {
     if (code.trim().length < 6) return
-    setChecking(true)
-    setError("")
+    if (!silent) {
+      setChecking(true)
+      setError("")
+    }
     try {
       const res = await fetch("/api/order-tracking/verify", {
         method: "POST",
@@ -38,6 +43,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ code: 
       })
       const data = await res.json()
       if (!res.ok) {
+        if (silent) return
         if (res.status === 429) setError(t("locked"))
         else if (res.status === 404) setError(t("notFound"))
         else if (data.error === "NOT_READY") setError(t("notReady"))
@@ -46,24 +52,45 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ code: 
       }
       setOrder(data as TrackedOrder)
     } catch {
-      setError(t("wrongCode"))
+      if (!silent) setError(t("wrongCode"))
     } finally {
-      setChecking(false)
+      if (!silent) setChecking(false)
     }
+  }
+
+  useEffect(() => {
+    if (!order) return
+    const id = setInterval(() => verify(true), 30000)
+    return () => clearInterval(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order !== null, code])
+
+  const markers: TrackingMarker[] = [
+    ...(order?.destination
+      ? [{ id: "dest", lat: order.destination.lat, lng: order.destination.lng, label: t("destination"), type: "orders" as const }]
+      : []),
+    ...(order?.rider
+      ? [{ id: "rider", lat: order.rider.lat, lng: order.rider.lng, label: t("rider"), type: "rider" as const }]
+      : []),
+  ]
+
+  function riderAgo() {
+    if (!order?.rider?.updated_at) return t("justNow")
+    const mins = Math.max(0, Math.round((Date.now() - new Date(order.rider.updated_at).getTime()) / 60000))
+    return mins < 1 ? t("justNow") : t("minAgo", { n: mins })
   }
 
   const stepIndex = order ? STEPS.indexOf(order.status as (typeof STEPS)[number]) : -1
 
-  return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center px-6 py-16">
-      <div className="flex size-14 items-center justify-center rounded-2xl bg-neutral-900 text-white">
-        <Package size={24} />
-      </div>
-      <h1 className="mt-4 text-2xl font-bold tracking-tight text-neutral-900">
-        {t("title")} · {shortCode.toUpperCase()}
-      </h1>
-
-      {!order ? (
+  if (!order) {
+    return (
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center px-6 py-16">
+        <div className="flex size-14 items-center justify-center rounded-2xl bg-neutral-900 text-white">
+          <Package size={24} />
+        </div>
+        <h1 className="mt-4 text-2xl font-bold tracking-tight text-neutral-900">
+          {t("title")} · {shortCode.toUpperCase()}
+        </h1>
         <div className="mt-8 w-full rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
           <p className="text-sm text-neutral-500">{t("subtitle")}</p>
           <label className="mb-1.5 mt-4 block text-xs font-semibold uppercase tracking-wider text-neutral-500">
@@ -78,47 +105,52 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ code: 
           />
           {error && <p className="mt-2 text-center text-xs text-red-500">{error}</p>}
           <button
-            onClick={verify}
+            onClick={() => verify()}
             disabled={code.trim().length < 6 || checking}
             className="mt-4 w-full rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white transition-all hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {checking ? t("tracking") : t("track")}
           </button>
         </div>
-      ) : (
-        <div className="mt-8 w-full space-y-4">
-          <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-            {order.status === "cancelled" ? (
-              <p className="text-center text-sm font-semibold text-red-600">cancelled</p>
-            ) : (
-              <ol className="space-y-0">
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative h-screen w-screen overflow-hidden">
+      <TrackingMap markers={markers} />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 max-h-[55%] overflow-y-auto p-4">
+        <div className="pointer-events-auto mx-auto w-full max-w-md space-y-3">
+          <div className="rounded-2xl bg-white/95 p-4 shadow-xl backdrop-blur-md">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-bold capitalize text-neutral-900">
+                {order.status.replaceAll("_", " ")}
+              </p>
+              {order.rider && (
+                <p className="text-xs text-neutral-500">{t("lastSeen", { ago: riderAgo() })}</p>
+              )}
+            </div>
+            {order.status !== "cancelled" && (
+              <div className="mt-3 flex items-center">
                 {STEPS.map((s, i) => (
-                  <li key={s} className="flex gap-3">
-                    <div className="flex flex-col items-center">
-                      <span
-                        className={`flex size-6 items-center justify-center rounded-full ${
-                          i <= stepIndex ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-400"
-                        }`}
-                      >
-                        {i <= stepIndex && <Check size={12} />}
-                      </span>
-                      {i < STEPS.length - 1 && (
-                        <span className={`h-5 w-px ${i < stepIndex ? "bg-neutral-900" : "bg-neutral-200"}`} />
-                      )}
-                    </div>
-                    <p
-                      className={`pb-4 text-sm capitalize ${
-                        i <= stepIndex ? "font-semibold text-neutral-900" : "text-neutral-400"
+                  <div key={s} className="flex flex-1 items-center last:flex-none">
+                    <span
+                      title={s.replaceAll("_", " ")}
+                      className={`flex size-5 items-center justify-center rounded-full ${
+                        i <= stepIndex ? "bg-neutral-900 text-white" : "bg-neutral-200 text-neutral-400"
                       }`}
                     >
-                      {s.replaceAll("_", " ")}
-                    </p>
-                  </li>
+                      {i <= stepIndex && <Check size={10} />}
+                    </span>
+                    {i < STEPS.length - 1 && (
+                      <span className={`h-0.5 flex-1 ${i < stepIndex ? "bg-neutral-900" : "bg-neutral-200"}`} />
+                    )}
+                  </div>
                 ))}
-              </ol>
+              </div>
             )}
           </div>
-          <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+          <div className="rounded-2xl bg-white/95 p-4 shadow-xl backdrop-blur-md">
             <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">{t("items")}</p>
             <div className="mt-2 space-y-1.5">
               {order.items.map((item, i) => (
@@ -138,7 +170,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ code: 
             </p>
           </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }

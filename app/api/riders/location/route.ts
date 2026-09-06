@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser()
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
-  let body: { lat?: number; lng?: number }
+  let body: { lat?: number; lng?: number; order_ids?: string[] }
   try {
     body = await request.json()
   } catch {
@@ -29,5 +29,19 @@ export async function POST(request: Request) {
 
   const { error } = await supabase.rpc("set_rider_location", { lat: body.lat, lng: body.lng })
   if (error) return Response.json({ error: error.message }, { status: 500 })
+
+  const orderIds = (body.order_ids ?? []).filter((id) => typeof id === "string")
+  if (orderIds.length > 0) {
+    const { error: deliveryError } = await supabase
+      .from("order_deliveries")
+      .update({
+        rider_location: `SRID=4326;POINT(${body.lng} ${body.lat})`,
+        rider_loc_updated_at: new Date().toISOString(),
+      })
+      .in("order_id", orderIds)
+      .eq("rider_id", user.id)
+      .eq("status", "assigned")
+    if (deliveryError) return Response.json({ error: deliveryError.message }, { status: 500 })
+  }
   return Response.json({ ok: true })
 }

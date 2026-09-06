@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
 import { createServiceClient } from "@/lib/supabase/service"
+import { parseOrderLocation } from "@/lib/orders/location"
 
 const MAX_ATTEMPTS = 10
 
@@ -34,6 +35,7 @@ export async function POST(request: Request) {
     vat_cents: number
     currency: string
     created_at: string
+    location: unknown
     order_items: { name: string; qty: number }[] | null
   }
   const failedAttempts = Number(delivery.failed_attempts ?? 0)
@@ -54,6 +56,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "NOT_READY", status: order.status }, { status: 403 })
   }
 
+  const destination = parseOrderLocation(order.location)
+  const riderCoords = parseOrderLocation(delivery.rider_location)
   return Response.json({
     short_code: delivery.short_code,
     status: order.status,
@@ -63,5 +67,7 @@ export async function POST(request: Request) {
     vat_cents: order.vat_cents,
     currency: order.currency,
     created_at: order.created_at,
+    destination,
+    rider: riderCoords ? { ...riderCoords, updated_at: delivery.rider_loc_updated_at } : null,
   })
 }

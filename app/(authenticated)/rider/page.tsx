@@ -183,6 +183,7 @@ export default function RiderDashboardPage() {
         deliveries={filtered}
         onUpdateIntent={updateIntent}
         focusRequest={mapFocus}
+        activeOrderIds={myDeliveries.filter((d) => d.intent !== "delivered").map((d) => d.id)}
       />
 
       <AnimatePresence>

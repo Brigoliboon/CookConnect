@@ -36,9 +36,17 @@ interface MapboxMapProps {
   className?: string
   height?: "default" | "full"
   defaultStyle?: MapStyleKey
+  legend?: { type: string; label: string }[]
 }
 
-export function MapboxMap({ markers, className = "", height = "default", defaultStyle = DEFAULT_STYLE }: MapboxMapProps) {
+const DEFAULT_LEGEND = [
+  { type: "today", label: "Today" },
+  { type: "skip", label: "Skip" },
+  { type: "delivered", label: "Delivered" },
+  { type: "orders", label: "Orders" },
+]
+
+export function MapboxMap({ markers, className = "", height = "default", defaultStyle = DEFAULT_STYLE, legend = DEFAULT_LEGEND }: MapboxMapProps) {
   const [popup, setPopup] = useState<MarkerData | null>(null)
   const [mapStyle, setMapStyle] = useState(() => {
     const found = MAP_STYLES.find((s) => s.key === defaultStyle)
@@ -62,12 +70,7 @@ export function MapboxMap({ markers, className = "", height = "default", default
     [markers]
   )
 
-  const legendItems = [
-    { type: "today", label: "Today" },
-    { type: "skip", label: "Skip" },
-    { type: "delivered", label: "Delivered" },
-    { type: "orders", label: "Orders" },
-  ]
+  const legendItems = legend
 
   return (
     <div className={`relative rounded-xl border border-border-light overflow-hidden ${height === "full" ? "flex-1 min-h-0" : "h-96"} ${className}`}>

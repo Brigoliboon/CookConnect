@@ -508,6 +508,11 @@
     "items": "Items",
     "total": "Total",
     "orderedOn": "Ordered on",
-    "notReady": "Your order is being prepared. Tracking opens once it's out for delivery."
+    "notReady": "Your order is being prepared. Tracking opens once it's out for delivery.",
+    "rider": "Rider",
+    "destination": "Delivery address",
+    "lastSeen": "Rider seen {ago}",
+    "justNow": "just now",
+    "minAgo": "{n} min ago"
   }
 }
