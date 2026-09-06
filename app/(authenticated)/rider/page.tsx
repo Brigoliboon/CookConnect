@@ -121,17 +121,33 @@ export default function RiderDashboardPage() {
     }
   }
 
-  async function completeOrder(id: string) {
+  const [codeOrderId, setCodeOrderId] = useState<string | null>(null)
+  const [pickupCode, setPickupCode] = useState("")
+  const [codeError, setCodeError] = useState("")
+  const [completing, setCompleting] = useState(false)
+
+  async function completeOrder() {
+    if (!codeOrderId || pickupCode.trim().length < 6) return
+    setCompleting(true)
+    setCodeError("")
     try {
-      const res = await fetch(`/api/orders/${id}/assign`, { method: "PATCH" })
+      const res = await fetch(`/api/orders/${codeOrderId}/assign`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pickup_code: pickupCode.trim() }),
+      })
       if (!res.ok) {
         const err = await res.json()
-        console.error("[RIDER] Complete failed:", err.error)
+        setCodeError(err.error ?? "Failed")
         return
       }
-      updateIntent(id, "delivered")
+      updateIntent(codeOrderId, "delivered")
+      setCodeOrderId(null)
+      setPickupCode("")
     } catch (e) {
       console.error("[RIDER] Complete error:", e)
+    } finally {
+      setCompleting(false)
     }
   }
 
@@ -237,7 +253,7 @@ export default function RiderDashboardPage() {
                         </button>
                       ) : (
                         <button
-                          onClick={() => completeOrder(d.id)}
+                          onClick={() => { setCodeOrderId(d.id); setPickupCode(""); setCodeError("") }}
                           aria-label="Mark delivered"
                           className={`flex size-11 items-center justify-center rounded-full transition-colors ${d.intent === "delivered" ? "bg-neutral-200 text-neutral-400" : "bg-neutral-900 text-white hover:bg-neutral-700"}`}
                         >
@@ -263,6 +279,36 @@ export default function RiderDashboardPage() {
         >
           Show Deliveries ({deliveries.length})
         </button>
+      )}
+
+      {codeOrderId && (
+        <div
+          className="fixed inset-0 z-30 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setCodeOrderId(null)}
+        >
+          <div
+            className="w-full max-w-xs rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-base font-bold text-neutral-900">Customer code</h2>
+            <p className="mt-1 text-xs text-neutral-500">Ask the customer for their 6-digit code.</p>
+            <input
+              value={pickupCode}
+              onChange={(e) => setPickupCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              inputMode="numeric"
+              placeholder="123456"
+              className="mt-3 w-full rounded-xl border border-neutral-200 px-4 py-3 text-center text-xl font-bold tracking-[0.3em] text-neutral-900 outline-none placeholder:text-neutral-300 focus:border-neutral-900"
+            />
+            {codeError && <p className="mt-2 text-center text-xs text-red-500">{codeError}</p>}
+            <button
+              onClick={completeOrder}
+              disabled={pickupCode.trim().length < 6 || completing}
+              className="mt-4 w-full rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white transition-all hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {completing ? "Verifying…" : "Confirm delivery"}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )

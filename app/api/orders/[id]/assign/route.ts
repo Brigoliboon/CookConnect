@@ -61,7 +61,34 @@ export async function PATCH(
   } = await supabase.auth.getUser()
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
+  let body: { pickup_code?: string }
   try {
+    body = await request.json()
+  } catch {
+    return Response.json({ error: "Invalid JSON body" }, { status: 400 })
+  }
+  if (!body.pickup_code?.trim()) {
+    return Response.json({ error: "pickup_code is required" }, { status: 400 })
+  }
+
+  try {
+    const { data: delivery, error: deliveryError } = await supabase
+      .from("order_deliveries")
+      .select("id, pickup_code, failed_attempts")
+      .eq("order_id", id)
+      .eq("rider_id", user.id)
+      .single()
+    if (deliveryError || !delivery) return Response.json({ error: "Delivery not found" }, { status: 404 })
+    if (Number(delivery.failed_attempts ?? 0) >= 10) {
+      return Response.json({ error: "Too many attempts. Contact support." }, { status: 429 })
+    }
+    if (delivery.pickup_code !== body.pickup_code.trim()) {
+      await supabase
+        .from("order_deliveries")
+        .update({ failed_attempts: Number(delivery.failed_attempts ?? 0) + 1 })
+        .eq("id", delivery.id)
+      return Response.json({ error: "Incorrect code" }, { status: 403 })
+    }
     await completeDelivery(supabase, id, user.id)
     const data = await updateOrderStatus(supabase, id, "delivered")
     void notifyOrderStatusChanged(supabase, data).catch((err) =>

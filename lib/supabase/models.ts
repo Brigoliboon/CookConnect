@@ -181,6 +181,9 @@ export interface OrderDelivery {
   order_id: UUID; // -> public.orders.id
   rider_id: UUID; // -> public.accounts.id
   status: OrderDeliveryStatus;
+  short_code: string; // 6-char public tracking id
+  pickup_code: string; // 6-digit verification code, never expose without verification
+  failed_attempts: number;
   assigned_at: string;
   delivered_at: string | null;
   created_at: string;

@@ -198,7 +198,10 @@
     "successBody": "Your order has been received successfully. CookConnect will reach out to you soon about your order.",
     "done": "Done",
     "pickup": "Pickup only (no delivery)",
-    "pickupNote": "Pickup order — no delivery address needed."
+    "pickupNote": "Pickup order — no delivery address needed.",
+    "orderCode": "Your verification code",
+    "trackLink": "Track your order",
+    "codeHint": "Show this code when receiving your order."
   },
   "gallery": {
     "morning": "Morning",
@@ -491,5 +494,20 @@
   "lang": {
     "switchTo": "العربية",
     "label": "Language"
+  },
+  "tracking": {
+    "title": "Track your order",
+    "subtitle": "Enter the 6-digit code from your receipt to see live status.",
+    "codeLabel": "Verification code",
+    "codePlaceholder": "123456",
+    "track": "Track order",
+    "tracking": "Checking…",
+    "notFound": "Order not found.",
+    "wrongCode": "Incorrect code. Try again.",
+    "locked": "Too many attempts. Contact support.",
+    "items": "Items",
+    "total": "Total",
+    "orderedOn": "Ordered on",
+    "notReady": "Your order is being prepared. Tracking opens once it's out for delivery."
   }
 }

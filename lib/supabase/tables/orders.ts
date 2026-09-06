@@ -49,6 +49,20 @@ export async function listOrders(
   return (data ?? []) as OrderWithItems[]
 }
 
+const SHORT_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+
+export function randomShortCode() {
+  let code = ""
+  for (let i = 0; i < 6; i++) {
+    code += SHORT_ALPHABET[Math.floor(Math.random() * SHORT_ALPHABET.length)]
+  }
+  return code
+}
+
+export function randomPickupCode() {
+  return String(Math.floor(100000 + Math.random() * 900000))
+}
+
 export async function createOrder(
   supabase: import("@supabase/supabase-js").SupabaseClient,
   input: CreateOrderInput,
@@ -74,7 +88,6 @@ export async function createOrder(
     .single()
 
   if (error) throw error
-
   const order = data as Order
 
   if (input.location) {
