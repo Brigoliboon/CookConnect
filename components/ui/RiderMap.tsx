@@ -31,7 +31,17 @@ export function RiderMap({ deliveries, onUpdateIntent, focusRequest }: RiderMapP
   const [riderPos, setRiderPos] = useState<{ lat: number; lng: number } | null>(null)
   const mapRef = useRef<{ flyTo: (opts: { center: [number, number]; zoom?: number; duration?: number }) => void } | null>(null)
   const watchId = useRef<number | null>(null)
+  const lastSent = useRef<{ lat: number; lng: number; at: number } | null>(null)
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ""
+
+  function movedEnough(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+    const toRad = (d: number) => (d * Math.PI) / 180
+    const r = 6371000
+    const h =
+      Math.sin(toRad(b.lat - a.lat) / 2) ** 2 +
+      Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(toRad(b.lng - a.lng) / 2) ** 2
+    return 2 * r * Math.asin(Math.sqrt(h)) > 20
+  }
 
   useEffect(() => {
     if (!navigator.geolocation) return
@@ -44,6 +54,17 @@ export function RiderMap({ deliveries, onUpdateIntent, focusRequest }: RiderMapP
           }
           return { lat, lng }
         })
+        const now = Date.now()
+        const prev = lastSent.current
+        if (document.hidden) return
+        if (prev && now - prev.at < 15000) return
+        if (prev && !movedEnough(prev, { lat, lng })) return
+        lastSent.current = { lat, lng, at: now }
+        void fetch("/api/riders/location", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lat, lng }),
+        }).catch(() => {})
       },
       (err) => console.warn("Geolocation error:", err.message),
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
