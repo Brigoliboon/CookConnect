@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
 import { updateOrderStatus } from "@/lib/supabase/tables/orders"
+import { enqueueReminder } from "@/lib/supabase/tables/whatsapp_reminders"
 import { notifyOrderStatusChanged } from "@/lib/notifications/orders"
 import type { OrderStatus } from "@/lib/supabase/models"
 
@@ -41,6 +42,16 @@ export async function PATCH(
     void notifyOrderStatusChanged(supabase, data).catch((err) =>
       console.error("[API] PATCH /api/orders/[id] push failed:", err),
     )
+    if (body.status === "confirmed" || body.status === "out_for_delivery") {
+      void enqueueReminder(supabase, {
+        phone: data.mobile_number,
+        kind: "order",
+        reference_id: data.id,
+        type: body.status === "confirmed" ? "confirmed" : "out_for_delivery",
+      }).catch((err) =>
+        console.error("[API] PATCH /api/orders/[id] reminder failed:", err),
+      )
+    }
     return Response.json(data)
   } catch (err) {
     console.error("[API] PATCH /api/orders/[id] error:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2))

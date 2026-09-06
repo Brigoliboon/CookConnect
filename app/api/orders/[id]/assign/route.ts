@@ -2,6 +2,7 @@ import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
 import { updateOrderStatus } from "@/lib/supabase/tables/orders"
 import { assignOrder, completeDelivery } from "@/lib/supabase/tables/order_deliveries"
+import { enqueueReminder } from "@/lib/supabase/tables/whatsapp_reminders"
 import { notifyOrderStatusChanged } from "@/lib/notifications/orders"
 
 export async function POST(
@@ -39,6 +40,14 @@ export async function POST(
     const data = await updateOrderStatus(supabase, id, "out_for_delivery")
     void notifyOrderStatusChanged(supabase, data).catch((err) =>
       console.error("[API] POST /api/orders/[id]/assign push failed:", err),
+    )
+    void enqueueReminder(supabase, {
+      phone: data.mobile_number,
+      kind: "order",
+      reference_id: data.id,
+      type: "out_for_delivery",
+    }).catch((err) =>
+      console.error("[API] POST /api/orders/[id]/assign reminder failed:", err),
     )
     return Response.json(data)
   } catch (err) {
