@@ -9,7 +9,7 @@ import { Link, usePathname, useRouter } from "@/i18n/navigation"
 import { CartButton } from "@/components/landing/CartButton"
 import { CartDialog } from "@/components/landing/CartDialog"
 
-function LangSwitch({ compact = false }: { compact?: boolean }) {
+function LangSwitch({ compact = false, switching = false, onSwitch }: { compact?: boolean; switching?: boolean; onSwitch?: () => void }) {
   const lang = useTranslations("lang")
   const locale = useLocale()
   const pathname = usePathname()
@@ -32,16 +32,22 @@ function LangSwitch({ compact = false }: { compact?: boolean }) {
         {(["EN", "AR"] as const).map((code, i) => (
           <button
             key={code}
+            disabled={switching}
             onClick={() => {
               const target = i === 0 ? "en" : "ar"
               if (target !== locale) {
+                onSwitch?.()
                 router.replace(pathname, { locale: target, scroll: false })
               }
             }}
             aria-pressed={currentIndex === i}
-            className={`relative z-10 py-1 text-center text-[11px] font-bold tracking-wider transition-colors ${compact ? "w-9" : "w-11"}`}
+            className={`relative z-10 py-1 text-center text-[11px] font-bold tracking-wider transition-colors disabled:cursor-wait ${compact ? "w-9" : "w-11"}`}
           >
-            <span className={currentIndex === i ? "text-black" : "text-white/60"}>{code}</span>
+            {switching ? (
+              <span className="mx-auto block size-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+            ) : (
+              <span className={currentIndex === i ? "text-black" : "text-white/60"}>{code}</span>
+            )}
           </button>
         ))}
       </div>
@@ -51,10 +57,12 @@ function LangSwitch({ compact = false }: { compact?: boolean }) {
 
 export function Nav() {
   const t = useTranslations("nav")
+  const lang = useTranslations("lang")
   const { theme, toggle } = useTheme()
   const [open, setOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [switchingLang, setSwitchingLang] = useState(false)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
@@ -91,7 +99,7 @@ export function Nav() {
           </Link>
         ))}
         <CartButton onOpen={() => setCartOpen(true)} />
-        <LangSwitch />
+        <LangSwitch switching={switchingLang} onSwitch={() => setSwitchingLang(true)} />
         <button
           onClick={toggle}
           className="rounded-full p-1.5 text-white/60 transition-colors hover:text-white"
@@ -108,7 +116,7 @@ export function Nav() {
       </div>
 
       <div className="flex items-center gap-2 sm:hidden">
-        <LangSwitch compact />
+        <LangSwitch compact switching={switchingLang} onSwitch={() => setSwitchingLang(true)} />
         <CartButton mobile onOpen={() => setCartOpen(true)} />
         <button
           onClick={() => setOpen(!open)}
@@ -140,7 +148,7 @@ export function Nav() {
                 </Link>
               ))}
               <div className="mt-2 flex items-center gap-3 px-3 py-2">
-                <LangSwitch compact />
+                <LangSwitch compact switching={switchingLang} onSwitch={() => { setSwitchingLang(true); setOpen(false) }} />
                 <button
                   onClick={toggle}
                   className="rounded-full p-1.5 text-white/60 transition-colors hover:text-white"
@@ -163,6 +171,22 @@ export function Nav() {
       </motion.nav>
 
       <CartDialog open={cartOpen} onClose={() => setCartOpen(false)} />
+
+      <AnimatePresence>
+        {switchingLang && (
+          <motion.div
+            initial={{ y: 24, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 24, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            role="status"
+            className="fixed bottom-6 left-1/2 z-[60] flex -translate-x-1/2 items-center gap-2.5 rounded-full border border-white/10 bg-black/85 py-2.5 pl-4 pr-5 shadow-xl backdrop-blur-md"
+          >
+            <span className="size-4 animate-spin rounded-full border-2 border-white/25 border-t-white" />
+            <span className="font-nunito text-sm font-medium text-white">{lang("switching")}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   )
 }

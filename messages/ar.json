@@ -493,7 +493,8 @@
   },
   "lang": {
     "switchTo": "English",
-    "label": "اللغة"
+    "label": "اللغة",
+    "switching": "جارٍ تغيير اللغة…"
   },
   "tracking": {
     "title": "تتبع طلبك",

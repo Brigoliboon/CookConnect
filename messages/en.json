@@ -493,7 +493,8 @@
   },
   "lang": {
     "switchTo": "العربية",
-    "label": "Language"
+    "label": "Language",
+    "switching": "Switching language…"
   },
   "tracking": {
     "title": "Track your order",
