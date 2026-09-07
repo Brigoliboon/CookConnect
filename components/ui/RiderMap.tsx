@@ -47,6 +47,26 @@ export function RiderMap({ deliveries, onUpdateIntent, focusRequest, activeOrder
   }
 
   useEffect(() => {
+    const w = window as unknown as {
+      RiderBridge?: unknown
+      onRiderLocation?: (lat: number, lng: number) => void
+    }
+    w.onRiderLocation = (lat: number, lng: number) => {
+      if (typeof lat !== "number" || typeof lng !== "number") return
+      setRiderPos({ lat, lng })
+      const now = Date.now()
+      const prev = lastSent.current
+      if (document.hidden) return
+      if (prev && now - prev.at < 15000) return
+      if (prev && !movedEnough(prev, { lat, lng })) return
+      lastSent.current = { lat, lng, at: now }
+      void fetch("/api/riders/location", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lat, lng, order_ids: orderIdsRef.current }),
+      }).catch(() => {})
+    }
+    if (w.RiderBridge) return
     if (!navigator.geolocation) return
     watchId.current = navigator.geolocation.watchPosition(
       (pos) => {
