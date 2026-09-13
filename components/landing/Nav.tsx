@@ -55,14 +55,17 @@ function LangSwitch({ compact = false, switching = false, onSwitch }: { compact?
   )
 }
 
-export function Nav() {
+export function Nav({ showShadowOnScroll = true }: { showShadowOnScroll?: boolean }) {
   const t = useTranslations("nav")
   const lang = useTranslations("lang")
   const { theme, toggle } = useTheme()
+  const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [switchingLang, setSwitchingLang] = useState(false)
+  const isCatalogPage = pathname.includes("catalog")
+  const scrollActive = scrolled || isCatalogPage
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
@@ -91,7 +94,7 @@ export function Nav() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
         className={`fixed inset-x-0 top-0 z-50 flex items-center justify-between px-6 py-3 transition-all duration-300 ${
-          scrolled ? "bg-black/70 backdrop-blur-md" : ""
+          scrollActive ? `bg-black/70 backdrop-blur-md${showShadowOnScroll ? " shadow-lg shadow-black/20" : ""}` : ""
         }`}
       >
       <Link href="/" className="font-playfair text-xl font-bold tracking-tight text-white">
