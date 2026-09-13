@@ -178,7 +178,7 @@ export default function RiderDashboardPage() {
   }, [panelHeight])
 
   return (
-    <div className="relative -m-6 h-[calc(100vh-64px)] lg:h-[calc(100vh-56px)] overflow-hidden">
+    <div className="relative h-[100dvh] overflow-hidden">
       <RiderMap
         deliveries={filtered}
         onUpdateIntent={updateIntent}

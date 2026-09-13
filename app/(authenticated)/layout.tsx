@@ -1,6 +1,7 @@
 import { fontVariables } from "@/lib/fonts"
 import { Providers } from "../providers"
 import { Navbar } from "@/components/layout/Navbar"
+import { AuthMain } from "@/components/layout/AuthMain"
 import "../globals.css"
 
 export default function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
@@ -9,7 +10,7 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
       <body className="min-h-full flex flex-col">
         <Providers>
           <Navbar />
-          <main className="flex-1 p-6 pt-16">{children}</main>
+          <AuthMain>{children}</AuthMain>
         </Providers>
       </body>
     </html>

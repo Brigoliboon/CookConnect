@@ -25,11 +25,18 @@ const iconMap: Record<string, typeof LayoutDashboard> = {
 
 const HIDDEN_PATHS = [/^\/(ar\/)?rider(\/|$)/]
 
+export const RIDER_NAV_VISIBLE = false
+
+export function isNavbarHidden(pathname: string): boolean {
+  if (RIDER_NAV_VISIBLE) return false
+  return HIDDEN_PATHS.some((re) => re.test(pathname))
+}
+
 export function Navbar({ visible }: { visible?: boolean }) {
   const { user, signOut } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
-  const isVisible = visible ?? !HIDDEN_PATHS.some((re) => re.test(pathname))
+  const isVisible = visible ?? !isNavbarHidden(pathname)
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [pushOn, setPushOn] = useState(false)
