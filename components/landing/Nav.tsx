@@ -71,6 +71,12 @@ export function Nav() {
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
+  useEffect(() => {
+    const openCart = () => setCartOpen(true)
+    window.addEventListener("open-cart", openCart)
+    return () => window.removeEventListener("open-cart", openCart)
+  }, [])
+
   const links = [
     { href: "#meals", label: t("menu") },
     { href: "#subscription", label: t("pricing") },

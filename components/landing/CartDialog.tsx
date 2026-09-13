@@ -209,15 +209,17 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                     key={item.name}
                     className="rounded-xl border border-neutral-100 p-3"
                   >
-                    <div className="flex items-center gap-3">
-                      {item.image && (
-                        <img src={item.image} alt={item.name} className="h-14 w-14 shrink-0 rounded-lg object-cover" />
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-neutral-900">{item.name}</p>
-                        <p className="text-xs text-neutral-500">{item.price} AED</p>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                      <div className="flex min-w-0 flex-1 items-center gap-3">
+                        {item.image && (
+                          <img src={item.image} alt={item.name} className="h-14 w-14 shrink-0 rounded-lg object-cover" />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-neutral-900">{item.name}</p>
+                          <p className="text-xs text-neutral-500">{item.price} AED</p>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 border-t border-neutral-100 pt-2 sm:border-0 sm:pt-0">
                         <button
                           onClick={() => changeQty(item.name, -1)}
                           className="flex size-7 items-center justify-center rounded-lg border border-neutral-200 text-neutral-600 transition-colors hover:bg-neutral-100"
@@ -233,21 +235,21 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                         >
                           <Plus size={12} />
                         </button>
+                        <button
+                          onClick={() => setNoteOpen(noteOpen === item.name ? null : item.name)}
+                          className={`transition-colors ${item.note ? "text-brand-900" : "text-neutral-400 hover:text-neutral-700"}`}
+                          aria-label={item.note ? t("editNote") : t("addNote")}
+                        >
+                          <MessageCircle size={16} />
+                        </button>
+                        <button
+                          onClick={() => removeItem(item.name)}
+                          className="ml-auto text-neutral-400 transition-colors hover:text-red-500 sm:ml-0"
+                          aria-label={t("remove")}
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
-                      <button
-                        onClick={() => setNoteOpen(noteOpen === item.name ? null : item.name)}
-                        className={`transition-colors ${item.note ? "text-brand-900" : "text-neutral-400 hover:text-neutral-700"}`}
-                        aria-label={item.note ? t("editNote") : t("addNote")}
-                      >
-                        <MessageCircle size={16} />
-                      </button>
-                      <button
-                        onClick={() => removeItem(item.name)}
-                        className="text-neutral-400 transition-colors hover:text-red-500"
-                        aria-label={t("remove")}
-                      >
-                        <Trash2 size={16} />
-                      </button>
                     </div>
                     {(noteOpen === item.name || item.note) && (
                       <div className="mt-2 border-t border-neutral-100 pt-2">

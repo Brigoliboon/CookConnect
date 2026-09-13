@@ -84,7 +84,15 @@ function parseRecipeFilters(params: URLSearchParams): ListRecipesFilters {
     throw new Error(`limit must be between 1 and ${MAX_LIMIT}`)
   }
 
+  const idsRaw = params.get("ids")?.trim()
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  const ids = idsRaw ? idsRaw.split(",").map((id) => id.trim()).filter(Boolean) : undefined
+  if (ids !== undefined) {
+    if (ids.length === 0 || !ids.every((id) => UUID_RE.test(id))) throw new Error("ids must be comma-separated UUIDs")
+  }
+
   return {
+    ids,
     search: params.get("search")?.trim() || undefined,
     category: params.get("category")?.trim() || undefined,
     isActive: active === null ? undefined : active === "true",

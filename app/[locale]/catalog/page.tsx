@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
 import { Search, X, ChevronDown, SlidersHorizontal, ArrowUp } from "lucide-react"
 import { useTranslations, useLocale } from "next-intl"
@@ -8,9 +9,14 @@ import { translateContent } from "@/constants/translations"
 import { Nav } from "@/components/landing/Nav"
 import { Footer } from "@/components/landing/Footer"
 import { CatalogMealCard } from "@/components/landing/CatalogMealCard"
+import { decodeRecipeIds } from "@/utils/catalogShare"
+import { getCart, setCart } from "@/utils/cart"
 import type { MealServingOption } from "@/constants"
 
 const PAGE_SIZE = 24
+
+/** Checkout links (?ids=&checkout=) add to cart once per param value, even under StrictMode. */
+const completedCheckouts = new Set<string>()
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -160,9 +166,23 @@ function RangeInputs({ label, minValue, maxValue, minPlaceholder, maxPlaceholder
 }
 
 export default function CatalogPage() {
+  return (
+    <Suspense>
+      <CatalogContent />
+    </Suspense>
+  )
+}
+
+function CatalogContent() {
   const t = useTranslations("catalog")
   const ft = useTranslations("featured")
   const locale = useLocale()
+  const searchParams = useSearchParams()
+  const idsParam = searchParams.get("ids")
+  const checkoutParam = searchParams.get("checkout")
+  const sharedIds = useMemo(() => decodeRecipeIds(idsParam), [idsParam])
+  const sharedIdsKey = useMemo(() => [...sharedIds].sort().join(","), [sharedIds])
+  const checkoutRequested = checkoutParam === "true" || checkoutParam === "1"
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -185,6 +205,7 @@ export default function CatalogPage() {
 
   const buildUrl = useCallback((offset: number) => {
     const params = new URLSearchParams()
+    if (sharedIds.length > 0) params.set("ids", sharedIdsKey)
     if (activeCategory !== "all") {
       const targetValue = activeCat?.subs ? (subValues[activeSub ?? ""] ?? activeCat.subs[0]) : catValues[activeCategory]
       if (targetValue) params.set("category", targetValue)
@@ -199,7 +220,7 @@ export default function CatalogPage() {
     params.set("offset", String(offset))
     params.set("limit", String(PAGE_SIZE))
     return `/api/recipe?${params.toString()}`
-  }, [activeCategory, activeSub, search, sort, minCal, maxCal, minPrice, maxPrice, activeCat])
+  }, [activeCategory, activeSub, search, sort, minCal, maxCal, minPrice, maxPrice, activeCat, sharedIdsKey, sharedIds.length])
 
   const fetchPage = useCallback(async (offset: number, append: boolean, signal?: AbortSignal) => {
     const res = await fetch(buildUrl(offset), { signal })
@@ -215,7 +236,13 @@ export default function CatalogPage() {
 
   useEffect(() => {
     const controller = new AbortController()
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (idsParam && sharedIds.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMenuItems([])
+      setTotal(0)
+      setLoading(false)
+      return () => controller.abort()
+    }
     fetchPage(0, false, controller.signal)
       .catch((e) => {
         if (e.name !== "AbortError") console.error("[CATALOG] Failed to fetch recipes:", e)
@@ -224,9 +251,31 @@ export default function CatalogPage() {
         if (!controller.signal.aborted) setLoading(false)
       })
     return () => controller.abort()
-  }, [fetchPage])
+  }, [fetchPage, idsParam, sharedIds.length])
 
   const hasMore = menuItems.length < total
+
+  useEffect(() => {
+    if (!checkoutRequested || loading || loadingMore || menuItems.length === 0 || hasMore) return
+    if (completedCheckouts.has(sharedIdsKey)) return
+    completedCheckouts.add(sharedIdsKey)
+    const cart = getCart()
+    for (const item of menuItems) {
+      const firstServing = item.servings[0]
+      const servingName = firstServing?.name ?? null
+      const name = translateContent(item.name, locale)
+      const key = servingName ? `${name} (${servingName})` : name
+      const existing = cart.find((entry) => entry.name === key)
+      if (existing) {
+        existing.qty += 1
+      } else {
+        cart.push({ name: key, price: firstServing?.price ?? item.price, qty: 1, image: item.image })
+      }
+    }
+    setCart(cart)
+    window.dispatchEvent(new Event("cart-changed"))
+    window.dispatchEvent(new Event("open-cart"))
+  }, [checkoutRequested, loading, loadingMore, hasMore, menuItems, sharedIdsKey, locale])
 
   useEffect(() => {
     const onScroll = () => setShowTop(window.scrollY > 300)

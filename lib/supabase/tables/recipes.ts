@@ -28,6 +28,7 @@ export type RecipeSort = "name" | "name_desc" | "calories" | "calories_desc" | "
 
 /** Filters accepted by `GET /api/recipe`. */
 export interface ListRecipesFilters {
+  ids?: string[]
   search?: string
   category?: string
   isActive?: boolean
@@ -123,6 +124,11 @@ export async function listRecipes(
   if (error) throw error
 
   let data = (recipes as Record<string, unknown>[]).map(mapRecipeWithServings)
+
+  if (filters.ids && filters.ids.length > 0) {
+    const wanted = new Set(filters.ids)
+    data = data.filter((recipe) => wanted.has(recipe.id))
+  }
 
   data = data.filter((recipe) => {
     const serving = recipe.servings[0]
