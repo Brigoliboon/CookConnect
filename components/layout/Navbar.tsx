@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { useAuth } from "@/hooks/AuthProvider"
 import { NAV_ITEMS } from "@/constants"
@@ -23,9 +23,13 @@ const iconMap: Record<string, typeof LayoutDashboard> = {
   Profile: UserCircle,
 }
 
-export function Navbar() {
+const HIDDEN_PATHS = [/^\/(ar\/)?rider(\/|$)/]
+
+export function Navbar({ visible }: { visible?: boolean }) {
   const { user, signOut } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
+  const isVisible = visible ?? !HIDDEN_PATHS.some((re) => re.test(pathname))
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [pushOn, setPushOn] = useState(false)
@@ -56,6 +60,7 @@ export function Navbar() {
   }
 
   if (!user) return null
+  if (!isVisible) return null
 
   const navItems = NAV_ITEMS[user.role]
 
