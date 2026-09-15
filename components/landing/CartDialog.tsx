@@ -212,11 +212,17 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
             {cart.length === 0 ? (
               <p className="py-10 text-center text-sm text-neutral-400">{t("empty")}</p>
             ) : (
-              <div className="space-y-3">
+              <div className="flex flex-col gap-3">
+                <AnimatePresence initial={false} mode="popLayout">
                 {cart.map((item) => (
-                  <div
+                  <motion.div
                     key={item.name}
-                    className="rounded-xl border border-neutral-100 p-3"
+                    layout
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.96, height: 0, paddingTop: 0, paddingBottom: 0, borderWidth: 0 }}
+                    transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                    className="overflow-hidden rounded-xl border border-neutral-100 p-3"
                   >
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                       <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -246,7 +252,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                         </button>
                         <button
                           onClick={() => removeItem(item.name)}
-                          className="ml-auto text-neutral-400 transition-colors hover:text-red-500 sm:ml-0"
+                          className="ml-auto text-red-500 transition-colors hover:text-red-600 sm:ml-0"
                           aria-label={t("remove")}
                         >
                           <Trash2 size={16} />
@@ -267,8 +273,9 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                           className="mt-1 w-full rounded-lg border border-neutral-200 px-3 py-2 text-xs text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900"
                         />
                       </div>
-                  </div>
+                  </motion.div>
                 ))}
+                </AnimatePresence>
                 <div className="flex items-center justify-between border-t border-neutral-100 pt-3 text-sm">
                   <span className="text-neutral-500">{t("subtotal")}</span>
                   <span className="font-bold text-neutral-900">{formatPrice(subtotalCents)}</span>
@@ -277,6 +284,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
             )}
 
             <div className="mt-6 space-y-4">
+              <h3 className="text-sm font-bold text-neutral-900">Personal Information</h3>
               <FloatingInput
                 label={t("fullName")}
                 icon={<User size={13} />}
