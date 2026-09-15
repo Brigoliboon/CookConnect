@@ -159,7 +159,7 @@ export function FeaturedMeals() {
   const filtered = menuItems
 
   return (
-    <section id="meals" className="relative h-screen overflow-hidden overflow-hidden bg-[#aa9a88]">
+    <section id="meals" className="relative overflow-hidden bg-[#aa9a88]">
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/90 to-black/100" />
 
       <div className="relative z-10 mx-auto flex m-20 flex-col justify-center px-20 max-sm:px-4">
