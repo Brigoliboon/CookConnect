@@ -89,7 +89,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
   }
 
   function setItemNote(name: string, note: string) {
-    commit(cart.map((i) => (i.name === name ? { ...i, note: note.trim() || undefined } : i)))
+    commit(cart.map((i) => (i.name === name ? { ...i, note: note || undefined } : i)))
   }
 
   function handleConfirmLocation() {
@@ -153,7 +153,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
             name: item.name,
             unit_price_cents: Math.round(item.price * 100),
             qty: item.qty,
-            note: item.note ?? null,
+            note: item.note?.trim() || null,
             image_path: item.image ?? null,
           })),
         }),
