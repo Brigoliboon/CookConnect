@@ -23,7 +23,6 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
   const [pickup, setPickup] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
   const [consent, setConsent] = useState(false)
-  const [noteOpen, setNoteOpen] = useState<string | null>(null)
   const [prevOpen, setPrevOpen] = useState(open)
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -237,13 +236,6 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                           <Plus size={12} />
                         </button>
                         <button
-                          onClick={() => setNoteOpen(noteOpen === item.name ? null : item.name)}
-                          className={`transition-colors ${item.note ? "text-brand-900" : "text-neutral-400 hover:text-neutral-700"}`}
-                          aria-label={item.note ? t("editNote") : t("addNote")}
-                        >
-                          <MessageCircle size={16} />
-                        </button>
-                        <button
                           onClick={() => removeItem(item.name)}
                           className="ml-auto text-neutral-400 transition-colors hover:text-red-500 sm:ml-0"
                           aria-label={t("remove")}
@@ -252,8 +244,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                         </button>
                       </div>
                     </div>
-                    {(noteOpen === item.name || item.note) && (
-                      <div className="mt-2 border-t border-neutral-100 pt-2">
+                    <div className="mt-2 border-t border-neutral-100 pt-2">
                         <div className="flex items-center gap-1.5">
                           <MessageCircle size={12} className="text-neutral-400" />
                           <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
@@ -267,7 +258,6 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                           className="mt-1 w-full rounded-lg border border-neutral-200 px-3 py-2 text-xs text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900"
                         />
                       </div>
-                    )}
                   </div>
                 ))}
                 <div className="flex items-center justify-between border-t border-neutral-100 pt-3 text-sm">
