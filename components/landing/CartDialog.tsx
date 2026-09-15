@@ -123,7 +123,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
       setLocationError(t("confirmError"))
       return
     }
-    if (!form.name || !form.email || !form.mobile || (!pickup && !form.address)) {
+    if (!form.name || !form.mobile || (!pickup && !form.address)) {
       return
     }
     setLocationError("")
@@ -288,7 +288,6 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                 </label>
                 <input
                   type="email"
-                  required
                   value={form.email}
                   onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
                   className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900"
