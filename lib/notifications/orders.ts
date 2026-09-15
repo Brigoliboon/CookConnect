@@ -12,7 +12,7 @@ function formatTotal(cents: number, currency: string) {
 export function buildOrderCreated(order: Order, itemCount: number): PushPayload {
   return {
     title: "New order received",
-    body: `${order.name} — ${itemCount} items, ${formatTotal(order.subtotal_cents + order.shipping_cents + order.vat_cents, order.currency)}`,
+    body: `${order.name} — ${itemCount} items, ${formatTotal(order.subtotal_cents + order.shipping_cents, order.currency)}`,
     data: { orderId: order.id, status: order.status, url: EMPLOYEE_URL },
   }
 }

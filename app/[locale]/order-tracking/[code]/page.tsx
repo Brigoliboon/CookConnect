@@ -163,7 +163,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ code: 
             </div>
             <div className="mt-3 flex items-center justify-between border-t border-neutral-200 pt-3 text-sm font-bold text-neutral-900">
               <span>{t("total")}</span>
-              <span>{formatPrice(order.subtotal_cents + order.shipping_cents + (order.vat_cents ?? 0))}</span>
+              <span>{formatPrice(order.subtotal_cents + order.shipping_cents)}</span>
             </div>
             <p className="mt-2 text-xs text-neutral-400">
               {t("orderedOn")} {(order.created_at ?? "").split("T")[0]}

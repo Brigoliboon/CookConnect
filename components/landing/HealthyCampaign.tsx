@@ -77,14 +77,6 @@ export function HealthyCampaign() {
         viewport={{ once: true, margin: "-60px" }}
         className="mx-auto max-w-5xl"
       >
-        <motion.div variants={fadeUp} custom={0} className="flex justify-center">
-          <img
-            src="/logo-horizontal.png"
-            alt="CookConnect"
-            className="h-20 object-contain opacity-90 max-sm:h-14"
-          />
-        </motion.div>
-
         <motion.p
           variants={fadeUp}
           custom={1}

@@ -12,6 +12,7 @@
     "status": "inquiry",
     "subtotal_cents": 4800,
     "shipping_cents": 0,
+    "vat_cents": 240,
     "currency": "AED",
     "location": "0101000020E61000004CCC62A853B94B40703E41FDD1683940",
     "details": {},

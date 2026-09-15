@@ -166,7 +166,7 @@ export interface Order {
   status: OrderStatus;
   subtotal_cents: number; // numeric
   shipping_cents: number; // numeric
-  vat_cents: number; // numeric, 5% of subtotal_cents rounded
+  vat_cents: number; // numeric, 5% of subtotal_cents rounded, already included in subtotal
   currency: string; // default "AED"
   location: any | null; // geography
   details: any; // jsonb // default {}

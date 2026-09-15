@@ -146,7 +146,7 @@ export default function EmployeeOrdersPage() {
       o.mobileNumber,
       o.status,
       o.items.reduce((sum, i) => sum + i.qty, 0),
-      formatPrice(o.subtotalCents + o.shippingCents + o.vatCents),
+      formatPrice(o.subtotalCents + o.shippingCents),
       o.createdAt,
     ])
     const csv = [headers, ...rows].map((r) => r.join(",")).join("\n")
@@ -230,7 +230,7 @@ export default function EmployeeOrdersPage() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filtered.map((order, i) => {
-              const total = order.subtotalCents + order.shippingCents + order.vatCents
+              const total = order.subtotalCents + order.shippingCents
               return (
                 <motion.div
                   key={order.id}
@@ -338,12 +338,12 @@ export default function EmployeeOrdersPage() {
               </div>
             )}
             <div className="flex items-center justify-between pt-2 text-sm text-neutral-500">
-              <span>VAT (5%)</span>
+              <span>VAT (5% incl.)</span>
               <span>{formatPrice(itemsDialogOrder.vatCents)}</span>
             </div>
             <div className="flex items-center justify-between border-t border-neutral-200 pt-2 text-sm font-bold text-neutral-900">
               <span>Total</span>
-              <span>{formatPrice(itemsDialogOrder.subtotalCents + itemsDialogOrder.shippingCents + itemsDialogOrder.vatCents)}</span>
+              <span>{formatPrice(itemsDialogOrder.subtotalCents + itemsDialogOrder.shippingCents)}</span>
             </div>
           </div>
         )}
