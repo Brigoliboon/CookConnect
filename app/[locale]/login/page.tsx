@@ -5,9 +5,8 @@ import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { Link } from "@/i18n/navigation"
 import { useAuth } from "@/hooks/AuthProvider"
-
-const inputClass =
-  "font-nunito w-full rounded-lg border border-black/10 bg-transparent px-3 py-3 text-sm text-black outline-none transition-colors placeholder:text-black/20 focus:border-black"
+import { FloatingInput } from "@/components/ui/FloatingInput"
+import { Mail, Lock } from "lucide-react"
 
 function LoginForm() {
   const t = useTranslations("login")
@@ -44,14 +43,22 @@ function LoginForm() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="font-nunito mb-1 block text-xs font-semibold uppercase tracking-wider text-black/30">{t("email")}</label>
-                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
-              </div>
-              <div>
-                <label className="font-nunito mb-1 block text-xs font-semibold uppercase tracking-wider text-black/30">{t("password")}</label>
-                <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className={inputClass} />
-              </div>
+              <FloatingInput
+                label={t("email")}
+                icon={<Mail size={13} />}
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <FloatingInput
+                label={t("password")}
+                icon={<Lock size={13} />}
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
               {error && (
                 <p className="font-nunito text-xs text-red-500">{error}</p>
               )}
