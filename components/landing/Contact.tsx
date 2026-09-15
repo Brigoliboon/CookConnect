@@ -59,6 +59,11 @@ export function Contact() {
               zoom={16}
               style={{ width: "100%", height: 360 }}
               attributionControl={false}
+              scrollZoom={false}
+              dragPan={false}
+              dragRotate={false}
+              doubleClickZoom={false}
+              touchZoomRotate={false}
             >
               <Marker longitude={55.5220053} latitude={25.3969036} anchor="bottom">
                 <img src="/icons/marker-skip.png" alt="" className="size-8" />
