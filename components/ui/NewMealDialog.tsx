@@ -123,6 +123,10 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
   })
   const [servings, setServings] = useState<ServingOption[]>([])
   const [activeServingIndex, setActiveServingIndex] = useState(0)
+  const [sidesEnabled, setSidesEnabled] = useState(false)
+  const [sidesList, setSidesList] = useState<{ id: string; name: string }[]>([])
+  const [sidesLoading, setSidesLoading] = useState(false)
+  const [selectedSides, setSelectedSides] = useState<Record<string, { extra: number; isDefault: boolean }>>({})
 
   function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -327,6 +331,25 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
     return found?.value ?? (category || null)
   }
 
+  async function toggleSides(next: boolean) {
+    setSidesEnabled(next)
+    if (next && sidesList.length === 0) {
+      setSidesLoading(true)
+      try {
+        const res = await fetch("/api/recipe?category=rice-sides&limit=100")
+        const data = await res.json()
+        setSidesList(((data.data ?? []) as Record<string, unknown>[]).map((r) => ({
+          id: r.id as string,
+          name: r.name as string,
+        })))
+      } catch {
+        setSidesList([])
+      } finally {
+        setSidesLoading(false)
+      }
+    }
+  }
+
   async function handleSave() {
     if (!mealName.trim()) return
     setSaving(true)
@@ -415,6 +438,22 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
         return
       }
 
+      if (sidesEnabled) {
+        const links = Object.entries(selectedSides).map(([addon_recipe_id, v]) => ({
+          meal_recipe_id: recipe.id,
+          addon_recipe_id,
+          extra_cents: Math.round((v.extra || 0) * 100),
+          is_default: v.isDefault,
+        }))
+        if (links.length > 0) {
+          await fetch("/api/recipe-addons", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ links }),
+          })
+        }
+      }
+
       handleClose()
     } catch (e) {
       console.error("[NEW_MEAL] Save error:", e)
@@ -439,6 +478,8 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
     setCategory("")
     setServings([])
     setActiveServingIndex(0)
+    setSidesEnabled(false)
+    setSelectedSides({})
     onClose()
   }
 
@@ -609,6 +650,77 @@ export function NewMealDialog({ open, onClose }: NewMealDialogProps) {
                           {cat.label}
                         </button>
                       ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="mb-1.5 flex cursor-pointer items-center justify-between text-base font-semibold text-neutral-800">
+                    Rice / Sides applicable
+                    <input
+                      type="checkbox"
+                      checked={sidesEnabled}
+                      onChange={(e) => toggleSides(e.target.checked)}
+                      className="size-4 cursor-pointer accent-neutral-900"
+                    />
+                  </label>
+                  {sidesEnabled && (
+                    <div className="mt-2 max-h-52 space-y-2 overflow-y-auto rounded-xl border border-neutral-200 p-3">
+                      {sidesLoading ? (
+                        <p className="text-sm text-neutral-400">Loading sides...</p>
+                      ) : (
+                        sidesList.map((s) => {
+                          const sel = selectedSides[s.id]
+                          return (
+                            <div key={s.id} className="flex items-center gap-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={!!sel}
+                                onChange={(e) => {
+                                  setSelectedSides((prev) => {
+                                    const next = { ...prev }
+                                    if (e.target.checked) next[s.id] = { extra: 0, isDefault: Object.keys(next).length === 0 }
+                                    else delete next[s.id]
+                                    return next
+                                  })
+                                }}
+                                className="size-4 cursor-pointer accent-neutral-900"
+                              />
+                              <span className="min-w-0 flex-1 truncate text-neutral-800">{s.name}</span>
+                              {sel && (
+                                <>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    step={0.5}
+                                    value={sel.extra}
+                                    onChange={(e) => setSelectedSides((prev) => ({
+                                      ...prev,
+                                      [s.id]: { ...prev[s.id], extra: Number(e.target.value) || 0 },
+                                    }))}
+                                    className="w-16 rounded-lg border border-neutral-200 px-2 py-1 text-right text-xs outline-none focus:border-neutral-900"
+                                    placeholder="+AED"
+                                  />
+                                  <label className="flex cursor-pointer items-center gap-1 text-[11px] text-neutral-500">
+                                    <input
+                                      type="radio"
+                                      name="default-side"
+                                      checked={sel.isDefault}
+                                      onChange={() => setSelectedSides((prev) => {
+                                        const next: typeof prev = {}
+                                        for (const [k, v] of Object.entries(prev)) next[k] = { ...v, isDefault: k === s.id }
+                                        return next
+                                      })}
+                                      className="size-3 cursor-pointer accent-neutral-900"
+                                    />
+                                    Default
+                                  </label>
+                                </>
+                              )}
+                            </div>
+                          )
+                        })
+                      )}
                     </div>
                   )}
                 </div>

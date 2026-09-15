@@ -212,6 +212,7 @@ export function HealthyCampaign() {
                       className="flex justify-center max-sm:shrink-0"
                     >
                       <GalleryCard
+                        id={item.id}
                         name={translateContent(item.name, locale)}
                         price={item.price}
                         calories={item.calories}

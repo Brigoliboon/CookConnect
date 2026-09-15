@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { motion } from "framer-motion"
 import { Search, Download, Mail, Phone, Receipt, Package, Check } from "lucide-react"
-import type { Order, OrderItem } from "@/lib/supabase/models"
+import type { Order, OrderItem, OrderItemAddon } from "@/lib/supabase/models"
 import { formatPrice } from "@/utils/mapbox"
 import { OrderPrintButton } from "@/components/ui/OrderPrintButton"
 import { Modal } from "@/components/ui/Modal"
@@ -54,7 +54,7 @@ interface OrderRow {
   vatCents: number
   currency: string
   createdAt: string
-  items: OrderItem[]
+  items: (OrderItem & { addons?: OrderItemAddon[] })[]
 }
 
 function initials(name: string) {
@@ -100,10 +100,12 @@ export default function EmployeeOrdersPage() {
       .then(async (res) => {
         const data = await res.json()
         if (!res.ok) throw new Error(data.error ?? "Failed to fetch orders")
-        return data as (Order & { order_items: OrderItem[] })[]
+        return data as (Order & { order_items?: (OrderItem & { order_item_addons?: OrderItemAddon[] })[]; items?: (OrderItem & { addons?: OrderItemAddon[] })[] })[]
       })
       .then((data) => {
-        setOrders(data.map((o) => ({
+        setOrders(data.map((o) => {
+          const rawItems = o.items ?? o.order_items ?? []
+          return {
           id: o.id,
           name: o.name,
           email: o.email,
@@ -115,8 +117,13 @@ export default function EmployeeOrdersPage() {
           vatCents: Number(o.vat_cents ?? Math.round(Number(o.subtotal_cents) * 0.05)),
           currency: o.currency ?? "AED",
           createdAt: (o.created_at ?? "").split("T")[0],
-          items: o.order_items ?? [],
-        })))
+          items: rawItems.map((i) => ({
+            ...i,
+            addons: (i as OrderItem & { addons?: OrderItemAddon[]; order_item_addons?: OrderItemAddon[] }).addons
+              ?? (i as OrderItem & { order_item_addons?: OrderItemAddon[] }).order_item_addons
+              ?? [],
+          })),
+        }}))
       })
       .catch((e) => console.error("[ORDERS] Fetch error:", e.message || e))
       .finally(() => setLoading(false))
@@ -326,6 +333,12 @@ export default function EmployeeOrdersPage() {
                   </span>
                   <span className="font-semibold text-neutral-900">{formatPrice(Number(item.unit_price_cents) * item.qty)}</span>
                 </div>
+                {(item.addons ?? []).map((a) => (
+                  <p key={a.id} className="mt-0.5 pl-5 text-xs text-neutral-500">
+                    + {a.name}
+                    {Number(a.extra_cents) > 0 ? ` (+${formatPrice(Number(a.extra_cents))})` : " (Free)"}
+                  </p>
+                ))}
                 {item.note && (
                   <p className="mt-0.5 pl-5 text-xs text-amber-700">{item.note}</p>
                 )}

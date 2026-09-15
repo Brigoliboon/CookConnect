@@ -200,6 +200,25 @@ export interface OrderItem {
   image_path: string | null;
 }
 
+export interface RecipeAddon {
+  id: UUID;
+  meal_recipe_id: UUID; // -> public.recipes.id, the meal this side belongs to
+  addon_recipe_id: UUID; // -> public.recipes.id, the rice/sides recipe
+  extra_cents: number; // int4 >= 0, 0 = free base
+  is_default: boolean; // default false
+  is_active: boolean; // default true
+  created_at: string; // ISO timestamptz
+}
+
+export interface OrderItemAddon {
+  id: UUID;
+  order_item_id: UUID; // -> public.order_items.id
+  addon_recipe_id: UUID | null; // -> public.recipes.id
+  name: string;
+  extra_cents: number; // int4 >= 0
+  created_at: string; // ISO timestamptz
+}
+
 export interface PushSubscription {
   id: UUID;
   user_id: UUID; // -> public.accounts.id

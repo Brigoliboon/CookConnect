@@ -94,7 +94,7 @@ export function CatalogMealCard({
     if (existing) {
       existing.qty += 1
     } else {
-      cart.push({ name: key, price: displayPrice, qty: 1, image: imgSrc })
+      cart.push({ name: key, price: displayPrice, qty: 1, image: imgSrc, recipeId: id, basePrice: displayPrice })
     }
     setCart(cart)
     window.dispatchEvent(new Event("cart-changed"))

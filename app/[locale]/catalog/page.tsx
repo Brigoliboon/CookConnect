@@ -269,7 +269,7 @@ function CatalogContent() {
       if (existing) {
         existing.qty += 1
       } else {
-        cart.push({ name: key, price: firstServing?.price ?? item.price, qty: 1, image: item.image })
+        cart.push({ name: key, price: firstServing?.price ?? item.price, qty: 1, image: item.image, recipeId: item.id, basePrice: firstServing?.price ?? item.price })
       }
     }
     setCart(cart)

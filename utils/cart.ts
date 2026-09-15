@@ -4,6 +4,11 @@ export interface CartItem {
   qty: number
   note?: string
   image?: string
+  recipeId?: string
+  basePrice?: number
+  addonRecipeId?: string | null
+  addonName?: string | null
+  addonExtra?: number
 }
 
 export const CART_KEY = "cookconnect_cart"

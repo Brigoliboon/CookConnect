@@ -1,4 +1,5 @@
-import type { Order, OrderItem, OrderStatus } from "../models"
+import type { Order, OrderItem, OrderItemAddon, OrderStatus } from "../models"
+import { resolveMealPrice } from "./recipe_addons"
 
 export interface CreateOrderInput {
   customer_id?: string | null
@@ -16,6 +17,7 @@ export interface CreateOrderInput {
 
 export interface CreateOrderItemInput {
   recipe_id?: string | null
+  addon_recipe_id?: string | null
   name: string
   unit_price_cents: number
   qty: number
@@ -23,8 +25,12 @@ export interface CreateOrderItemInput {
   image_path?: string | null
 }
 
+export interface OrderItemWithAddons extends OrderItem {
+  addons: OrderItemAddon[]
+}
+
 export interface OrderWithItems extends Order {
-  items: OrderItem[]
+  items: OrderItemWithAddons[]
 }
 
 export async function listOrders(
@@ -34,7 +40,7 @@ export async function listOrders(
 ): Promise<OrderWithItems[]> {
   let query = supabase
     .from("orders")
-    .select("*, order_items(*)")
+    .select("*, order_items(*, order_item_addons(*))")
 
   if (status) {
     query = query.eq("status", status)
@@ -46,7 +52,17 @@ export async function listOrders(
   const { data, error } = await query.order("created_at", { ascending: false })
 
   if (error) throw error
-  return (data ?? []) as OrderWithItems[]
+  return ((data as Record<string, unknown>[]) ?? []).map((o) => {
+    const nested = (o.order_items as Record<string, unknown>[] | undefined) ?? []
+    return {
+      ...(o as unknown as Order),
+      ...o,
+      items: nested.map((oi) => ({
+        ...oi,
+        addons: (oi.order_item_addons as OrderItemAddon[] | undefined) ?? [],
+      })),
+    } as OrderWithItems
+  })
 }
 
 const SHORT_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
@@ -68,6 +84,37 @@ export async function createOrder(
   input: CreateOrderInput,
   items: CreateOrderItemInput[],
 ): Promise<OrderWithItems> {
+  const resolvedItems = await Promise.all(
+    items.map(async (item) => {
+      if (item.recipe_id) {
+        const resolved = await resolveMealPrice(supabase, item.recipe_id, item.addon_recipe_id ?? null)
+        return {
+          recipe_id: item.recipe_id,
+          addon_recipe_id: item.addon_recipe_id ?? null,
+          addon_name: resolved.addon_name,
+          addon_extra_cents: resolved.extra_cents,
+          name: item.name,
+          unit_price_cents: resolved.unit_cents,
+          qty: item.qty,
+          note: item.note ?? null,
+          image_path: item.image_path ?? null,
+        }
+      }
+      return {
+        recipe_id: null,
+        addon_recipe_id: null,
+        addon_name: null,
+        addon_extra_cents: 0,
+        name: item.name,
+        unit_price_cents: item.unit_price_cents,
+        qty: item.qty,
+        note: item.note ?? null,
+        image_path: item.image_path ?? null,
+      }
+    }),
+  )
+  const serverSubtotal = resolvedItems.reduce((sum, i) => sum + i.unit_price_cents * i.qty, 0)
+  if (serverSubtotal !== input.subtotal_cents) input.subtotal_cents = serverSubtotal
   const vat_cents = input.vat_cents ?? Math.round(input.subtotal_cents * 0.05)
   const { data, error } = await supabase
     .from("orders")
@@ -99,14 +146,14 @@ export async function createOrder(
     if (locError) throw locError
   }
 
-  const itemRows = items.map((item) => ({
+  const itemRows = resolvedItems.map((item) => ({
     order_id: order.id,
-    recipe_id: item.recipe_id ?? null,
+    recipe_id: item.recipe_id,
     name: item.name,
     unit_price_cents: item.unit_price_cents,
     qty: item.qty,
-    note: item.note ?? null,
-    image_path: item.image_path ?? null,
+    note: item.note,
+    image_path: item.image_path,
   }))
 
   const { data: createdItems, error: itemsError } = await supabase
@@ -115,8 +162,34 @@ export async function createOrder(
     .select()
 
   if (itemsError) throw itemsError
+  const orderItems = (createdItems ?? []) as OrderItem[]
 
-  return { ...order, items: (createdItems ?? []) as OrderItem[] }
+  const addonRows = resolvedItems.flatMap((item, i) =>
+    item.addon_recipe_id && item.addon_name
+      ? [{
+          order_item_id: orderItems[i].id,
+          addon_recipe_id: item.addon_recipe_id,
+          name: item.addon_name,
+          extra_cents: item.addon_extra_cents,
+        }]
+      : [],
+  )
+  let createdAddons: OrderItemAddon[] = []
+  if (addonRows.length > 0) {
+    const { data: addonData, error: addonError } = await supabase
+      .from("order_item_addons")
+      .insert(addonRows)
+      .select()
+    if (addonError) throw addonError
+    createdAddons = (addonData ?? []) as OrderItemAddon[]
+  }
+
+  const itemsWithAddons: OrderItemWithAddons[] = orderItems.map((oi) => ({
+    ...oi,
+    addons: createdAddons.filter((a) => a.order_item_id === oi.id),
+  }))
+
+  return { ...order, items: itemsWithAddons }
 }
 
 export async function updateOrderStatus(

@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl"
 import { getCart, setCart } from "@/utils/cart"
 
 interface GalleryCardProps {
+  id?: string
   name: string
   price: number
   calories: number
@@ -21,7 +22,7 @@ interface GalleryCardProps {
   onAdd?: (name: string, price: number, image: string) => void
 }
 
-export function GalleryCard({ name, price, calories, protein, carbs, fats, description, image, variant = "order", timeSlot, className, onClick, onAdd }: GalleryCardProps) {
+export function GalleryCard({ id, name, price, calories, protein, carbs, fats, description, image, variant = "order", timeSlot, className, onClick, onAdd }: GalleryCardProps) {
   const t = useTranslations("meals")
   const tg = useTranslations("gallery")
   const [added, setAdded] = useState(false)
@@ -32,7 +33,7 @@ export function GalleryCard({ name, price, calories, protein, carbs, fats, descr
     if (existing) {
       existing.qty += 1
     } else {
-      cart.push({ name, price, qty: 1, image })
+      cart.push({ name, price, qty: 1, image, recipeId: id, basePrice: price })
     }
     setCart(cart)
     window.dispatchEvent(new Event("cart-changed"))

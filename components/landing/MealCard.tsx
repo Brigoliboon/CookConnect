@@ -13,6 +13,7 @@ const MotionImage = motion(Image)
 export type { MealServingOption }
 
 interface FeaturedMealProps {
+  id?: string
   name: string
   image: string
   description: string
@@ -28,6 +29,7 @@ interface FeaturedMealProps {
 }
 
 export function MealCard({
+  id,
   name,
   image,
   description,
@@ -81,7 +83,7 @@ export function MealCard({
     if (existing) {
       existing.qty += 1
     } else {
-      cart.push({ name: key, price: displayPrice, qty: 1, image })
+      cart.push({ name: key, price: displayPrice, qty: 1, image, recipeId: id, basePrice: displayPrice })
     }
     setCart(cart)
     window.dispatchEvent(new Event("cart-changed"))

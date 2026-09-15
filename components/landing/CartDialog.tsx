@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl"
 import { getCart, setCart, type CartItem } from "@/utils/cart"
 import { LocationPicker, type Coordinates } from "@/components/ui/LocationPicker"
 import { FloatingInput } from "@/components/ui/FloatingInput"
+import { CartSidePicker } from "@/components/landing/CartSidePicker"
 import { resolveDeliveryAddress, formatPrice } from "@/utils/mapbox"
 
 export function CartDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -92,6 +93,24 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
     commit(cart.map((i) => (i.name === name ? { ...i, note: note || undefined } : i)))
   }
 
+  function setItemSide(name: string, opt: { addon_recipe_id: string; addon_name: string; extra_cents: number } | null) {
+    commit(
+      cart.map((i) => {
+        if (i.name !== name) return i
+        const base = i.basePrice ?? i.price
+        const extra = opt ? opt.extra_cents / 100 : 0
+        return {
+          ...i,
+          basePrice: base,
+          addonRecipeId: opt?.addon_recipe_id ?? null,
+          addonName: opt?.addon_name ?? null,
+          addonExtra: opt?.extra_cents ?? 0,
+          price: Math.round((base + extra) * 100) / 100,
+        }
+      }),
+    )
+  }
+
   function handleConfirmLocation() {
     if (!location) {
       setLocationError(t("locError"))
@@ -150,6 +169,8 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
           location: pickup ? null : location,
           shipping_cents: pickup ? 0 : feeCents,
           items: cart.map((item) => ({
+            recipe_id: item.recipeId ?? null,
+            addon_recipe_id: item.addonRecipeId ?? null,
             name: item.name,
             unit_price_cents: Math.round(item.price * 100),
             qty: item.qty,
@@ -259,6 +280,24 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                         </button>
                       </div>
                     </div>
+                    {item.recipeId && (
+                      <div className="mt-2 border-t border-neutral-100 pt-2">
+                        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+                          {t("sidesTitle")}
+                        </p>
+                        <CartSidePicker
+                          mealRecipeId={item.recipeId}
+                          selectedId={item.addonRecipeId}
+                          onSelect={(opt) => setItemSide(item.name, opt)}
+                        />
+                        {item.addonName && (
+                          <p className="mt-1 text-xs text-neutral-500">
+                            {item.addonName}
+                            {(item.addonExtra ?? 0) > 0 ? ` (+${((item.addonExtra ?? 0) / 100).toFixed(2)} AED)` : " (Free)"}
+                          </p>
+                        )}
+                      </div>
+                    )}
                     <div className="mt-2 border-t border-neutral-100 pt-2">
                         <div className="flex items-center gap-1.5">
                           <MessageCircle size={12} className="text-neutral-400" />
