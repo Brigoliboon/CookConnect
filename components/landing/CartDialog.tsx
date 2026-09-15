@@ -6,6 +6,7 @@ import { Trash2, Minus, Plus, X, CheckCircle2, User, Mail, Phone, MapPin, Check,
 import { useTranslations } from "next-intl"
 import { getCart, setCart, type CartItem } from "@/utils/cart"
 import { LocationPicker, type Coordinates } from "@/components/ui/LocationPicker"
+import { FloatingInput } from "@/components/ui/FloatingInput"
 import { resolveDeliveryAddress, formatPrice } from "@/utils/mapbox"
 
 export function CartDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -118,6 +119,14 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
       .finally(() => setLocating(false))
   }
 
+  function sanitizeUaLocal(value: string) {
+    let d = value.replace(/\D/g, "")
+    if (d.startsWith("971")) d = d.slice(3)
+    else if (d.startsWith("0971")) d = d.slice(4)
+    else if (d.startsWith("0")) d = d.slice(1)
+    return d.slice(0, 9)
+  }
+
   async function handleSubmit() {
     if (!pickup && (!confirmed || feeCents === null)) {
       setLocationError(t("confirmError"))
@@ -136,7 +145,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
         body: JSON.stringify({
           name: form.name,
           email: form.email,
-          mobile_number: form.mobile,
+          mobile_number: `+971${sanitizeUaLocal(form.mobile)}`,
           address: pickup ? "Pickup" : form.address,
           location: pickup ? null : location,
           shipping_cents: pickup ? 0 : feeCents,
@@ -268,46 +277,38 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
             )}
 
             <div className="mt-6 space-y-4">
-              <div>
-                <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                  <User size={13} />
-                  {t("fullName")}
-                </label>
-                <input
-                  required
-                  value={form.name}
-                  onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                  className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900"
-                  placeholder={t("namePlaceholder")}
-                />
+              <FloatingInput
+                label={t("fullName")}
+                icon={<User size={13} />}
+                required
+                value={form.name}
+                onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+              />
+              <div className="flex items-stretch gap-1.5 sm:gap-2">
+                <span className="flex shrink-0 items-center gap-1 rounded-xl border border-neutral-200 bg-white px-2 py-3 text-xs font-semibold text-neutral-900 sm:gap-1.5 sm:px-3 sm:text-sm">
+                  <img src="/icons/uae-flag.png" alt="UAE" className="h-3 w-4 rounded-[2px] object-cover sm:h-4 sm:w-6" />
+                  +971
+                </span>
+                <div className="min-w-0 flex-1">
+                  <FloatingInput
+                    label={t("mobile")}
+                    icon={<Phone size={13} />}
+                    type="tel"
+                    required
+                    inputMode="numeric"
+                    maxLength={13}
+                    value={form.mobile}
+                    onChange={(e) => setForm((p) => ({ ...p, mobile: sanitizeUaLocal(e.target.value) }))}
+                  />
+                </div>
               </div>
-              <div>
-                <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                  <Mail size={13} />
-                  {t("email")}
-                </label>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                  className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900"
-                  placeholder={t("emailPlaceholder")}
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                  <Phone size={13} />
-                  {t("mobile")}
-                </label>
-                <input
-                  type="tel"
-                  required
-                  value={form.mobile}
-                  onChange={(e) => setForm((p) => ({ ...p, mobile: e.target.value }))}
-                  className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900"
-                  placeholder={t("mobilePlaceholder")}
-                />
-              </div>
+              <FloatingInput
+                label={t("email")}
+                icon={<Mail size={13} />}
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+              />
               <div>
                 <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
                   <MapPin size={13} />

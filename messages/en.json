@@ -170,7 +170,7 @@
     "namePlaceholder": "John Doe",
     "email": "Email",
     "emailPlaceholder": "john@example.com",
-    "mobile": "Mobile Number",
+    "mobile": "WhatsApp Number",
     "mobilePlaceholder": "+971 50 123 4567",
     "deliveryLocation": "Delivery Location",
     "resolving": "Resolving address...",
