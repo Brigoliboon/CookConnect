@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from "rea
 import { motion } from "framer-motion"
 import { Search, X, ChevronDown, SlidersHorizontal, ArrowUp } from "lucide-react"
 import { useTranslations, useLocale } from "next-intl"
+import { Link } from "@/i18n/navigation"
 import { translateContent } from "@/constants/translations"
 import { Nav } from "@/components/landing/Nav"
 import { Footer } from "@/components/landing/Footer"
@@ -389,10 +390,10 @@ function CatalogContent({
         <p className="font-nunito text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">{t("categories")}</p>
         <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
           {categories.map((cat) => (
-            <button
+            <Link
               key={cat.id}
-              type="button"
-              onClick={() => handleCategoryClick(cat.id)}
+              href={cat.id === "all" ? "/menu" : `/menu/${cat.id}`}
+              onClick={(e) => { e.preventDefault(); handleCategoryClick(cat.id) }}
               className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                 activeCategory === cat.id
                   ? "border-neutral-900 bg-neutral-900 text-white"
@@ -400,7 +401,7 @@ function CatalogContent({
               }`}
             >
               {ft(`cats.${cat.id}`)}
-            </button>
+            </Link>
           ))}
         </div>
         {activeCat?.subs && (
