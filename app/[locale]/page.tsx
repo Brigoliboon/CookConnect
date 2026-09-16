@@ -1,3 +1,4 @@
+import { setRequestLocale } from "next-intl/server"
 import { Nav } from "@/components/landing/Nav"
 import { Hero } from "@/components/landing/Hero"
 import { FeaturedMeals } from "@/components/landing/FeaturedMeals"
@@ -6,10 +7,18 @@ import { Subscription } from "@/components/landing/Subscription"
 import { AboutUs } from "@/components/landing/AboutUs"
 import { Contact } from "@/components/landing/Contact"
 import { Footer } from "@/components/landing/Footer"
+import { RestaurantJsonLd } from "@/components/seo/RestaurantJsonLd"
 
-export default function LandingPage() {
+export default async function LandingPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}) {
+  const { locale } = await params
+  setRequestLocale(locale)
   return (
     <>
+      <RestaurantJsonLd locale={locale} />
       <Nav />
       <Hero />
       <FeaturedMeals />

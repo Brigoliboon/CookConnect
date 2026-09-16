@@ -205,7 +205,7 @@ export function FeaturedMeals() {
           className="mt-5 flex justify-end"
         >
           <Link
-            href="/catalog"
+            href="/menu"
             className="font-nunito inline-flex items-center gap-2 border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-white hover:text-neutral-900"
           >
             {t("viewMenu")}

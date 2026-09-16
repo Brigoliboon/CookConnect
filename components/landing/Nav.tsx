@@ -64,8 +64,8 @@ export function Nav({ showShadowOnScroll = true }: { showShadowOnScroll?: boolea
   const [cartOpen, setCartOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [switchingLang, setSwitchingLang] = useState(false)
-  const isCatalogPage = pathname.includes("catalog")
-  const scrollActive = scrolled || isCatalogPage
+  const isMenuPage = pathname.includes("/menu")
+  const scrollActive = scrolled || isMenuPage
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)

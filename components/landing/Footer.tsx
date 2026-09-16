@@ -26,10 +26,16 @@ export function Footer() {
           </div>
           <div>
             <p className="font-nunito text-sm font-semibold text-black">{t("contact")}</p>
-            <div className="font-nunito mt-3 space-y-2 text-sm text-black/50">
-              <p>cookconnectrestaurant@gmail.com</p>
-              <p>+971556634050</p>
-              <p>Dubai, UAE</p>
+            <address className="font-nunito mt-3 space-y-2 text-sm not-italic text-black/50">
+              <p>Sheikh Zayed Street, Al Hamidiya 1, Ajman, UAE</p>
+              <p><a href="tel:+971556634050" className="transition-colors hover:text-black">+971556634050</a></p>
+              <p><a href="mailto:cookconnectrestaurant@gmail.com" className="transition-colors hover:text-black">cookconnectrestaurant@gmail.com</a></p>
+              <p>Sat–Thu, 8:00 AM – 10:00 PM</p>
+            </address>
+            <div className="mt-4 flex gap-4 text-sm">
+              <a href="https://www.instagram.com/cookconnectrestaurant" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-black/50 transition-colors hover:text-black">Instagram</a>
+              <a href="https://www.facebook.com/cookConnectLLC" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="text-black/50 transition-colors hover:text-black">Facebook</a>
+              <a href="https://wa.me/971556634050" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="text-black/50 transition-colors hover:text-black">WhatsApp</a>
             </div>
           </div>
         </div>

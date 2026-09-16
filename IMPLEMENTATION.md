@@ -216,6 +216,24 @@ Checkpoint (all must pass before marking complete):
 
 ---
 
+### Module 10: SEO & Internet Presence — ✅ Complete
+
+Domain `https://cookconnectae.com/` — en canonical at `/`, ar at `/ar`. GSC verified via DNS (owner-managed, no meta tag).
+
+- `lib/seo.ts` — single source: SITE_URL, SITE_META en/ar, NAP, GEO (25.3969036,55.5220053), SOCIALS (IG/FB/WA), JSON-LD builders
+- `app/robots.ts` — allow `/`, disallow `/api/`, `/customer`, `/employee/`, `/rider`, `/sticker-preview`; sitemap + host
+- `app/sitemap.ts` — `/`, `/menu`, `/terms`, `/privacy` + `/ar` variants with hreflang alternates; excludes login/tracking/auth
+- `app/manifest.ts` — CookConnect PWA manifest, theme `#118B50`
+- `app/[locale]/layout.tsx` — `generateMetadata`: metadataBase, title template, OG, Twitter, canonical + hreflang en/ar/x-default, geo (`AE-AJ`, Ajman, ICBM), viewport themeColor
+- `app/[locale]/page.tsx` — `Restaurant` + `WebSite` JSON-LD via `components/seo/RestaurantJsonLd.tsx`
+- `app/[locale]/menu/` (renamed from `catalog/`; 308 redirects `/catalog*`, `/en/catalog*`, `/ar/catalog*` → `/menu*` in `next.config.ts`)
+- Subtree layouts: `menu`/`terms`/`privacy` indexable with canonical; `login`/`order-tracking` + `(authenticated)` → `noindex`
+- `components/landing/Footer.tsx` — NAP unified to Ajman address, tel/mailto links, social links, `<address>` tag (fixed Dubai mismatch)
+- `proxy.ts` — matcher bypasses `robots.txt`, `sitemap.xml`, `manifest.webmanifest`, `sw.js`
+- Checkpoint: `tests/SEO_TESTCASE.md` (T1–T8)
+
+---
+
 ## Gaps / Next Steps
 
 1. **Supabase Auth** — wire signIn/signOut, session management, role-based redirects
