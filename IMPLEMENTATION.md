@@ -226,7 +226,7 @@ Domain `https://cookconnectae.com/` — en canonical at `/`, ar at `/ar`. GSC ve
 - `app/manifest.ts` — CookConnect PWA manifest, theme `#118B50`
 - `app/[locale]/layout.tsx` — `generateMetadata`: metadataBase, title template, OG, Twitter, canonical + hreflang en/ar/x-default, geo (`AE-AJ`, Ajman, ICBM), viewport themeColor
 - `app/[locale]/page.tsx` — `Restaurant` + `WebSite` JSON-LD via `components/seo/RestaurantJsonLd.tsx`
-- `app/[locale]/menu/` (renamed from `catalog/`; 308 redirects `/catalog*`, `/en/catalog*`, `/ar/catalog*` → `/menu*` in `next.config.ts`)
+- `app/[locale]/menu/` (renamed from `catalog/`; 308 redirects `/catalog*`, `/en/catalog*`, `/ar/catalog*` → `/menu*` in `next.config.ts`; SSR: server `page.tsx` fetches first 24 via `listRecipes()` + passes to `MenuClient.tsx`, `ItemList` + `OrderAction` JSON-LD; route now dynamic)
 - Subtree layouts: `menu`/`terms`/`privacy` indexable with canonical; `login`/`order-tracking` + `(authenticated)` → `noindex`
 - `components/landing/Footer.tsx` — NAP unified to Ajman address, tel/mailto links, social links, `<address>` tag (fixed Dubai mismatch)
 - `proxy.ts` — matcher bypasses `robots.txt`, `sitemap.xml`, `manifest.webmanifest`, `sw.js`
