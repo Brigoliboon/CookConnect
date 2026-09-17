@@ -3,6 +3,7 @@ import { fontVariables } from "@/lib/fonts"
 import { Providers } from "../providers"
 import { Navbar } from "@/components/layout/Navbar"
 import { AuthMain } from "@/components/layout/AuthMain"
+import { GoogleTag } from "@/components/seo/GoogleTag"
 import "../globals.css"
 
 export const metadata: Metadata = {
@@ -17,6 +18,7 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
           <Navbar />
           <AuthMain>{children}</AuthMain>
         </Providers>
+        <GoogleTag />
       </body>
     </html>
   )

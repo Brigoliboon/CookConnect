@@ -7,6 +7,7 @@ import { routing } from "@/i18n/routing";
 import { fontVariables } from "@/lib/fonts";
 import { Providers } from "../providers";
 import { GEO, OG_IMAGE, SITE_META, SITE_URL, localeUrl } from "@/lib/seo";
+import { GoogleTag } from "@/components/seo/GoogleTag";
 import "../globals.css";
 
 export function generateStaticParams() {
@@ -100,6 +101,7 @@ export default async function LocaleLayout({
         <Providers>
           <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>
         </Providers>
+        <GoogleTag />
       </body>
     </html>
   );
