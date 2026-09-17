@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import dynamic from "next/dynamic"
+import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import Link from "next/link"
@@ -9,7 +11,11 @@ import { translateContent } from "@/constants/translations"
 import type { MenuCategory, MenuItem } from "@/constants"
 import { MENU_CATEGORIES } from "@/constants"
 import { GalleryCard } from "@/components/landing/GalleryCard"
-import { MealDetailDialog } from "@/components/ui/MealDetailDialog"
+
+const MealDetailDialog = dynamic(
+  () => import("@/components/ui/MealDetailDialog").then((mod) => mod.MealDetailDialog),
+  { ssr: false },
+)
 
 const ITEMS_PER_PAGE = 4
 
@@ -106,9 +112,15 @@ export function HealthyCampaign() {
           </div>
 
           <div className="absolute bottom-0 right-0 top-0 z-0 flex w-[55%] items-end justify-end overflow-visible max-sm:hidden">
-            <img
+            <Image
               src="/health-section.png"
               alt={t("imgAlt")}
+              width={720}
+              height={492}
+              loading="lazy"
+              decoding="async"
+              sizes="(max-width: 640px) 0vw, 45vw"
+              quality={70}
               className="mr-[-10%] h-[130%] w-auto translate-y-[5%] object-contain drop-shadow-2xl max-sm:mr-[-20%] max-sm:h-[100%]"
             />
           </div>
@@ -124,25 +136,43 @@ export function HealthyCampaign() {
           <div className="mt-6 h-px w-12 bg-black/20" />
           <div className="mt-10 flex flex-col gap-4">
             <div className="flex flex-col items-center gap-6 rounded-xl p-4 transition-transform duration-300 hover:-translate-y-1 sm:flex-row">
-              <img
+              <Image
                 src="/healthy-section/section-1.png"
                 alt=""
+                width={128}
+                height={192}
+                loading="lazy"
+                decoding="async"
+                sizes="128px"
+                quality={70}
                 className="w-32 h-48 shrink-0 rounded object-cover max-sm:w-24 max-sm:h-36"
               />
               <p className="font-nunito text-xl leading-loose text-black/50 max-sm:text-lg">{t("fact1")}</p>
             </div>
             <div className="flex flex-col items-center gap-6 rounded-xl p-4 transition-transform duration-300 hover:-translate-y-1 sm:flex-row">
-              <img
+              <Image
                 src="/healthy-section/section-2.png"
                 alt=""
+                width={128}
+                height={192}
+                loading="lazy"
+                decoding="async"
+                sizes="128px"
+                quality={70}
                 className="w-32 h-48 shrink-0 rounded object-cover max-sm:w-24 max-sm:h-36"
               />
               <p className="font-nunito text-xl leading-loose text-black/50 max-sm:text-lg">{t("fact2")}</p>
             </div>
             <div className="flex flex-col items-center gap-6 rounded-xl p-4 transition-transform duration-300 hover:-translate-y-1 sm:flex-row">
-              <img
+              <Image
                 src="/healthy-section/section-3.png"
                 alt=""
+                width={128}
+                height={192}
+                loading="lazy"
+                decoding="async"
+                sizes="128px"
+                quality={70}
                 className="w-32 h-48 shrink-0 rounded object-cover max-sm:w-24 max-sm:h-36"
               />
               <p className="font-nunito text-xl leading-loose text-black/50 max-sm:text-lg">{t("fact3")}</p>
@@ -250,7 +280,7 @@ export function HealthyCampaign() {
         </div>
       </motion.div>
 
-      <MealDetailDialog item={selected} onClose={() => setSelected(null)} />
+      {selected && <MealDetailDialog item={selected} onClose={() => setSelected(null)} />}
     </section>
   )
 }

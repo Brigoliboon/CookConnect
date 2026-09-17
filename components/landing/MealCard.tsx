@@ -26,6 +26,7 @@ interface FeaturedMealProps {
   scale?: number
   width?: string
   className?: string
+  eager?: boolean
 }
 
 export function MealCard({
@@ -42,6 +43,7 @@ export function MealCard({
   scale = 1,
   width = "w-72 max-sm:w-48",
   className = "",
+  eager = false,
 }: FeaturedMealProps) {
   const t = useTranslations("meals")
   const shortDesc = description.length > 70 ? description.slice(0, 70) + "..." : description
@@ -106,6 +108,10 @@ export function MealCard({
             alt={name}
             fill
             sizes="(max-width: 640px) 192px, 288px"
+            loading={eager ? "eager" : "lazy"}
+            fetchPriority={eager ? "high" : "low"}
+            quality={75}
+            decoding="async"
             className="object-cover"
             animate={{ scale: shrunk ? 0.85 : 1 }}
             transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}

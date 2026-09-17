@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useTranslations } from "next-intl"
 import { motion } from "framer-motion"
 
@@ -25,9 +26,15 @@ export function AboutUs() {
       <div>
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <motion.div variants={fadeUp} custom={0} className="overflow-hidden rounded-2xl">
-            <img
+            <Image
               src="/landingpage/cook-connect-team.jpg"
               alt={t("imgAlt")}
+              width={1000}
+              height={667}
+              loading="lazy"
+              decoding="async"
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              quality={75}
               className="h-full w-full scale-125 object-cover"
             />
           </motion.div>

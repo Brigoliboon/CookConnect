@@ -1,6 +1,7 @@
 "use client"
 
 import { useTranslations } from "next-intl"
+import Image from "next/image"
 import { Link } from "@/i18n/navigation"
 import { motion } from "framer-motion"
 import { translateContent } from "@/constants/translations"
@@ -35,9 +36,15 @@ export function Hero() {
 
   return (
     <section className="relative min-h-[122vh] overflow-hidden max-h-[122vh] bg-black max-sm:min-h-screen">
-      <div
-        className="absolute h-[122vh] inset-0 bg-cover bg-center opacity-40 max-sm:h-screen"
-        style={{ backgroundImage: "url(/bg.jpg)" }}
+      <Image
+        src="/bg.jpg"
+        alt=""
+        aria-hidden
+        fill
+        preload
+        sizes="100vw"
+        quality={75}
+        className="absolute inset-0 h-[122vh] w-full object-cover opacity-40 max-sm:h-screen"
       />
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/90" />
 
@@ -76,7 +83,17 @@ export function Hero() {
           </motion.div>
 
           <motion.div variants={fadeUp} className="flex items-end justify-end max-sm:justify-center">
-            <img className="w-full hidden sm:flex max-w-lg object-contain" src="/hero-menu.png" alt={t("imageAlt")} />
+            <Image
+              src="/hero-menu.png"
+              alt={t("imageAlt")}
+              width={560}
+              height={562}
+              loading="eager"
+              fetchPriority="high"
+              sizes="(max-width: 640px) 0vw, 560px"
+              quality={75}
+              className="w-full hidden sm:flex max-w-lg object-contain"
+            />
           </motion.div>
         </motion.div>
 
@@ -85,8 +102,8 @@ export function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.8, ease: [0.25, 0.1, 0.25, 1] as const }}
           className="flex gap-10 overflow-y-hidden overflow-x-auto pb-2 justify-center max-sm:-mx-4 max-sm:flex-nowrap max-sm:justify-start max-sm:overflow-x-auto max-sm:px-4 max-sm:snap-x max-sm:snap-mandatory items-stretch">
-            {translated.map((item) => (
-              <MealCard key={item.name} {...item} />
+            {translated.map((item, i) => (
+              <MealCard key={item.name} {...item} eager={i < 2} />
             ))}
           </motion.div>
       </div>

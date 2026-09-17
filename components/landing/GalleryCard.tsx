@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { ShoppingCart, Check, Flame, Sun, Moon } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { getCart, setCart } from "@/utils/cart"
@@ -46,11 +47,16 @@ export function GalleryCard({ id, name, price, calories, protein, carbs, fats, d
       onClick={onClick}
       className={`flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl bg-white drop-shadow-md transition-all duration-300 hover:drop-shadow-lg ${className ?? ""}`}
     >
-      <div className="overflow-hidden">
-        <img
+      <div className="relative h-40 overflow-hidden">
+        <Image
           src={image}
           alt={name}
-          className="h-40 w-full object-cover transition-all duration-500 hover:scale-105"
+          fill
+          sizes="(max-width: 640px) 50vw, 241px"
+          loading="lazy"
+          quality={70}
+          decoding="async"
+          className="object-cover transition-all duration-500 hover:scale-105"
         />
       </div>
       <div className="flex flex-1 flex-col justify-between p-4">

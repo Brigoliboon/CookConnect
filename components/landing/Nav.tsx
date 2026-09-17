@@ -1,13 +1,17 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import dynamic from "next/dynamic"
 import { motion, AnimatePresence } from "framer-motion"
 import { useTheme } from "@/hooks/useTheme"
 import { Sun, Moon, Menu, X } from "lucide-react"
 import { useTranslations, useLocale } from "next-intl"
 import { Link, usePathname, useRouter } from "@/i18n/navigation"
 import { CartButton } from "@/components/landing/CartButton"
-import { CartDialog } from "@/components/landing/CartDialog"
+
+const CartDialog = dynamic(() => import("@/components/landing/CartDialog").then((mod) => mod.CartDialog), {
+  ssr: false,
+})
 
 function LangSwitch({ compact = false, switching = false, onSwitch }: { compact?: boolean; switching?: boolean; onSwitch?: () => void }) {
   const lang = useTranslations("lang")

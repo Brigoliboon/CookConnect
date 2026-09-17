@@ -1,10 +1,19 @@
 "use client"
 
+import { useEffect, useRef, useState } from "react"
+import dynamic from "next/dynamic"
 import { useTranslations } from "next-intl"
 import { motion } from "framer-motion"
 import { MapPin, Phone, Mail, Clock } from "lucide-react"
-import Map, { Marker } from "react-map-gl/mapbox"
-import "mapbox-gl/dist/mapbox-gl.css"
+
+const ContactMap = dynamic(() => import("@/components/landing/ContactMap").then((mod) => mod.ContactMap), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-[360px] w-full items-center justify-center rounded-2xl bg-neutral-100">
+      <div className="size-8 animate-spin rounded-full border-2 border-black/10 border-t-black/40" />
+    </div>
+  ),
+})
 
 const fadeUp = {
   hidden: { opacity: 0, y: 50 },
@@ -17,10 +26,29 @@ const fadeUp = {
 const inputClass =
   "font-nunito w-full border-b border-black/10 bg-transparent px-0 py-3 text-sm text-black outline-none transition-colors placeholder:text-black/20 focus:border-black"
 
-const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ""
-
 export function Contact() {
   const t = useTranslations("contact")
+  const mapRef = useRef<HTMLDivElement>(null)
+  const [mapInView, setMapInView] = useState(
+    () => typeof window === "undefined" || typeof IntersectionObserver === "undefined",
+  )
+
+  useEffect(() => {
+    if (mapInView) return
+    const el = mapRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setMapInView(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: "400px" },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [mapInView])
 
   const details = [
     { icon: MapPin, label: t("addressLabel"), value: "Sheikh Zayed Street, Al Hamidiya 1, Ajman, UAE" },
@@ -50,25 +78,14 @@ export function Contact() {
               </div>
             ))}
           </div>
-          <div className="overflow-hidden rounded-2xl">
-            <Map
-              mapboxAccessToken={token}
-              mapStyle="mapbox://styles/mapbox/streets-v12"
-              longitude={55.5220053}
-              latitude={25.3969036}
-              zoom={16}
-              style={{ width: "100%", height: 360 }}
-              attributionControl={false}
-              scrollZoom={false}
-              dragPan={false}
-              dragRotate={false}
-              doubleClickZoom={false}
-              touchZoomRotate={false}
-            >
-              <Marker longitude={55.5220053} latitude={25.3969036} anchor="bottom">
-                <img src="/icons/marker-skip.png" alt="" className="size-8" />
-              </Marker>
-            </Map>
+          <div ref={mapRef} className="overflow-hidden rounded-2xl">
+            {mapInView ? (
+              <ContactMap />
+            ) : (
+              <div className="flex h-[360px] w-full items-center justify-center bg-neutral-100">
+                <div className="size-8 animate-spin rounded-full border-2 border-black/10 border-t-black/40" />
+              </div>
+            )}
           </div>
         </motion.div>
 

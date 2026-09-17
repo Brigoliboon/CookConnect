@@ -12,7 +12,7 @@ import { resolveDeliveryAddress, formatPrice } from "@/utils/mapbox"
 
 export function CartDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const t = useTranslations("cart")
-  const [cart, setCartState] = useState<CartItem[]>([])
+  const [cart, setCartState] = useState<CartItem[]>(() => getCart())
   const [submitted, setSubmitted] = useState(false)
   const [location, setLocation] = useState<Coordinates | null>(null)
   const [form, setForm] = useState({ name: "", email: "", mobile: "", address: "" })
@@ -248,7 +248,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                       <div className="flex min-w-0 flex-1 items-center gap-3">
                         {item.image && (
-                          <img src={item.image} alt={item.name} className="h-14 w-14 shrink-0 rounded-lg object-cover" />
+                          <img src={item.image} alt={item.name} width={56} height={56} loading="lazy" decoding="async" className="h-14 w-14 shrink-0 rounded-lg object-cover" />
                         )}
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold text-neutral-900">{item.name}</p>
@@ -333,7 +333,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
               />
               <div className="flex items-stretch gap-1.5 sm:gap-2">
                 <span className="flex shrink-0 items-center gap-1 rounded-xl border border-neutral-200 bg-white px-2 py-3 text-xs font-semibold text-neutral-900 sm:gap-1.5 sm:px-3 sm:text-sm">
-                  <img src="/icons/uae-flag.png" alt="UAE" className="h-3 w-4 rounded-[2px] object-cover sm:h-4 sm:w-6" />
+                  <img src="/icons/uae-flag.png" alt="UAE" width={24} height={16} loading="lazy" decoding="async" className="h-3 w-4 rounded-[2px] object-cover sm:h-4 sm:w-6" />
                   +971
                 </span>
                 <div className="min-w-0 flex-1">

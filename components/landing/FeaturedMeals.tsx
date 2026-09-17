@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import { motion } from "framer-motion"
 import { ArrowRight } from "lucide-react"
 import { useTranslations, useLocale } from "next-intl"
@@ -261,7 +262,7 @@ export function FeaturedMeals() {
                     : "border-white/10 bg-white/10 text-white hover:bg-white/20"
                 }`}
               >
-                <img src={cat.image} alt={t(`cats.${cat.id}`)} className="size-8 rounded-full object-cover max-sm:size-6" />
+                <Image src={cat.image} alt={t(`cats.${cat.id}`)} width={32} height={32} loading="lazy" decoding="async" sizes="32px" quality={70} className="size-8 rounded-full object-cover max-sm:size-6" />
                 <span className="font-nunito text-sm font-semibold max-sm:text-xs">{t(`cats.${cat.id}`)}</span>
               </motion.button>
             ))}

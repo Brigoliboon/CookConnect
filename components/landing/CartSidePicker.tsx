@@ -67,7 +67,7 @@ export function CartSidePicker({
         className="flex w-full items-center gap-2 rounded-xl border border-neutral-200 bg-neutral-50 p-2 text-left transition-colors hover:border-neutral-300"
       >
         {selected.addon_image_path && (
-          <img src={selected.addon_image_path} alt={selected.addon_name} className="h-8 w-10 shrink-0 rounded-lg object-cover" />
+          <img src={selected.addon_image_path} alt={selected.addon_name} width={40} height={32} loading="lazy" decoding="async" className="h-8 w-10 shrink-0 rounded-lg object-cover" />
         )}
         <span className="min-w-0 flex-1">
           <span className="block truncate text-xs font-semibold text-neutral-900">{selected.addon_name}</span>
