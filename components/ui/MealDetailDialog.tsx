@@ -111,7 +111,7 @@ export function MealDetailDialog({ item, onClose, onEdit }: MealDetailDialogProp
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {servings.map((s, i) => (
                       <button
-                        key={s.id}
+                        key={s.id ?? i}
                         onClick={() => setServingIndex(i)}
                         className={`rounded-full border px-3 py-1 text-[11px] font-medium backdrop-blur-sm transition-colors ${
                           i === servingIndex

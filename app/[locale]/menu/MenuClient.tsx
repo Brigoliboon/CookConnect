@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from "react"
+import dynamic from "next/dynamic"
 import { motion } from "framer-motion"
 import { Search, X, ChevronDown, SlidersHorizontal, ArrowUp } from "lucide-react"
 import { useTranslations, useLocale } from "next-intl"
@@ -9,9 +10,16 @@ import { translateContent } from "@/constants/translations"
 import { Nav } from "@/components/landing/Nav"
 import { Footer } from "@/components/landing/Footer"
 import { CatalogMealCard } from "@/components/landing/CatalogMealCard"
+import { toDialogMeal } from "@/lib/meal-detail"
+import type { MenuItem as DialogMeal } from "@/constants"
 import { decodeRecipeIds } from "@/utils/catalogShare"
 import { getCart, setCart } from "@/utils/cart"
 import type { MealServingOption } from "@/constants"
+
+const MealDetailDialog = dynamic(
+  () => import("@/components/ui/MealDetailDialog").then((mod) => mod.MealDetailDialog),
+  { ssr: false },
+)
 
 const PAGE_SIZE = 24
 
@@ -226,6 +234,7 @@ function CatalogContent({
   const [maxCal, setMaxCal] = useState("")
   const [minPrice, setMinPrice] = useState("")
   const [maxPrice, setMaxPrice] = useState("")
+  const [selected, setSelected] = useState<DialogMeal | null>(null)
 
   const activeCat = categories.find((c) => c.id === activeCategory)
   const hasActiveFilters = search !== "" || activeCategory !== "all" || sort !== "default" || minCal !== "" || maxCal !== "" || minPrice !== "" || maxPrice !== ""
@@ -547,6 +556,15 @@ function CatalogContent({
                       {...item}
                       name={translateContent(item.name, locale)}
                       description={translateContent(item.description, locale)}
+                      onClick={() =>
+                        setSelected(
+                          toDialogMeal({
+                            ...item,
+                            name: translateContent(item.name, locale),
+                            description: translateContent(item.description, locale),
+                          }),
+                        )
+                      }
                     />
                   ))}
                 </div>
@@ -580,6 +598,8 @@ function CatalogContent({
           <ArrowUp size={18} />
         </button>
       )}
+
+      {selected && <MealDetailDialog item={selected} onClose={() => setSelected(null)} />}
 
       <Footer />
     </>

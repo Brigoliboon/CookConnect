@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Button, Input, Select, SubscriptionDialog } from "@/components/ui"
+import { Button, Input, Modal, Select, SubscriptionDialog } from "@/components/ui"
 import {
   MEAL_TIMES, MENU_CATEGORIES, GOALS,
   WEIGHT_LOSS_OPTIONS, CARB_OPTIONS, FOOD_RESTRICTIONS, ROTATION_MODES, GOAL_MODIFICATIONS,
@@ -32,6 +32,25 @@ interface SubscriptionRow {
   created_at: string
 }
 
+interface InquiryRow {
+  id: string
+  plan_id: string
+  name: string
+  email: string | null
+  mobile_number: string
+  address: string
+  details: {
+    mode?: string
+    restrictions?: string[]
+    includedMeals?: string[]
+    days?: string[]
+    slot?: string | null
+    time?: string | null
+    onCall?: boolean
+  }
+  created_at: string
+}
+
 interface CustomerOption {
   id: string
   name: string
@@ -46,6 +65,10 @@ interface RecipeOption {
 
 export default function EmployeeSubscriptionsPage() {
   const [subscriptions, setSubscriptions] = useState<SubscriptionRow[]>([])
+  const [inquiries, setInquiries] = useState<InquiryRow[]>([])
+  const [inquiryId, setInquiryId] = useState<string | null>(null)
+  const [ingNames, setIngNames] = useState<Record<string, string>>({})
+  const [mealNames, setMealNames] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null)
@@ -75,6 +98,13 @@ export default function EmployeeSubscriptionsPage() {
   const [recipes, setRecipes] = useState<RecipeOption[]>([])
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState("")
+  const [approving, setApproving] = useState(false)
+  const [approveError, setApproveError] = useState("")
+  const [payTotal, setPayTotal] = useState("")
+  const [payAmount, setPayAmount] = useState("")
+  const [payMethod, setPayMethod] = useState("bank-transfer")
+  const [payRef, setPayRef] = useState("")
+  const [payMap, setPayMap] = useState<Record<string, { paid: number; total: number | null }>>({})
 
   async function fetchSubscriptions() {
     try {
@@ -82,6 +112,7 @@ export default function EmployeeSubscriptionsPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Failed to fetch subscriptions")
       setSubscriptions(data)
+      refreshPayMap()
     } catch (e) {
       console.error("[SUBSCRIPTIONS] Fetch error:", e)
     } finally {
@@ -92,10 +123,11 @@ export default function EmployeeSubscriptionsPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [subsRes, custRes, recipeRes] = await Promise.all([
+        const [subsRes, custRes, recipeRes, inqRes] = await Promise.all([
           fetch("/api/subscriptions"),
           fetch("/api/customers"),
           fetch("/api/recipe?sort=name"),
+          fetch("/api/subscription-inquiries"),
         ])
 
         if (subsRes.ok) {
@@ -112,11 +144,24 @@ export default function EmployeeSubscriptionsPage() {
             (r) => r.is_active !== false,
           )
           setRecipes(active.map((r) => ({ id: r.id, name: r.name, category: r.category })))
+          setMealNames(Object.fromEntries(active.map((r) => [r.id, r.name])))
+        }
+        if (inqRes.ok) {
+          const inqs = (await inqRes.json()) as InquiryRow[]
+          setInquiries(inqs)
+          const ingIds = [...new Set(inqs.flatMap((q) => q.details?.restrictions ?? []))]
+          if (ingIds.length > 0) {
+            fetch(`/api/ingredients?ids=${ingIds.join(",")}&limit=200`)
+              .then((r) => r.json())
+              .then((d) => setIngNames(Object.fromEntries(((d.data ?? []) as { id: string; name: string }[]).map((i) => [i.id, i.name]))))
+              .catch(() => {})
+          }
         }
       } catch (e) {
         console.error("[SUBSCRIPTIONS] Initial load error:", e)
       } finally {
         setLoading(false)
+        refreshPayMap()
       }
     }
 
@@ -245,6 +290,66 @@ export default function EmployeeSubscriptionsPage() {
     }
   }
 
+  async function handleApproveInquiry() {
+    if (!selectedInquiry) return
+    const total = Math.round(Number(payTotal) * 100)
+    const amount = Math.round(Number(payAmount || 0) * 100)
+    if (!Number.isFinite(total) || total < 0) {
+      setApproveError("Enter the total price.")
+      return
+    }
+    if (!Number.isFinite(amount) || amount < 0 || amount > total) {
+      setApproveError("Amount paying must be between 0 and total.")
+      return
+    }
+    setApproving(true)
+    setApproveError("")
+    try {
+      const res = await fetch(`/api/subscription-inquiries/${selectedInquiry.id}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ total_cents: total, amount_cents: amount, method: payMethod, reference: payRef || null }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Failed to approve")
+      setInquiries((prev) => prev.filter((q) => q.id !== selectedInquiry.id))
+      setInquiryId(null)
+      setPayTotal("")
+      setPayAmount("")
+      setPayRef("")
+      fetchSubscriptions()
+      refreshPayMap()
+    } catch (e) {
+      setApproveError(e instanceof Error ? e.message : "Failed to approve")
+    } finally {
+      setApproving(false)
+    }
+  }
+
+  async function refreshPayMap() {
+    try {
+      const [payRes, subsRes] = await Promise.all([fetch("/api/subscription-payments"), fetch("/api/subscriptions")])
+      if (!payRes.ok) return
+      const { data } = await payRes.json()
+      const paidBy: Record<string, number> = {}
+      for (const p of (data ?? []) as { subscription_id: string; amount_cents: number }[]) {
+        paidBy[p.subscription_id] = (paidBy[p.subscription_id] ?? 0) + Number(p.amount_cents)
+      }
+      let totals: Record<string, number | null> = {}
+      if (subsRes.ok) {
+        const subs = (await subsRes.json()) as { id: string; details: Record<string, unknown> }[]
+        totals = Object.fromEntries(subs.map((s) => [s.id, (s.details?.total_cents as number | undefined) ?? null]))
+      }
+      const map: Record<string, { paid: number; total: number | null }> = {}
+      for (const id of new Set([...Object.keys(paidBy), ...Object.keys(totals)])) {
+        map[id] = { paid: paidBy[id] ?? 0, total: totals[id] ?? null }
+      }
+      setPayMap(map)
+    } catch {}
+  }
+
+  const selectedInquiry = inquiryId ? inquiries.find((q) => q.id === inquiryId) ?? null : null
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -254,7 +359,7 @@ export default function EmployeeSubscriptionsPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Subscriptions</h1>
-            <p className="text-sm text-neutral-500">Create meal plans for customers or manage existing subscriptions.</p>
+            <p className="text-sm text-neutral-500">Review inquiries or manage existing subscriptions.</p>
           </div>
         </div>
         <Button onClick={() => { resetForm(); setShowForm(true) }}>
@@ -263,11 +368,104 @@ export default function EmployeeSubscriptionsPage() {
         </Button>
       </div>
 
+      <div>
+        <h2 className="mb-3 text-lg font-semibold text-neutral-900">Inquiries ({inquiries.length})</h2>
+        {inquiries.length === 0 ? (
+          <p className="rounded-2xl border border-dashed border-neutral-300 px-4 py-8 text-center text-sm text-neutral-400">
+            No subscription inquiries yet.
+          </p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {inquiries.map((q) => (
+              <div key={q.id} className="rounded-2xl border border-neutral-200/60 bg-white/80 p-4">
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-neutral-900">{q.name}</p>
+                  <span className="rounded-lg bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-neutral-500">
+                    {q.details?.mode ?? "normal"}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-neutral-500">{q.plan_id} · {q.mobile_number}</p>
+                <p className="mt-0.5 line-clamp-1 text-xs text-neutral-400">{q.address}</p>
+                <button
+                  onClick={() => setInquiryId(q.id)}
+                  className="mt-3 w-full rounded-xl border border-neutral-200 py-2 text-xs font-semibold text-neutral-600 transition-all hover:bg-neutral-900 hover:text-white"
+                >
+                  View Details
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <Modal open={!!selectedInquiry} onClose={() => setInquiryId(null)} title={selectedInquiry ? `Inquiry — ${selectedInquiry.name}` : "Inquiry"}>
+        {selectedInquiry && (
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between"><span className="text-neutral-500">Plan</span><span className="font-semibold">{selectedInquiry.plan_id}</span></div>
+            <div className="flex justify-between"><span className="text-neutral-500">Mobile</span><span className="font-semibold">{selectedInquiry.mobile_number}</span></div>
+            {selectedInquiry.email && <div className="flex justify-between"><span className="text-neutral-500">Email</span><span className="font-semibold">{selectedInquiry.email}</span></div>}
+            <div><p className="text-neutral-500">Address</p><p className="font-medium">{selectedInquiry.address}</p></div>
+            <div className="flex justify-between"><span className="text-neutral-500">Mode</span><span className="font-semibold capitalize">{selectedInquiry.details?.mode}</span></div>
+            {(selectedInquiry.details?.restrictions ?? []).length > 0 && (
+              <div>
+                <p className="text-neutral-500">Restrictions</p>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {(selectedInquiry.details.restrictions ?? []).map((id) => (
+                    <span key={id} className="rounded-full bg-red-50 px-2.5 py-1 text-xs text-red-600">{ingNames[id] ?? id}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {(selectedInquiry.details?.includedMeals ?? []).length > 0 && (
+              <div>
+                <p className="text-neutral-500">Meals ({selectedInquiry.details.includedMeals?.length})</p>
+                <ul className="mt-1 list-disc pl-5 text-neutral-800">
+                  {(selectedInquiry.details.includedMeals ?? []).map((id) => (
+                    <li key={id}>{mealNames[id] ?? id}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <div className="flex justify-between border-t border-neutral-100 pt-2">
+              <span className="text-neutral-500">Delivery</span>
+              <span className="font-semibold">
+                {selectedInquiry.details?.onCall
+                  ? "On-call only"
+                  : `${(selectedInquiry.details?.days ?? []).join(", ")} · ${selectedInquiry.details?.slot ?? ""} ${selectedInquiry.details?.time ?? ""}`}
+              </span>
+            </div>
+            {approveError && <p className="text-xs font-medium text-red-500">{approveError}</p>}
+            <div className="grid grid-cols-2 gap-2 border-t border-neutral-100 pt-3">
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-neutral-500">Total price (AED)*</label>
+                <input type="number" min={0} step={0.5} value={payTotal} onChange={(e) => setPayTotal(e.target.value)} className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-900" placeholder="0.00" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-neutral-500">Paying now (AED)*</label>
+                <input type="number" min={0} step={0.5} value={payAmount} onChange={(e) => setPayAmount(e.target.value)} className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-900" placeholder="0.00" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-neutral-500">Method</label>
+                <Select options={PAYMENT_METHODS} value={payMethod} onChange={(e) => setPayMethod(e.target.value)} />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-neutral-500">Reference</label>
+                <input value={payRef} onChange={(e) => setPayRef(e.target.value)} className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-900" placeholder="Optional" />
+              </div>
+            </div>
+            <Button onClick={handleApproveInquiry} disabled={approving} className="w-full">
+              {approving ? "Approving..." : "Approve subscription"}
+            </Button>
+          </div>
+        )}
+      </Modal>
+
       <SubscriptionDialog
         inline
         subscriptions={subscriptions}
         loading={loading}
         onCancel={handleCancel}
+        payments={payMap}
       />
 
       <AnimatePresence>

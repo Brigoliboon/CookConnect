@@ -237,6 +237,11 @@
     "noAccount": "Don't have an account?",
     "contactAdmin": "Contact your restaurant administrator."
   },
+  "subscriptionForm": {
+    "termsHint": "Scroll to the bottom to agree and proceed.",
+    "cancel": "Cancel",
+    "agreeProceed": "I agree — proceed"
+  },
   "terms": {
     "title": "Service Agreement",
     "license": "License No. 77454 · TRN: 100385961600003",

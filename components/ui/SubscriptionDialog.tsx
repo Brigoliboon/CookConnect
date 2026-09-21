@@ -31,9 +31,18 @@ interface SubscriptionDialogProps {
   loading?: boolean
   onCancel: (id: string) => Promise<void>
   inline?: boolean
+  payments?: Record<string, { paid: number; total: number | null }>
 }
 
-export function SubscriptionDialog({ open, onClose, subscriptions, loading, onCancel, inline = false }: SubscriptionDialogProps) {
+function paymentPill(paid: number, total: number | null) {
+  if (total === null) return null
+  const fmt = (c: number) => `${(c / 100).toFixed(2)}`
+  if (paid <= 0) return <span className="rounded-lg bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-600">Unpaid · lacks {fmt(total)}</span>
+  if (paid < total) return <span className="rounded-lg bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">Partial · lacks {fmt(total - paid)}</span>
+  return <span className="rounded-lg bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Paid · {fmt(paid)}</span>
+}
+
+export function SubscriptionDialog({ open, onClose, subscriptions, loading, onCancel, inline = false, payments }: SubscriptionDialogProps) {
   const [search, setSearch] = useState("")
   const [cancelTarget, setCancelTarget] = useState<string | null>(null)
 
@@ -96,6 +105,7 @@ export function SubscriptionDialog({ open, onClose, subscriptions, loading, onCa
                 {sub.status === "cancelled" && (
                   <span className="rounded-lg bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-600">Cancelled</span>
                 )}
+                {payments?.[sub.id] && paymentPill(payments[sub.id].paid, payments[sub.id].total)}
               </div>
               <p className="mt-0.5 truncate text-xs text-neutral-400">{sub.customer_email}</p>
             </div>

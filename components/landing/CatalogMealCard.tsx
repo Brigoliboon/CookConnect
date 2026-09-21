@@ -59,6 +59,7 @@ interface CatalogMealCardProps {
   carbs?: number
   fats?: number
   servings?: MealServingOption[]
+  onClick?: () => void
 }
 
 export function CatalogMealCard({
@@ -73,6 +74,7 @@ export function CatalogMealCard({
   carbs = 0,
   fats = 0,
   servings,
+  onClick,
 }: CatalogMealCardProps) {
   const t = useTranslations("meals")
   const [servingIndex, setServingIndex] = useState(0)
@@ -103,7 +105,10 @@ export function CatalogMealCard({
   }
 
   return (
-    <div className="group overflow-hidden border border-neutral-100 bg-white transition-colors hover:shadow-md">
+    <div
+      onClick={onClick}
+      className={`group overflow-hidden border border-neutral-100 bg-white transition-colors hover:shadow-md ${onClick ? "cursor-pointer" : ""}`}
+    >
       <div
         className="relative h-28 w-full overflow-hidden bg-neutral-100 sm:h-32"
         style={{ backgroundImage: `url(${catBgs[category] ?? defaultBg})`, backgroundSize: "cover", backgroundPosition: "center" }}
@@ -153,7 +158,7 @@ export function CatalogMealCard({
         {servings && servings.length > 1 && (
           <div className="relative">
             <button
-              onClick={() => setServingOpen(!servingOpen)}
+              onClick={(e) => { e.stopPropagation(); setServingOpen(!servingOpen) }}
               className="flex w-full items-center justify-between border border-neutral-200 px-2 py-1 text-[10px] text-neutral-600 transition-colors hover:border-neutral-300 sm:text-xs"
             >
               <span className="truncate">{activeServing?.name ?? t("servingFallback", { index: servingIndex + 1 })}</span>
@@ -163,8 +168,8 @@ export function CatalogMealCard({
               <div className="absolute inset-x-0 top-full z-20 mt-px border border-neutral-200 bg-white shadow-sm">
                 {servings.map((s, i) => (
                   <button
-                    key={s.id}
-                    onClick={() => { setServingIndex(i); setServingOpen(false) }}
+                    key={s.id ?? i}
+                    onClick={(e) => { e.stopPropagation(); setServingIndex(i); setServingOpen(false) }}
                     className={`flex w-full items-center justify-between px-2 py-1.5 text-[10px] transition-colors hover:bg-neutral-50 sm:text-xs ${
                       i === servingIndex ? "bg-neutral-50 font-semibold text-brand-900" : "text-neutral-600"
                     }`}
@@ -181,7 +186,7 @@ export function CatalogMealCard({
         <div className="mt-auto flex items-center justify-between gap-2 pt-2 border-t border-neutral-100">
           <span className="shrink-0 text-[11px] font-bold text-brand-900 sm:text-[15px]">{displayPrice} AED</span>
           <button
-            onClick={handleAdd}
+            onClick={(e) => { e.stopPropagation(); handleAdd() }}
             className={`shrink-0 flex items-center justify-center gap-1 px-3 py-1.5 text-[10px] font-semibold transition-all sm:px-4 sm:text-xs ${
               added
                 ? "bg-emerald-50 text-emerald-600"

@@ -52,6 +52,16 @@ export type user_role = "user" | "admin" | "employee" | "customer" | "rider";
 
 export type SubscriptionStatus = "active" | "cancelled";
 
+export interface SubscriptionPayment {
+  id: UUID;
+  subscription_id: UUID; // -> public.subscriptions.id
+  amount_cents: number; // int >= 0, partial or full payment
+  method: string | null; // e.g. bank-transfer, cod, restaurant, tabby
+  reference: string | null;
+  paid_at: string; // ISO timestamptz
+  created_at: string; // ISO timestamptz
+}
+
 export type SubscriptionPlan = {
   id: UUID;
   name: string;

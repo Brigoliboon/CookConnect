@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import dynamic from "next/dynamic"
 import Image from "next/image"
 import { motion } from "framer-motion"
 import { ArrowRight } from "lucide-react"
@@ -9,7 +10,13 @@ import { Link } from "@/i18n/navigation"
 import { translateContent } from "@/constants/translations"
 import { PremiumGallery } from "@/components/landing/PremiumGallery"
 import { MealCard } from "@/components/landing/MealCard"
-import type { MealServingOption } from "@/constants"
+import { toDialogMeal } from "@/lib/meal-detail"
+import type { MealServingOption, MenuItem as DialogMeal } from "@/constants"
+
+const MealDetailDialog = dynamic(
+  () => import("@/components/ui/MealDetailDialog").then((mod) => mod.MealDetailDialog),
+  { ssr: false },
+)
 
 const fadeUp = {
   hidden: { opacity: 0, y: 25 },
@@ -131,6 +138,7 @@ export function FeaturedMeals() {
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState("meals")
   const [activeSub, setActiveSub] = useState("beef")
+  const [selected, setSelected] = useState<DialogMeal | null>(null)
   const activeCat = categories.find((c) => c.id === activeCategory)
   const activeValue = activeCat?.subs ? (subValues[activeSub] ?? activeCat.subs[0]) : catValues[activeCategory]
 
@@ -222,7 +230,22 @@ export function FeaturedMeals() {
             </div>
           ) : filtered.length > 0 ? (
             filtered.map((item) => (
-              <MealCard key={item.id} {...item} scale={1} name={translateContent(item.name, locale)} description={translateContent(item.description, locale)} />
+              <MealCard
+                key={item.id}
+                {...item}
+                scale={1}
+                name={translateContent(item.name, locale)}
+                description={translateContent(item.description, locale)}
+                onClick={() =>
+                  setSelected(
+                    toDialogMeal({
+                      ...item,
+                      name: translateContent(item.name, locale),
+                      description: translateContent(item.description, locale),
+                    }),
+                  )
+                }
+              />
             ))
           ) : (
             <div className="flex h-full w-full items-center justify-center">
@@ -297,6 +320,8 @@ export function FeaturedMeals() {
           </div>
         </div>
       </div>
+
+      {selected && <MealDetailDialog item={selected} onClose={() => setSelected(null)} />}
     </section>
   )
 }

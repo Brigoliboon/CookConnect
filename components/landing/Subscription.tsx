@@ -5,6 +5,7 @@ import { motion } from "framer-motion"
 import { SUBSCRIPTION_PLANS } from "@/constants"
 import { translateContent } from "@/constants/translations"
 import { useLocale } from "next-intl"
+import { Link } from "@/i18n/navigation"
 
 const fadeUp = {
   hidden: { opacity: 0, y: 50 },
@@ -70,10 +71,8 @@ export function Subscription() {
                   ))}
                 </ul>
                 <div className="mt-auto pt-8">
-                  <a
-                    href={`https://wa.me/971556634050?text=${encodeURIComponent(`Hi! I'm interested in the ${plan.name}.`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Link
+                    href={`/subscription?plan=${plan.id}`}
                     className={`font-nunito flex w-full items-center justify-center rounded-xl py-3.5 text-sm font-semibold transition-all duration-300 ${
                       isHealthy
                         ? "bg-white text-brand-900 hover:bg-neutral-100"
@@ -81,7 +80,7 @@ export function Subscription() {
                     }`}
                   >
                     {t("contactSales")}
-                  </a>
+                  </Link>
                 </div>
               </motion.div>
             )

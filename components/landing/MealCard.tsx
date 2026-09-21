@@ -27,6 +27,7 @@ interface FeaturedMealProps {
   width?: string
   className?: string
   eager?: boolean
+  onClick?: () => void
 }
 
 export function MealCard({
@@ -44,6 +45,7 @@ export function MealCard({
   width = "w-72 max-sm:w-48",
   className = "",
   eager = false,
+  onClick,
 }: FeaturedMealProps) {
   const t = useTranslations("meals")
   const shortDesc = description.length > 70 ? description.slice(0, 70) + "..." : description
@@ -94,7 +96,12 @@ export function MealCard({
   }
 
   return (
-    <div ref={ref} style={{ scale }} className={`relative shrink-0 h-full max-sm:snap-start ${width} ${className}`}>
+    <div
+      ref={ref}
+      style={{ scale }}
+      onClick={onClick}
+      className={`relative shrink-0 h-full max-sm:snap-start ${width} ${className} ${onClick ? "cursor-pointer" : ""}`}
+    >
       <div className="relative z-10 flex justify-center">
         <motion.div
           animate={{ width: shrunk ? "70%" : "100%" }}
@@ -154,7 +161,7 @@ export function MealCard({
 
         <div className="mt-3 opacity-0 transition-all duration-200 group-hover/detail:opacity-100 max-sm:opacity-100">
           <button
-            onClick={handleAdd}
+            onClick={(e) => { e.stopPropagation(); handleAdd() }}
             className={`flex w-full items-center justify-center gap-2 rounded-xl border py-2 text-xs font-semibold transition-all ${
               added
                 ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300"

@@ -12,9 +12,10 @@ interface CategoryMealCardProps {
   image: string
   price?: number
   calories?: number
+  onClick?: () => void
 }
 
-export function CategoryMealCard({ id, name, image, price = 0, calories = 0 }: CategoryMealCardProps) {
+export function CategoryMealCard({ id, name, image, price = 0, calories = 0, onClick }: CategoryMealCardProps) {
   const t = useTranslations("meals")
   const [added, setAdded] = useState(false)
 
@@ -33,7 +34,10 @@ export function CategoryMealCard({ id, name, image, price = 0, calories = 0 }: C
   }
 
   return (
-    <li className="flex flex-col border border-neutral-200 bg-white p-3">
+    <li
+      onClick={onClick}
+      className={`flex flex-col border border-neutral-200 bg-white p-3 ${onClick ? "cursor-pointer transition-shadow hover:shadow-md" : ""}`}
+    >
       <Image src={image} alt={name} width={600} height={600} loading="lazy" className="aspect-square w-full object-cover" />
       <p className="font-nunito mt-2 text-sm font-semibold text-neutral-900 line-clamp-1" title={name}>
         {name}
@@ -47,7 +51,7 @@ export function CategoryMealCard({ id, name, image, price = 0, calories = 0 }: C
       </div>
       <div className="mt-2 flex justify-end border-t border-neutral-100 pt-2">
         <button
-          onClick={handleAdd}
+          onClick={(e) => { e.stopPropagation(); handleAdd() }}
           className={`flex items-center justify-center gap-1.5 px-5 py-2.5 text-xs font-semibold transition-all sm:text-sm ${
             added
               ? "bg-emerald-50 text-emerald-600"

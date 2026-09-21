@@ -6,6 +6,26 @@ export interface UpsertIngredientInput {
   nutrition?: Record<string, unknown> | null
 }
 
+export async function listIngredients(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  filters: { search?: string; limit?: number; ids?: string[] } = {},
+): Promise<Ingredient[]> {
+  let query = supabase.from("ingredients").select("*").order("name", { ascending: true })
+
+  if (filters.ids?.length) {
+    query = query.in("id", filters.ids)
+  } else if (filters.search) {
+    query = query.ilike("name", `%${filters.search.replace(/[%_\\]/g, "\\$&")}%`)
+  }
+  if (filters.limit !== undefined) {
+    query = query.limit(filters.limit)
+  }
+
+  const { data, error } = await query
+  if (error) throw error
+  return (data ?? []) as Ingredient[]
+}
+
 export async function upsertIngredient(
   supabase: import("@supabase/supabase-js").SupabaseClient,
   input: UpsertIngredientInput,

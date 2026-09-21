@@ -8,7 +8,7 @@ import { SITE_URL, localeUrl } from "@/lib/seo";
 import { toMenuItem } from "@/lib/menu-map";
 import { Nav } from "@/components/landing/Nav";
 import { Footer } from "@/components/landing/Footer";
-import { CategoryMealCard } from "@/components/landing/CategoryMealCard";
+import { CategoryClient } from "./CategoryClient";
 import type { MenuItem } from "../MenuClient";
 
 interface CategoryDef {
@@ -159,24 +159,10 @@ export default async function CategoryPage({
         >
           {locale === "ar" ? "عرض القائمة الكاملة" : "View Full Menu"}
         </a>
-        {items.length > 0 ? (
-          <ul className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {items.map((item) => (
-              <CategoryMealCard
-                key={item.id}
-                id={item.id}
-                name={item.name}
-                image={item.image}
-                price={item.price}
-                calories={item.calories}
-              />
-            ))}
-          </ul>
-        ) : (
-          <p className="font-nunito mt-8 border border-neutral-200 bg-neutral-50 p-8 text-center text-sm text-neutral-500">
-            {locale === "ar" ? "لا توجد وجبات هنا بعد — قريباً." : "Nothing here yet — coming soon."}
-          </p>
-        )}
+        <CategoryClient
+          items={items}
+          emptyLabel={locale === "ar" ? "لا توجد وجبات هنا بعد — قريباً." : "Nothing here yet — coming soon."}
+        />
       </main>
       <Footer />
     </>
