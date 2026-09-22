@@ -75,7 +75,7 @@ export type SubscriptionPlan = {
 
 export type Subscription = {
   id: UUID;
-  customer_id: UUID; // -> public.accounts.id
+  customer_id: UUID | null; // -> public.accounts.id, nullable for guest/inquiry approvals
   subscription_plan_id: UUID; // -> public.subscription_plans.id
   status: SubscriptionStatus;
   started_at: string; // timestamptz (ISO)

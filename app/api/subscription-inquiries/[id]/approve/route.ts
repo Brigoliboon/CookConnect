@@ -45,28 +45,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const row = inquiry as Record<string, unknown>
   const details = (row.details as Record<string, unknown>) ?? {}
 
-  const { data: existing } = await supabase
-    .from("accounts")
-    .select("id")
-    .eq("mobile_number", row.mobile_number as string)
-    .maybeSingle()
-
-  let customerId = (existing as { id: string } | null)?.id
-  if (!customerId) {
-    const { data: account, error: accError } = await supabase
-      .from("accounts")
-      .insert({
-        name: row.name as string,
-        email: (row.email as string | null) ?? `${(row.mobile_number as string).replace(/\D/g, "")}@guest.local`,
-        mobile_number: row.mobile_number as string,
-        role: "customer",
-        is_active: true,
-      })
-      .select("id")
-      .single()
-    if (accError) return Response.json({ error: accError.message }, { status: 500 })
-    customerId = (account as { id: string }).id
-  }
+  const customerId: string | null = null
 
   const validityDays = PLAN_DAYS[row.plan_id as string] ?? 30
   const { data: plan } = await supabase
@@ -90,6 +69,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         source: "inquiry",
         inquiry_id: id,
         planId: row.plan_id as string,
+        name: row.name as string,
+        email: (row.email as string | null) ?? null,
         address: row.address as string,
         mobile_number: row.mobile_number as string,
         location: (row.location as { lat: number; lng: number } | null) ?? null,

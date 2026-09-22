@@ -8,7 +8,7 @@ export interface SubscriptionWithDetails extends Subscription {
 }
 
 export type CreateSubscriptionInput = {
-  customer_id: string
+  customer_id?: string | null
   subscription_plan_id: string
   status?: Subscription["status"]
   started_at?: string
@@ -82,7 +82,7 @@ export async function createSubscription(
   const { data, error } = await supabase
     .from("subscriptions")
     .insert({
-      customer_id: input.customer_id,
+      customer_id: input.customer_id ?? null,
       subscription_plan_id: input.subscription_plan_id,
       status: input.status ?? "active",
       started_at: startedAt,
