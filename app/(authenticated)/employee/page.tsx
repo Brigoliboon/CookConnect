@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { MapboxMap } from "@/components/ui/MapboxMap"
 import { SUBSCRIPTIONS } from "@/constants"
-import { Package, Truck, Users, UserPlus, ClipboardList, Receipt, LayoutDashboard, type LucideIcon } from "lucide-react"
+import { Package, Truck, UserPlus, ClipboardList, Receipt, LayoutDashboard, ChefHat, type LucideIcon } from "lucide-react"
 import { StatCard, WeeklyMenu, QuickActionCard } from "@/components/ui"
 import { PopularMealsChart, CarbPreferenceChart, RestrictionsChart, GoalsChart } from "@/components/charts"
 
@@ -12,7 +12,7 @@ const quickActions = [
   { label: "New Subscription", href: "/employee/subscriptions/", icon: Package, from: "#059669", to: "#047857" },
   { label: "Deliveries", href: "/employee/deliveries", icon: Truck, from: "#2563eb", to: "#1d4ed8" },
   { label: "Create Account", href: "/employee/accounts", icon: UserPlus, from: "#7c3aed", to: "#6d28d9" },
-  { label: "Customers", href: "/employee/customers", icon: Users, from: "#d97706", to: "#b45309" },
+  { label: "Chef", href: "/employee/chef", icon: ChefHat, from: "#d97706", to: "#b45309" },
 ]
 
 const containerVariants = {

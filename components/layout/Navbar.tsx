@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useAuth } from "@/hooks/AuthProvider"
 import { NAV_ITEMS } from "@/constants"
 import { Button } from "@/components/ui"
-import { Menu, X, LayoutDashboard, Users, ClipboardList, Truck, UserPlus, MapPin, UserCircle, Utensils, Receipt, Bell, BellOff } from "lucide-react"
+import { Menu, X, LayoutDashboard, Users, ClipboardList, Truck, UserPlus, MapPin, UserCircle, Utensils, Receipt, Bell, BellOff, ChefHat } from "lucide-react"
 import { enablePush, disablePush } from "@/lib/notifications/client"
 
 const iconMap: Record<string, typeof LayoutDashboard> = {
@@ -15,6 +15,7 @@ const iconMap: Record<string, typeof LayoutDashboard> = {
   Meals: Utensils,
   Orders: Receipt,
   Customers: Users,
+  Chef: ChefHat,
   Subscriptions: ClipboardList,
   Deliveries: Truck,
   Accounts: UserPlus,
