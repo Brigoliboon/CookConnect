@@ -146,6 +146,14 @@ export interface MealInstanceIngredientConsumption {
   created_at: string; // ISO timestamp
 }
 
+export interface ChefSchedule {
+  id: UUID;
+  scheduled_date: string; // date (YYYY-MM-DD)
+  subscription_id: UUID; // -> public.subscriptions.id
+  recipe_id: UUID; // -> public.recipes.id
+  created_at: string; // ISO timestamp
+}
+
 export type RiderAssignmentStatus = "assigned" | "started" | "delivered" | "cancelled";
 
 export interface RiderAssignment {

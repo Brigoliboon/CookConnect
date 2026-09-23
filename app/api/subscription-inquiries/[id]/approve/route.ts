@@ -48,13 +48,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const customerId: string | null = null
 
   const validityDays = PLAN_DAYS[row.plan_id as string] ?? 30
-  const { data: plan } = await supabase
+  const { data: plan, error: planError } = await supabase
     .from("subscription_plans")
-    .select("id")
+    .select("id, validity_days, is_active")
     .eq("validity_days", validityDays)
     .eq("is_active", true)
     .limit(1)
     .maybeSingle()
+
+  console.log("[APPROVE] plan lookup:", { planId: row.plan_id, validityDays, plan, planError: planError?.message })
 
   const planRow = plan as { id: string } | null
   if (!planRow) {

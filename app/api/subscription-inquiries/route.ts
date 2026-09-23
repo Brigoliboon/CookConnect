@@ -28,6 +28,8 @@ export async function POST(request: Request) {
     location?: { lat: number; lng: number } | null
     mode?: string
     restrictions?: string[]
+    restrictionNames?: Record<string, string>
+    mealsPerDay?: number
     includedMeals?: string[]
     days?: string[]
     slot?: string | null
@@ -55,6 +57,8 @@ export async function POST(request: Request) {
       details: {
         mode: body.mode ?? "normal",
         restrictions: body.restrictions ?? [],
+        restrictionNames: body.restrictionNames ?? {},
+        mealsPerDay: body.mealsPerDay ?? 1,
         includedMeals: body.includedMeals ?? [],
         days: body.days ?? [],
         slot: body.slot ?? null,

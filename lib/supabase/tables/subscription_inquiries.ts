@@ -53,3 +53,12 @@ export async function createSubscriptionInquiry(
   if (error) throw error
   return data as SubscriptionInquiry
 }
+
+export async function deleteSubscriptionInquiry(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  id: string,
+): Promise<void> {
+  const { error } = await supabase.from("subscription_inquiries").delete().eq("id", id)
+
+  if (error) throw error
+}

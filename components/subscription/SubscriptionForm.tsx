@@ -28,13 +28,24 @@ function sanitizeUaLocal(value: string) {
   return d.slice(0, 9)
 }
 
-export function SubscriptionForm() {
+export function SubscriptionForm({
+  staffMode = false,
+  onCreated,
+}: {
+  staffMode?: boolean
+  onCreated?: () => void
+} = {}) {
   const t = useTranslations("subscriptionForm")
   const tt = useTranslations("terms")
   const router = useRouter()
   const params = useSearchParams()
   const planId = params.get("plan")
-  const plan = SUBSCRIPTION_PLANS.find((p) => p.id === planId) ?? SUBSCRIPTION_PLANS[0]
+  const [staffPlanId, setStaffPlanId] = useState(SUBSCRIPTION_PLANS[0].id)
+  const plan = staffMode
+    ? (SUBSCRIPTION_PLANS.find((p) => p.id === staffPlanId) ?? SUBSCRIPTION_PLANS[0])
+    : (SUBSCRIPTION_PLANS.find((p) => p.id === planId) ?? SUBSCRIPTION_PLANS[0])
+  const [customerId, setCustomerId] = useState("")
+  const [customers, setCustomers] = useState<{ id: string; name: string }[]>([])
 
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -54,6 +65,7 @@ export function SubscriptionForm() {
   const [selectedMeals, setSelectedMeals] = useState<string[]>([])
 
   const [days, setDays] = useState<string[]>([])
+  const [mealsPerDay, setMealsPerDay] = useState(1)
   const [ingsExpanded, setIngsExpanded] = useState(false)
   const [slot, setSlot] = useState<"morning" | "evening">("morning")
   const [time, setTime] = useState("08:00")
@@ -65,6 +77,14 @@ export function SubscriptionForm() {
   const [termsOpen, setTermsOpen] = useState(false)
   const [termsScrolled, setTermsScrolled] = useState(false)
   const termsRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!staffMode) return
+    fetch("/api/customers")
+      .then((r) => r.json())
+      .then((d) => setCustomers(((d ?? []) as { id: string; name: string }[]).map((c) => ({ id: c.id, name: c.name }))))
+      .catch(() => {})
+  }, [staffMode])
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -121,6 +141,10 @@ export function SubscriptionForm() {
 
   function validate() {
     setError("")
+    if (staffMode && !customerId) {
+      setError("Please select a customer.")
+      return false
+    }
     if (!name.trim() || sanitizeUaLocal(mobile).length < 9 || !address) {
       setError("Please complete name, WhatsApp number and address.")
       return false
@@ -150,6 +174,42 @@ export function SubscriptionForm() {
     if (!validate()) return
     setSubmitting(true)
     try {
+      if (staffMode) {
+        const res = await fetch("/api/subscriptions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            customer_id: customerId,
+            details: {
+              planId: plan.id,
+              planName: plan.name,
+              planType: plan.type,
+              durationDays: plan.durationDays,
+              name: name.trim(),
+              email: email.trim() || null,
+              mobile_number: `+971${sanitizeUaLocal(mobile)}`,
+              address,
+              location,
+              mode,
+              restrictions: restricted.map((r) => r.id),
+              restrictionNames: Object.fromEntries(restricted.map((r) => [r.id, r.name])),
+              mealsPerDay,
+              includedMeals: mode === "flexible" ? selectedMeals : [],
+              days: onCall ? [] : days,
+              slot: onCall ? null : slot,
+              time: onCall ? null : time,
+              onCall,
+              paymentStatus: "pending",
+            },
+          }),
+        })
+        if (!res.ok) {
+          const err = await res.json()
+          throw new Error(err.error ?? "Failed to submit")
+        }
+        onCreated?.()
+        return
+      }
       const res = await fetch("/api/subscription-inquiries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -162,6 +222,8 @@ export function SubscriptionForm() {
           location,
           mode,
           restrictions: restricted.map((r) => r.id),
+          restrictionNames: Object.fromEntries(restricted.map((r) => [r.id, r.name])),
+          mealsPerDay,
           includedMeals: mode === "flexible" ? selectedMeals : [],
           days: onCall ? [] : days,
           slot: onCall ? null : slot,
@@ -187,6 +249,32 @@ export function SubscriptionForm() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
+      {staffMode && (
+        <div className="rounded-2xl border border-neutral-200 bg-white p-6">
+          <h3 className="text-sm font-bold text-neutral-900">Plan</h3>
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {SUBSCRIPTION_PLANS.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setStaffPlanId(p.id)}
+                className={`rounded-2xl border p-3 text-left transition-all ${
+                  plan.id === p.id ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-200 hover:border-neutral-400"
+                }`}
+              >
+                <p className="text-sm font-semibold">{p.name}</p>
+                <p className={`mt-0.5 text-xs ${plan.id === p.id ? "text-white/60" : "text-neutral-400"}`}>{p.durationDays} Days</p>
+              </button>
+            ))}
+          </div>
+          <h3 className="mt-4 text-sm font-bold text-neutral-900">Customer</h3>
+          <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="mt-2 w-full rounded-xl border border-neutral-200 px-3 py-2.5 text-sm outline-none focus:border-neutral-900">
+            <option value="">Select customer...</option>
+            {customers.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
       <div className="rounded-2xl border border-neutral-200 bg-white p-6">
         <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">{plan.id}</p>
         <h1 className="mt-1 text-2xl font-bold text-neutral-900">{plan.name}</h1>
@@ -337,6 +425,26 @@ export function SubscriptionForm() {
 
       <div className="rounded-2xl border border-neutral-200 bg-white p-6">
         <h3 className="text-sm font-bold text-neutral-900">Delivery preference</h3>
+        <div className="mt-3 flex items-center justify-between">
+          <span className="text-sm text-neutral-600">Meals per day (max 5)</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setMealsPerDay((v) => Math.max(1, v - 1))}
+              className="flex size-7 items-center justify-center rounded-lg border border-neutral-200 text-neutral-600 transition-colors hover:bg-neutral-100"
+              aria-label="Decrease meals per day"
+            >
+              −
+            </button>
+            <span className="w-6 text-center text-sm font-semibold">{mealsPerDay}</span>
+            <button
+              onClick={() => setMealsPerDay((v) => Math.min(5, v + 1))}
+              className="flex size-7 items-center justify-center rounded-lg border border-neutral-200 text-neutral-600 transition-colors hover:bg-neutral-100"
+              aria-label="Increase meals per day"
+            >
+              +
+            </button>
+          </div>
+        </div>
         <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm">
           <input type="checkbox" checked={onCall} onChange={(e) => setOnCall(e.target.checked)} className="size-4 accent-neutral-900" />
           On-call delivery only

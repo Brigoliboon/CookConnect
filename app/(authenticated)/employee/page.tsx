@@ -116,6 +116,15 @@ export default function EmployeeDashboardPage() {
         </div>
       </motion.div>
 
+      <motion.div variants={itemVariants}>
+        <h2 className="mb-4 text-lg font-semibold text-neutral-900">Quick Actions</h2>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {quickActions.map((action) => (
+            <QuickActionCard key={action.href} {...action} />
+          ))}
+        </div>
+      </motion.div>
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <motion.div variants={itemVariants} className="lg:col-span-2 flex flex-col space-y-3">
           <div className="flex items-center justify-between">
