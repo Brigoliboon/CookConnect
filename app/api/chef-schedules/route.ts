@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
-import { listChefSchedules, setChefSchedule } from "@/lib/supabase/tables/chef_schedules"
+import { listChefSchedules, listChefSchedulesForSubscription, listChefSchedulesForSubscriptions, setChefSchedule, setChefScheduleDone } from "@/lib/supabase/tables/chef_schedules"
 
 function isValidDate(v: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v))
@@ -11,13 +11,22 @@ export async function GET(request: Request) {
   const supabase = createClient(cookieStore)
   const { searchParams } = new URL(request.url)
   const date = searchParams.get("date") ?? ""
+  const subscriptionId = searchParams.get("subscription_id") ?? ""
+  const subscriptionIds = (searchParams.get("subscription_ids") ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
 
-  if (!isValidDate(date)) {
-    return Response.json({ error: "date (YYYY-MM-DD) is required" }, { status: 400 })
+  if (!isValidDate(date) && !subscriptionId && subscriptionIds.length === 0) {
+    return Response.json({ error: "date (YYYY-MM-DD), subscription_id or subscription_ids is required" }, { status: 400 })
   }
 
   try {
-    const data = await listChefSchedules(supabase, date)
+    const data = subscriptionIds.length > 0
+      ? await listChefSchedulesForSubscriptions(supabase, subscriptionIds)
+      : subscriptionId
+        ? await listChefSchedulesForSubscription(supabase, subscriptionId)
+        : await listChefSchedules(supabase, date)
     return Response.json(data)
   } catch (err) {
     console.error("[API] GET /api/chef-schedules error:", err)
@@ -54,6 +63,31 @@ export async function POST(request: Request) {
     return Response.json(data, { status: 201 })
   } catch (err) {
     console.error("[API] POST /api/chef-schedules error:", err)
+    const message = err instanceof Error ? err.message : "Internal server error"
+    return Response.json({ error: message }, { status: 500 })
+  }
+}
+
+export async function PATCH(request: Request) {
+  const cookieStore = await cookies()
+  const supabase = createClient(cookieStore)
+
+  let body: { id?: string; done?: boolean }
+  try {
+    body = await request.json()
+  } catch {
+    return Response.json({ error: "Invalid JSON body" }, { status: 400 })
+  }
+
+  if (!body.id || typeof body.done !== "boolean") {
+    return Response.json({ error: "id and done (boolean) are required" }, { status: 400 })
+  }
+
+  try {
+    const data = await setChefScheduleDone(supabase, body.id, body.done)
+    return Response.json(data)
+  } catch (err) {
+    console.error("[API] PATCH /api/chef-schedules error:", err)
     const message = err instanceof Error ? err.message : "Internal server error"
     return Response.json({ error: message }, { status: 500 })
   }

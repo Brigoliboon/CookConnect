@@ -13,6 +13,33 @@ export async function listChefSchedules(
   return (data as ChefSchedule[]) ?? []
 }
 
+export async function listChefSchedulesForSubscription(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  subscriptionId: string,
+): Promise<ChefSchedule[]> {
+  const { data, error } = await supabase
+    .from("chef_schedules")
+    .select("*")
+    .eq("subscription_id", subscriptionId)
+
+  if (error) throw error
+  return (data as ChefSchedule[]) ?? []
+}
+
+export async function listChefSchedulesForSubscriptions(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  subscriptionIds: string[],
+): Promise<ChefSchedule[]> {
+  if (subscriptionIds.length === 0) return []
+  const { data, error } = await supabase
+    .from("chef_schedules")
+    .select("*")
+    .in("subscription_id", subscriptionIds)
+
+  if (error) throw error
+  return (data as ChefSchedule[]) ?? []
+}
+
 export async function setChefSchedule(
   supabase: import("@supabase/supabase-js").SupabaseClient,
   scheduledDate: string,
@@ -42,4 +69,20 @@ export async function setChefSchedule(
 
   if (error) throw error
   return (data as ChefSchedule[]) ?? []
+}
+
+export async function setChefScheduleDone(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  id: string,
+  done: boolean,
+): Promise<ChefSchedule> {
+  const { data, error } = await supabase
+    .from("chef_schedules")
+    .update({ done_at: done ? new Date().toISOString() : null })
+    .eq("id", id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as ChefSchedule
 }

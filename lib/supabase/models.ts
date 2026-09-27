@@ -20,6 +20,7 @@ export interface Recipe {
   description: string | null;
   is_active: boolean;
   image_path: string | null;
+  primary_protein_ingredient_id: UUID | null; // -> public.ingredients.id, protein bucket for credit counting
 }
 
 export interface Ingredient {
@@ -81,17 +82,28 @@ export type Subscription = {
   started_at: string; // timestamptz (ISO)
   expires_at: string; // timestamptz (ISO)
   cancelled_at: string | null; // timestamptz, nullable
+  paused_at: string | null; // timestamptz, nullable — pause stops scheduling without eroding count-based entitlement
+  remaining_meal_count: number; // int, auto-maintained by DB triggers (baseline days x meals/day minus picks)
   details: any; //jsonb // default {}
   created_at: string; // ISO timestamptz
 }
 
-export interface SubscriptionIngredientQuota {
+export interface PlanProteinCredit {
   id: UUID;
-  subscription_id: UUID;
-  ingredient_id: UUID;
-  quota_total_g: number; // numeric
-  quota_used_g: number; // numeric
-  updated_at: string; // ISO timestamp
+  subscription_plan_id: UUID; // -> public.subscription_plans.id
+  ingredient_id: UUID; // -> public.ingredients.id, protein bucket
+  allowance: number; // int >= 0, meals per subscription period
+  created_at: string; // ISO timestamp
+}
+
+export interface DailyStandard {
+  id: UUID;
+  standard_date: string; // date (YYYY-MM-DD)
+  subscription_plan_id: UUID; // -> public.subscription_plans.id
+  meals_per_day: number; // int 1-4
+  position: number; // ordering within the standard set
+  recipe_id: UUID; // -> public.recipes.id
+  created_at: string; // ISO timestamp
 }
 
 export type DeliverySlotStatus =
@@ -151,6 +163,7 @@ export interface ChefSchedule {
   scheduled_date: string; // date (YYYY-MM-DD)
   subscription_id: UUID; // -> public.subscriptions.id
   recipe_id: UUID; // -> public.recipes.id
+  done_at: string | null; // ISO timestamp, null = still to cook
   created_at: string; // ISO timestamp
 }
 

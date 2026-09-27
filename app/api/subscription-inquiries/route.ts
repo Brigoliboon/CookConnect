@@ -30,10 +30,10 @@ export async function POST(request: Request) {
     restrictions?: string[]
     restrictionNames?: Record<string, string>
     mealsPerDay?: number
+    breakfast?: boolean
     includedMeals?: string[]
     days?: string[]
-    slot?: string | null
-    time?: string | null
+    slots?: string[]
     onCall?: boolean
   }
   try {
@@ -58,11 +58,11 @@ export async function POST(request: Request) {
         mode: body.mode ?? "normal",
         restrictions: body.restrictions ?? [],
         restrictionNames: body.restrictionNames ?? {},
-        mealsPerDay: body.mealsPerDay ?? 1,
+        mealsPerDay: Math.min(4, Math.max(1, Math.round(body.mealsPerDay ?? 1))),
+        breakfast: body.breakfast ?? false,
         includedMeals: body.includedMeals ?? [],
         days: body.days ?? [],
-        slot: body.slot ?? null,
-        time: body.time ?? null,
+        slots: (body.slots ?? ["morning"]).filter((s) => ["morning", "noon", "evening"].includes(s)),
         onCall: body.onCall ?? false,
       },
     })

@@ -162,6 +162,7 @@ function mapRecipeWithServings(r: Record<string, unknown>): RecipeWithServings {
     description: (r.description as string | null) ?? null,
     is_active: r.is_active as boolean,
     image_path: (r.image_path as string | null) ?? null,
+    primary_protein_ingredient_id: (r.primary_protein_ingredient_id as string | null) ?? null,
     servings: ((r.servings as Record<string, unknown>[]) ?? [])
       .filter((s) => (s.is_active as boolean) !== false)
       .map((s) => ({
@@ -219,6 +220,7 @@ export async function getRecipe(
     description: (r.description as string | null) ?? null,
     is_active: r.is_active as boolean,
     image_path: (r.image_path as string | null) ?? null,
+    primary_protein_ingredient_id: (r.primary_protein_ingredient_id as string | null) ?? null,
     servings: ((r.servings as Record<string, unknown>[]) ?? [])
       .filter((s) => (s.is_active as boolean) !== false)
       .map((s) => ({

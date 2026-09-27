@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
-import { ChefHat, SlidersHorizontal, Check, ChevronDown, User, Mail, Phone, Search, X } from "lucide-react"
+import { ChefHat, SlidersHorizontal, Check, ChevronDown, Croissant, User, Mail, Phone, Search, X } from "lucide-react"
 import { SUBSCRIPTION_PLANS, DELIVERY_DAYS } from "@/constants/subscriptions"
 import { FloatingInput } from "@/components/ui/FloatingInput"
 import { LocationPicker, type Coordinates } from "@/components/ui/LocationPicker"
@@ -66,9 +66,9 @@ export function SubscriptionForm({
 
   const [days, setDays] = useState<string[]>([])
   const [mealsPerDay, setMealsPerDay] = useState(1)
+  const [breakfast, setBreakfast] = useState(false)
   const [ingsExpanded, setIngsExpanded] = useState(false)
-  const [slot, setSlot] = useState<"morning" | "evening">("morning")
-  const [time, setTime] = useState("08:00")
+  const [slots, setSlots] = useState<("morning" | "noon" | "evening")[]>(["morning"])
   const [onCall, setOnCall] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
@@ -139,6 +139,10 @@ export function SubscriptionForm({
     setDays((p) => (p.includes(v) ? p.filter((d) => d !== v) : [...p, v]))
   }
 
+  function toggleSlot(v: "morning" | "noon" | "evening") {
+    setSlots((p) => (p.includes(v) ? p.filter((s) => s !== v) : [...p, v]))
+  }
+
   function validate() {
     setError("")
     if (staffMode && !customerId) {
@@ -155,6 +159,10 @@ export function SubscriptionForm({
     }
     if (!onCall && days.length === 0) {
       setError("Select delivery days or choose on-call.")
+      return false
+    }
+    if (!onCall && slots.length === 0) {
+      setError("Select at least one delivery slot.")
       return false
     }
     return true
@@ -194,10 +202,10 @@ export function SubscriptionForm({
               restrictions: restricted.map((r) => r.id),
               restrictionNames: Object.fromEntries(restricted.map((r) => [r.id, r.name])),
               mealsPerDay,
+              breakfast,
               includedMeals: mode === "flexible" ? selectedMeals : [],
               days: onCall ? [] : days,
-              slot: onCall ? null : slot,
-              time: onCall ? null : time,
+              slots: onCall ? [] : slots,
               onCall,
               paymentStatus: "pending",
             },
@@ -224,10 +232,10 @@ export function SubscriptionForm({
           restrictions: restricted.map((r) => r.id),
           restrictionNames: Object.fromEntries(restricted.map((r) => [r.id, r.name])),
           mealsPerDay,
+          breakfast,
           includedMeals: mode === "flexible" ? selectedMeals : [],
           days: onCall ? [] : days,
-          slot: onCall ? null : slot,
-          time: onCall ? null : time,
+          slots: onCall ? [] : slots,
           onCall,
         }),
       })
@@ -320,6 +328,26 @@ export function SubscriptionForm({
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="rounded-2xl border border-neutral-200 bg-white p-6">
+        <h3 className="text-sm font-bold text-neutral-900">Breakfast</h3>
+        <button
+          onClick={() => setBreakfast((v) => !v)}
+          aria-pressed={breakfast}
+          className={`mt-3 flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition-all ${breakfast ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-200 text-neutral-600 hover:border-neutral-400"}`}
+        >
+          <span className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${breakfast ? "bg-white/15 text-white" : "bg-neutral-100 text-neutral-600"}`}>
+            <Croissant size={22} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold">Add breakfast</span>
+            <span className={`mt-0.5 block text-xs ${breakfast ? "text-white/60" : "text-neutral-400"}`}>Served daily — not counted in your meals per day</span>
+          </span>
+          <span className={`flex size-6 shrink-0 items-center justify-center rounded-full border transition-all ${breakfast ? "border-white bg-white text-neutral-900" : "border-neutral-300 text-transparent"}`}>
+            <Check size={14} />
+          </span>
+        </button>
       </div>
 
       <div className="rounded-2xl border border-neutral-200 bg-white p-6">
@@ -426,7 +454,7 @@ export function SubscriptionForm({
       <div className="rounded-2xl border border-neutral-200 bg-white p-6">
         <h3 className="text-sm font-bold text-neutral-900">Delivery preference</h3>
         <div className="mt-3 flex items-center justify-between">
-          <span className="text-sm text-neutral-600">Meals per day (max 5)</span>
+          <span className="text-sm text-neutral-600">Meals per day (max 4)</span>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setMealsPerDay((v) => Math.max(1, v - 1))}
@@ -437,7 +465,7 @@ export function SubscriptionForm({
             </button>
             <span className="w-6 text-center text-sm font-semibold">{mealsPerDay}</span>
             <button
-              onClick={() => setMealsPerDay((v) => Math.min(5, v + 1))}
+              onClick={() => setMealsPerDay((v) => Math.min(4, v + 1))}
               className="flex size-7 items-center justify-center rounded-lg border border-neutral-200 text-neutral-600 transition-colors hover:bg-neutral-100"
               aria-label="Increase meals per day"
             >
@@ -463,16 +491,16 @@ export function SubscriptionForm({
               ))}
             </div>
             <div className="mt-3 flex gap-2">
-              {(["morning", "evening"] as const).map((s) => (
+              {(["morning", "noon", "evening"] as const).map((s) => (
                 <button
                   key={s}
-                  onClick={() => setSlot(s)}
-                  className={`flex-1 rounded-xl border py-2.5 text-sm font-semibold capitalize transition-all ${slot === s ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-200 hover:border-neutral-400"}`}
+                  onClick={() => toggleSlot(s)}
+                  aria-pressed={slots.includes(s)}
+                  className={`flex-1 rounded-xl border py-2.5 text-sm font-semibold capitalize transition-all ${slots.includes(s) ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-200 hover:border-neutral-400"}`}
                 >
                   {s}
                 </button>
               ))}
-              <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="rounded-xl border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-900" />
             </div>
           </>
         )}

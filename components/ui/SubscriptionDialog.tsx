@@ -22,6 +22,8 @@ interface SubscriptionRow {
   customer_email?: string
   details: Record<string, unknown>
   status: SubscriptionStatus
+  paused_at?: string | null
+  remaining_meal_count?: number | null
   created_at: string
 }
 
@@ -39,6 +41,8 @@ interface SubscriptionDialogProps {
   subscriptions: SubscriptionRow[]
   loading?: boolean
   onCancel: (id: string) => Promise<void>
+  onPause?: (id: string) => Promise<void>
+  onResume?: (id: string) => Promise<void>
   inline?: boolean
   payments?: Record<string, { paid: number; total: number | null }>
   onPaymentsChanged?: () => void
@@ -53,9 +57,10 @@ function paymentPill(paid: number, total: number | null) {
   return <span className={`${base} bg-emerald-100 text-emerald-800`}>Paid · {fmt(paid)}</span>
 }
 
-export function SubscriptionDialog({ open, onClose, subscriptions, loading, onCancel, inline = false, payments, onPaymentsChanged }: SubscriptionDialogProps) {
+export function SubscriptionDialog({ open, onClose, subscriptions, loading, onCancel, onPause, onResume, inline = false, payments, onPaymentsChanged }: SubscriptionDialogProps) {
   const [search, setSearch] = useState("")
   const [cancelTarget, setCancelTarget] = useState<string | null>(null)
+  const [pauseTarget, setPauseTarget] = useState<{ id: string; action: "pause" | "resume" } | null>(null)
   const [detailId, setDetailId] = useState<string | null>(null)
   const [ingNames, setIngNames] = useState<Record<string, string>>({})
   const [payAmount, setPayAmount] = useState("")
@@ -134,6 +139,16 @@ export function SubscriptionDialog({ open, onClose, subscriptions, loading, onCa
     }
   }
 
+  async function handlePauseResume() {
+    if (!pauseTarget) return
+    try {
+      if (pauseTarget.action === "pause") await onPause?.(pauseTarget.id)
+      else await onResume?.(pauseTarget.id)
+    } finally {
+      setPauseTarget(null)
+    }
+  }
+
   const searchInput = (
     <div className="relative">
       <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400" />
@@ -182,6 +197,14 @@ export function SubscriptionDialog({ open, onClose, subscriptions, loading, onCa
                 {sub.status === "cancelled" && (
                   <span className="rounded-lg bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-600">Cancelled</span>
                 )}
+                {sub.paused_at && sub.status === "active" && (
+                  <span className="rounded-lg bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">Paused</span>
+                )}
+                {sub.remaining_meal_count !== undefined && sub.remaining_meal_count !== null && (
+                  <span className={`rounded-lg px-2 py-0.5 text-[10px] font-semibold ${sub.remaining_meal_count <= 0 ? "bg-neutral-200 text-neutral-500" : "bg-emerald-100 text-emerald-700"}`}>
+                    {sub.remaining_meal_count <= 0 ? "Depleted" : `${sub.remaining_meal_count} meals left`}
+                  </span>
+                )}
                 {payments?.[sub.id] && paymentPill(payments[sub.id].paid, payments[sub.id].total)}
               </div>
               <p className="font-nunito mt-0.5 truncate text-[11px] text-neutral-400 sm:text-xs">{displayEmail(sub)}</p>
@@ -200,6 +223,28 @@ export function SubscriptionDialog({ open, onClose, subscriptions, loading, onCa
                   className="font-nunito bg-red-50 px-3 py-1.5 text-[11px] font-semibold text-red-500 transition-all hover:bg-red-100 sm:text-xs"
                 >
                   Cancel
+                </button>
+              )}
+              {sub.status === "active" && !sub.paused_at && onPause && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setPauseTarget({ id: sub.id, action: "pause" })
+                  }}
+                  className="font-nunito bg-amber-50 px-3 py-1.5 text-[11px] font-semibold text-amber-600 transition-all hover:bg-amber-100 sm:text-xs"
+                >
+                  Pause
+                </button>
+              )}
+              {sub.status === "active" && sub.paused_at && onResume && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setPauseTarget({ id: sub.id, action: "resume" })
+                  }}
+                  className="font-nunito bg-emerald-50 px-3 py-1.5 text-[11px] font-semibold text-emerald-600 transition-all hover:bg-emerald-100 sm:text-xs"
+                >
+                  Resume
                 </button>
               )}
             </div>
@@ -237,13 +282,26 @@ export function SubscriptionDialog({ open, onClose, subscriptions, loading, onCa
   )
 
   const confirmDialog = (
-    <ConfirmDialog
-      open={cancelTarget !== null}
-      onClose={() => setCancelTarget(null)}
-      onConfirm={() => handleCancel(cancelTarget!)}
-      title="Cancel Subscription"
-      message="Are you sure you want to cancel this subscription? The customer will lose access to their meal plan."
-    />
+    <>
+      <ConfirmDialog
+        open={cancelTarget !== null}
+        onClose={() => setCancelTarget(null)}
+        onConfirm={() => handleCancel(cancelTarget!)}
+        title="Cancel Subscription"
+        message="Are you sure you want to cancel this subscription? The customer will lose access to their meal plan."
+      />
+      <ConfirmDialog
+        open={pauseTarget !== null}
+        onClose={() => setPauseTarget(null)}
+        onConfirm={handlePauseResume}
+        title={pauseTarget?.action === "resume" ? "Resume Subscription" : "Pause Subscription"}
+        message={
+          pauseTarget?.action === "resume"
+            ? "Resume this subscription? The expiry date will be extended by the paused duration."
+            : "Pause this subscription? No meals will be scheduled while paused, and the remaining entitlement is kept."
+        }
+      />
+    </>
   )
 
   const detailDialog = (
@@ -252,7 +310,15 @@ export function SubscriptionDialog({ open, onClose, subscriptions, loading, onCa
         <div className="space-y-3 text-sm">
           <div className="flex justify-between"><span className="text-neutral-500">Email</span><span className="font-semibold">{displayEmail(detail)}</span></div>
           <div className="flex justify-between"><span className="text-neutral-500">Status</span><span className="font-semibold capitalize">{detail.status}</span></div>
-          <div className="flex justify-between"><span className="text-neutral-500">Meals per day</span><span className="font-semibold">{(detail.details?.mealsPerDay as number | undefined) ?? 1} / 5 max</span></div>
+          <div className="flex justify-between"><span className="text-neutral-500">Meals per day</span><span className="font-semibold">{(detail.details?.mealsPerDay as number | undefined) ?? 1} / 4 max</span></div>
+          {detail.remaining_meal_count !== undefined && detail.remaining_meal_count !== null && (
+            <div className="flex justify-between">
+              <span className="text-neutral-500">Meals remaining</span>
+              <span className={`font-semibold ${detail.remaining_meal_count <= 0 ? "text-neutral-400" : ""}`}>
+                {detail.remaining_meal_count <= 0 ? "Depleted" : `${detail.remaining_meal_count} left`}
+              </span>
+            </div>
+          )}
           {payments?.[detail.id] && (
             <div className="border-t border-neutral-100 pt-2">
               <div className="flex items-center justify-between">

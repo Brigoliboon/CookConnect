@@ -110,3 +110,46 @@ export async function cancelSubscription(
   if (error) throw error
   return data as Subscription
 }
+
+export async function pauseSubscription(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  id: string,
+): Promise<Subscription> {
+  const { data, error } = await supabase
+    .from("subscriptions")
+    .update({ paused_at: new Date().toISOString() })
+    .eq("id", id)
+    .is("paused_at", null)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as Subscription
+}
+
+export async function resumeSubscription(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  id: string,
+): Promise<Subscription> {
+  const current = await getSubscription(supabase, id)
+  if (!current) throw new Error("Subscription not found")
+
+  let expiresAt = current.expires_at
+  const pausedAt = (current as Subscription).paused_at
+  if (pausedAt) {
+    const pausedMs = Date.now() - new Date(pausedAt).getTime()
+    if (pausedMs > 0) {
+      expiresAt = new Date(new Date(expiresAt).getTime() + pausedMs).toISOString()
+    }
+  }
+
+  const { data, error } = await supabase
+    .from("subscriptions")
+    .update({ paused_at: null, expires_at: expiresAt })
+    .eq("id", id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as Subscription
+}

@@ -13,6 +13,8 @@ interface SubscriptionRow {
   customer_email: string
   details: Record<string, unknown>
   status: "active" | "cancelled"
+  paused_at?: string | null
+  remaining_meal_count?: number | null
   created_at: string
 }
 
@@ -28,8 +30,10 @@ interface InquiryRow {
     restrictions?: string[]
     restrictionNames?: Record<string, string>
     mealsPerDay?: number
+    breakfast?: boolean
     includedMeals?: string[]
     days?: string[]
+    slots?: string[]
     slot?: string | null
     time?: string | null
     onCall?: boolean
@@ -134,6 +138,23 @@ export default function EmployeeSubscriptionsPage() {
     }
   }
 
+  async function handlePauseResume(id: string, action: "pause" | "resume") {
+    try {
+      const res = await fetch(`/api/subscriptions/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error ?? `Failed to ${action}`)
+      }
+      await fetchSubscriptions()
+    } catch (e) {
+      console.error(`[SUBSCRIPTIONS] ${action} error:`, e)
+    }
+  }
+
   async function handleApproveInquiry() {
     if (!selectedInquiry) return
     const total = Math.round(Number(payTotal) * 100)
@@ -217,6 +238,8 @@ export default function EmployeeSubscriptionsPage() {
   }
 
   const selectedInquiry = inquiryId ? inquiries.find((q) => q.id === inquiryId) ?? null : null
+  const selectedSlots: string[] = selectedInquiry?.details?.slots
+    ?? (selectedInquiry?.details?.slot ? [selectedInquiry.details.slot as string] : [])
 
   return (
     <div className="space-y-8">
@@ -246,9 +269,16 @@ export default function EmployeeSubscriptionsPage() {
               <div key={q.id} className="border border-neutral-200 bg-white p-4">
                 <div className="flex items-center justify-between">
                   <p className="font-nunito font-semibold text-neutral-900">{q.name}</p>
-                  <span className="bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-neutral-500">
-                    {q.details?.mode ?? "normal"}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {q.details?.breakfast && (
+                      <span className="bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-700">
+                        Breakfast
+                      </span>
+                    )}
+                    <span className="bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-neutral-500">
+                      {q.details?.mode ?? "normal"}
+                    </span>
+                  </div>
                 </div>
                 <p className="font-nunito mt-1 text-xs text-neutral-500">{q.plan_id} · {q.mobile_number}</p>
                 <p className="font-nunito mt-0.5 line-clamp-1 text-xs text-neutral-400">{q.address}</p>
@@ -273,6 +303,9 @@ export default function EmployeeSubscriptionsPage() {
             <div><p className="text-neutral-500">Address</p><p className="font-medium">{selectedInquiry.address}</p></div>
             <div className="flex justify-between"><span className="text-neutral-500">Mode</span><span className="font-semibold capitalize">{selectedInquiry.details?.mode}</span></div>
             <div className="flex justify-between"><span className="text-neutral-500">Meals per day</span><span className="font-semibold">{selectedInquiry.details?.mealsPerDay ?? 1}</span></div>
+            {selectedInquiry.details?.breakfast && (
+              <div className="flex justify-between"><span className="text-neutral-500">Breakfast</span><span className="font-semibold">Included (extra)</span></div>
+            )}
             {(selectedInquiry.details?.restrictions ?? []).length > 0 && (
               <div>
                 <p className="text-neutral-500">Restrictions</p>
@@ -302,7 +335,7 @@ export default function EmployeeSubscriptionsPage() {
               <span className="font-semibold">
                 {selectedInquiry.details?.onCall
                   ? "On-call only"
-                  : `${(selectedInquiry.details?.days ?? []).join(", ")} · ${selectedInquiry.details?.slot ?? ""} ${selectedInquiry.details?.time ?? ""}`}
+                  : `${(selectedInquiry.details?.days ?? []).join(", ")} · ${selectedSlots.join(", ")}${selectedInquiry.details?.time ? ` ${selectedInquiry.details.time}` : ""}`}
               </span>
             </div>
             {approveError && <p className="text-xs font-medium text-red-500">{approveError}</p>}
@@ -341,6 +374,8 @@ export default function EmployeeSubscriptionsPage() {
         subscriptions={subscriptions}
         loading={loading}
         onCancel={handleCancel}
+        onPause={(id) => handlePauseResume(id, "pause")}
+        onResume={(id) => handlePauseResume(id, "resume")}
         payments={payMap}
         onPaymentsChanged={refreshPayMap}
       />
