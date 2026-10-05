@@ -6,6 +6,7 @@ const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 const nextConfig: NextConfig = {
   async redirects() {
     return [
+      { source: "/menu.php", destination: "/menu", permanent: true },
       { source: "/catalog", destination: "/menu", permanent: true },
       { source: "/catalog/:path*", destination: "/menu/:path*", permanent: true },
       { source: "/en/catalog", destination: "/en/menu", permanent: true },
