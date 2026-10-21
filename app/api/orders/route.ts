@@ -58,13 +58,14 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 })
   }
 
-  if (!body.name?.trim() || !body.mobile_number?.trim()) {
-    return Response.json({ error: "name and mobile_number are required" }, { status: 400 })
-  }
-
   if (!body.items || body.items.length === 0) {
     return Response.json({ error: "At least one item is required" }, { status: 400 })
   }
+
+  // Name/mobile are optional (e.g. dine-in walk-ins). Defaults keep NOT NULL
+  // columns happy without polluting records with fake contact details.
+  const name = body.name?.trim() || "Walk-in"
+  const mobile_number = body.mobile_number?.trim() || ""
 
   const subtotal_cents = body.items.reduce(
     (sum, item) => sum + item.unit_price_cents * item.qty,
@@ -75,9 +76,9 @@ export async function POST(request: Request) {
     const data = await createOrder(
       supabase,
       {
-        name: body.name.trim(),
+        name,
         email: body.email?.trim() ?? "",
-        mobile_number: body.mobile_number.trim(),
+        mobile_number,
         address: body.address ?? null,
         location: body.location ?? null,
         subtotal_cents,

@@ -712,10 +712,11 @@ export default function EmployeeOrdersPage() {
   const shipCents = orderType === "delivery" && feeCents !== null ? feeCents : 0
   const totalCents = subtotalCents + shipCents
 
+  const needsContact = orderType !== "dine_in"
   const canPlace =
     cart.length > 0 &&
-    customer.name.trim() !== "" &&
-    sanitizeUaLocal(customer.mobile).length >= 9 &&
+    (!needsContact || customer.name.trim() !== "") &&
+    (!needsContact || sanitizeUaLocal(customer.mobile).length >= 9) &&
     (orderType !== "delivery" || (deliveryConfirmed && feeCents !== null && customer.address.trim() !== "")) &&
     !placing
 
@@ -728,9 +729,11 @@ export default function EmployeeOrdersPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: customer.name.trim(),
+          name: customer.name.trim() || "Walk-in",
           email: "",
-          mobile_number: `+971${sanitizeUaLocal(customer.mobile)}`,
+          mobile_number: sanitizeUaLocal(customer.mobile)
+            ? `+971${sanitizeUaLocal(customer.mobile)}`
+            : "",
           address: orderType === "delivery" ? customer.address.trim() : orderType === "pickup" ? "Pickup" : "Dine-in",
           location: orderType === "delivery" ? location : null,
           shipping_cents: shipCents,
@@ -815,7 +818,7 @@ export default function EmployeeOrdersPage() {
             <input
               value={customer.name}
               onChange={(e) => setCustomer((p) => ({ ...p, name: e.target.value }))}
-              placeholder="Customer name *"
+              placeholder={needsContact ? "Customer name *" : "Customer name (optional)"}
               className="w-full rounded-xl border border-neutral-200 py-2.5 pl-9 pr-3 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-400"
             />
           </div>
@@ -826,7 +829,7 @@ export default function EmployeeOrdersPage() {
               <input
                 value={customer.mobile}
                 onChange={(e) => setCustomer((p) => ({ ...p, mobile: sanitizeUaLocal(e.target.value) }))}
-                placeholder="5X XXX XXXX *"
+                placeholder={needsContact ? "5X XXX XXXX *" : "5X XXX XXXX (optional)"}
                 inputMode="numeric"
                 className="w-full rounded-xl border border-neutral-200 py-2.5 pl-9 pr-3 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-400"
               />
@@ -978,7 +981,11 @@ export default function EmployeeOrdersPage() {
           {placing ? "Placing order…" : `Place Order · ${formatPrice(totalCents)}`}
         </button>
         {!canPlace && cart.length > 0 && (
-          <p className="mt-1.5 text-center text-[11px] text-neutral-400">Enter customer name + valid mobile{orderType === "delivery" ? " + confirm pin on map" : ""}</p>
+          <p className="mt-1.5 text-center text-[11px] text-neutral-400">
+            {needsContact
+              ? `Enter customer name + valid mobile${orderType === "delivery" ? " + confirm pin on map" : ""}`
+              : "Tap Place Order to send to kitchen"}
+          </p>
         )}
       </div>
     </div>
