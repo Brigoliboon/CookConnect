@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useMemo, useState } from "react"
 import dynamic from "next/dynamic"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
@@ -11,6 +11,7 @@ import { translateContent } from "@/constants/translations"
 import type { MenuCategory, MenuItem } from "@/constants"
 import { MENU_CATEGORIES } from "@/constants"
 import { GalleryCard } from "@/components/landing/GalleryCard"
+import { recipeListUrl, useRecipes } from "@/hooks/useRecipes"
 
 const MealDetailDialog = dynamic(
   () => import("@/components/ui/MealDetailDialog").then((mod) => mod.MealDetailDialog),
@@ -33,44 +34,38 @@ const categories = MENU_CATEGORIES.map((c) => c.value)
 export function HealthyCampaign() {
   const t = useTranslations("healthy")
   const locale = useLocale()
-  const [allItems, setAllItems] = useState<MenuItem[]>([])
   const [active, setActive] = useState<MenuCategory>("chicken")
   const [page, setPage] = useState(0)
   const [selected, setSelected] = useState<MenuItem | null>(null)
+  const { data } = useRecipes(recipeListUrl({ category: active, sort: "name" }))
+  const items = useMemo(
+    () =>
+      (data?.data ?? []).map((recipe) => {
+        const r = recipe as unknown as Record<string, unknown>
+        const servings = (r.servings as Record<string, unknown>[]) ?? []
+        const firstServing = servings.find((s) => s.is_active !== false) ?? servings[0]
+        const n = firstServing?.nutrition as Record<string, unknown> | null
+        return {
+          id: r.id as string,
+          name: r.name as string,
+          category: (r.category as MenuCategory) ?? "chicken",
+          description: (r.description as string) ?? "",
+          price: (firstServing?.price as number) ?? 0,
+          calories: (firstServing?.calories as number) ?? 0,
+          protein: (n?.protein_g as number) ?? 0,
+          carbs: (n?.carbs_g as number) ?? 0,
+          fats: (n?.fats_g as number) ?? 0,
+          fiber: (n?.fiber_g as number) ?? 0,
+          sugar: (n?.sugar_g as number) ?? 0,
+          sodium: (n?.sodium_mg as number) ?? 0,
+          image_path: (r.image_path as string) ?? null,
+          ingredients: (firstServing?.ingredients as MenuItem["ingredients"]) ?? [],
+          servings: servings as unknown as MenuItem["servings"],
+        }
+      }),
+    [data],
+  )
 
-  useEffect(() => {
-    fetch(`/api/recipe?${new URLSearchParams({ category: active, sort: "name" })}`)
-      .then(async (res) => {
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error ?? "Failed to fetch recipes")
-        return data.data as Record<string, unknown>[]
-      })
-      .then((data) => {
-        const items: MenuItem[] = data.map((r: Record<string, unknown>) => {
-          const n = r.nutrition as Record<string, unknown> | null
-          return {
-            id: r.id as string,
-            name: r.name as string,
-            category: (r.category as MenuCategory) ?? "chicken",
-            description: (r.description as string) ?? "",
-            price: (r.price as number) ?? 0,
-            calories: (r.calories as number) ?? 0,
-            protein: (n?.protein_g as number) ?? 0,
-            carbs: (n?.carbs_g as number) ?? 0,
-            fats: (n?.fats_g as number) ?? 0,
-            fiber: (n?.fiber_g as number) ?? 0,
-            sugar: (n?.sugar_g as number) ?? 0,
-            sodium: (n?.sodium_mg as number) ?? 0,
-            image_path: (r.image_path as string) ?? null,
-            ingredients: (r.ingredients as MenuItem["ingredients"]) ?? [],
-          }
-        })
-        setAllItems(items)
-      })
-      .catch((e) => console.error("[HEALTHY_CAMPAIGN] Failed to fetch recipes:", e.message || e))
-  }, [active])
-
-  const items = allItems
   const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE)
   const start = page * ITEMS_PER_PAGE
   const visible = items.slice(start, start + ITEMS_PER_PAGE)

@@ -8,6 +8,7 @@ import { MENU_CATEGORIES } from "@/constants"
 import type { MenuCategory, MenuItem, MealServingOption } from "@/constants"
 import { CSV_HEADERS, downloadCsv, parseCsv } from "@/lib/meals/csv"
 import { imageVariant } from "@/lib/images"
+import { invalidateRecipes } from "@/hooks/useRecipes"
 import { Plus, UtensilsCrossed, Utensils, Search, Pencil, Trash2, Power, PowerOff, FileSpreadsheet, FileDown, FileUp, Download, ChevronDown, X, LayoutGrid, Drumstick, Beef, Fish, Salad, Sandwich, Egg, Wheat, Soup, Pizza, Hamburger, CupSoda, CookingPot, ChefHat, Blender, Citrus, Coffee, CakeSlice, HandPlatter, Carrot, type LucideIcon } from "lucide-react"
 
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
@@ -150,7 +151,7 @@ export default function EmployeeMealsPage() {
   const fetchRecipes = useCallback(async () => {
     setLoading(true)
     try {
-      const params = new URLSearchParams({ sort: "name", limit: String(PER_PAGE), offset: String(page * PER_PAGE) })
+      const params = new URLSearchParams({ sort: "name", limit: String(PER_PAGE), offset: String(page * PER_PAGE), include: "ingredients" })
       if (debouncedSearch) params.set("search", debouncedSearch)
       if (activeCat !== "all") params.set("category", activeCat)
       if (statusFilter === "enabled") params.set("is_active", "true")
@@ -212,6 +213,7 @@ export default function EmployeeMealsPage() {
         throw new Error((err as Record<string, string>).error ?? "Failed to update meal")
       }
       fetchRecipes()
+      void invalidateRecipes()
     } catch (e) {
       console.error("[MEALS] Toggle failed:", e instanceof Error ? e.message : e)
       setMenuItems((prev) => prev.map((m) => (m.id === item.id ? { ...m, is_active: !next } : m)))
@@ -233,6 +235,7 @@ export default function EmployeeMealsPage() {
       // Step back a page if we just removed the last row on this page
       if (menuItems.length <= 1 && page > 0) setPage(page - 1)
       else fetchRecipes()
+      void invalidateRecipes()
     } catch (e) {
       console.error("[MEALS] Delete failed:", e instanceof Error ? e.message : e)
     } finally {
@@ -245,6 +248,7 @@ export default function EmployeeMealsPage() {
     setEditItem(null)
     if (page === 0) fetchRecipes()
     else setPage(0)
+    void invalidateRecipes()
   }
 
   function exportFilterParams() {
@@ -317,6 +321,7 @@ export default function EmployeeMealsPage() {
       }
     }
     fetchRecipes()
+    void invalidateRecipes()
     return { created, updated, failed: errors.length, errors: errors.slice(0, 5) }
   }
 
@@ -532,6 +537,7 @@ export default function EmployeeMealsPage() {
       }
       setImportResult({ created, updated, failed: errors.length, errors: errors.slice(0, 5) })
       fetchRecipes()
+      void invalidateRecipes()
     } finally {
       setImporting(false)
       setImportPreviewOpen(false)

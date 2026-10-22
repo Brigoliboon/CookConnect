@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from "react"
 import dynamic from "next/dynamic"
+import useSWRInfinite from "swr/infinite"
 import { motion } from "framer-motion"
 import { Search, X, ChevronDown, SlidersHorizontal, ArrowUp } from "lucide-react"
 import { useTranslations, useLocale } from "next-intl"
@@ -13,6 +14,7 @@ import { CatalogMealCard } from "@/components/landing/CatalogMealCard"
 import { toDialogMeal } from "@/lib/meal-detail"
 import type { MenuItem as DialogMeal } from "@/constants"
 import { decodeRecipeIds } from "@/utils/catalogShare"
+import { fetchRecipeList, recipeListUrl, type RecipeListResponse } from "@/hooks/useRecipes"
 import { getCart, setCart } from "@/utils/cart"
 import type { MealServingOption } from "@/constants"
 
@@ -173,27 +175,19 @@ function RangeInputs({ label, minValue, maxValue, minPlaceholder, maxPlaceholder
   )
 }
 
-export interface MenuInitial {
-  items: MenuItem[]
-  total: number
-}
-
 export default function MenuClient({
-  initialItems = [],
-  initialTotal = 0,
+  initialData,
   idsParam = null,
   checkoutRequested = false,
 }: {
-  initialItems?: MenuItem[]
-  initialTotal?: number
+  initialData?: RecipeListResponse
   idsParam?: string | null
   checkoutRequested?: boolean
 }) {
   return (
     <Suspense>
       <CatalogContent
-        initialItems={initialItems}
-        initialTotal={initialTotal}
+        initialData={initialData}
         idsParam={idsParam}
         checkoutRequested={checkoutRequested}
       />
@@ -202,13 +196,11 @@ export default function MenuClient({
 }
 
 function CatalogContent({
-  initialItems = [],
-  initialTotal = 0,
+  initialData,
   idsParam = null,
   checkoutRequested = false,
 }: {
-  initialItems?: MenuItem[]
-  initialTotal?: number
+  initialData?: RecipeListResponse
   idsParam?: string | null
   checkoutRequested?: boolean
 }) {
@@ -217,11 +209,6 @@ function CatalogContent({
   const locale = useLocale()
   const sharedIds = useMemo(() => decodeRecipeIds(idsParam), [idsParam])
   const sharedIdsKey = useMemo(() => [...sharedIds].sort().join(","), [sharedIds])
-  const hasInitial = initialItems.length > 0 || initialTotal > 0
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(initialItems)
-  const [total, setTotal] = useState(initialTotal)
-  const [loading, setLoading] = useState(!hasInitial)
-  const [loadingMore, setLoadingMore] = useState(false)
   const [showTop, setShowTop] = useState(false)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
   const [activeCategory, setActiveCategory] = useState("all")
@@ -240,60 +227,50 @@ function CatalogContent({
   const hasActiveFilters = search !== "" || activeCategory !== "all" || sort !== "default" || minCal !== "" || maxCal !== "" || minPrice !== "" || maxPrice !== ""
 
   const buildUrl = useCallback((offset: number) => {
-    const params = new URLSearchParams()
-    if (sharedIds.length > 0) params.set("ids", sharedIdsKey)
-    if (activeCategory !== "all") {
-      const targetValue = activeCat?.subs ? (subValues[activeSub ?? ""] ?? activeCat.subs[0]) : catValues[activeCategory]
-      if (targetValue) params.set("category", targetValue)
-    }
-    if (search) params.set("search", search)
-    if (sort !== "default") params.set("sort", sort)
-    if (minCal) params.set("min_cal", minCal)
-    if (maxCal) params.set("max_cal", maxCal)
-    if (minPrice) params.set("min_price", minPrice)
-    if (maxPrice) params.set("max_price", maxPrice)
-    params.set("is_active", "true")
-    params.set("offset", String(offset))
-    params.set("limit", String(PAGE_SIZE))
-    return `/api/recipe?${params.toString()}`
+    const targetValue = activeCategory !== "all"
+      ? (activeCat?.subs ? (subValues[activeSub ?? ""] ?? activeCat.subs[0]) : catValues[activeCategory])
+      : undefined
+
+    return recipeListUrl({
+      ids: sharedIds.length > 0 ? sharedIdsKey : undefined,
+      category: targetValue,
+      search: search || undefined,
+      sort: sort !== "default" ? sort : undefined,
+      minCalories: minCal || undefined,
+      maxCalories: maxCal || undefined,
+      minPrice: minPrice || undefined,
+      maxPrice: maxPrice || undefined,
+      isActive: true,
+      offset,
+      limit: PAGE_SIZE,
+    })
   }, [activeCategory, activeSub, search, sort, minCal, maxCal, minPrice, maxPrice, activeCat, sharedIdsKey, sharedIds.length])
 
-  const fetchPage = useCallback(async (offset: number, append: boolean, signal?: AbortSignal) => {
-    const res = await fetch(buildUrl(offset), { signal })
-    if (!res.ok) throw new Error("Failed to fetch recipes")
-    const json = await res.json()
-    const raw = json.data ?? json
-    const count = json.total ?? (Array.isArray(raw) ? raw.length : 0)
-    const items = Array.isArray(raw) ? raw.map(mapRecipe) : []
-    if (signal?.aborted) return
-    setTotal(count)
-    setMenuItems((prev) => (append ? [...prev, ...items] : items))
-  }, [buildUrl])
+  const getKey = useCallback((index: number, previousPage: RecipeListResponse | null) => {
+    if (idsParam && sharedIds.length === 0) return null
+    if (previousPage && previousPage.data.length < PAGE_SIZE) return null
+    return buildUrl(index * PAGE_SIZE)
+  }, [buildUrl, idsParam, sharedIds.length])
 
-  const skippedInitialFetch = useRef(false)
-  useEffect(() => {
-    const controller = new AbortController()
-    if (!skippedInitialFetch.current && hasInitial && !idsParam && !checkoutRequested) {
-      skippedInitialFetch.current = true
-      return () => controller.abort()
-    }
-    if (idsParam && sharedIds.length === 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setMenuItems([])
-      setTotal(0)
-      setLoading(false)
-      return () => controller.abort()
-    }
-    fetchPage(0, false, controller.signal)
-      .catch((e) => {
-        if (e.name !== "AbortError") console.error("[CATALOG] Failed to fetch recipes:", e)
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false)
-      })
-    return () => controller.abort()
-  }, [fetchPage, idsParam, sharedIds.length, checkoutRequested, hasInitial])
+  const { data: pages, size, setSize, isLoading, isValidating } = useSWRInfinite<RecipeListResponse>(
+    getKey,
+    fetchRecipeList,
+    {
+      fallbackData: initialData ? [initialData] : undefined,
+      dedupingInterval: 30_000,
+      revalidateFirstPage: false,
+      revalidateOnFocus: false,
+      parallel: false,
+    },
+  )
 
+  const menuItems = useMemo(
+    () => (pages ?? []).flatMap((page) => page.data).map((recipe) => mapRecipe(recipe as unknown as Record<string, unknown>)),
+    [pages],
+  )
+  const total = pages?.[0]?.total ?? 0
+  const loading = isLoading && menuItems.length === 0
+  const loadingMore = isValidating && size > 1
   const hasMore = menuItems.length < total
 
   useEffect(() => {
@@ -326,47 +303,45 @@ function CatalogContent({
   }, [])
 
   useEffect(() => {
+    if (!checkoutRequested || !hasMore || loading || loadingMore) return
+    setSize((current) => current + 1)
+  }, [checkoutRequested, hasMore, loading, loadingMore, setSize])
+
+  useEffect(() => {
     const el = sentinelRef.current
     if (!el || loading) return
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0]
         if (!entry.isIntersecting || loadingMore || !hasMore) return
-        setLoadingMore(true)
-        fetchPage(menuItems.length, true)
-          .catch((e) => console.error("[CATALOG] Failed to fetch recipes:", e))
-          .finally(() => setLoadingMore(false))
+        setSize((current) => current + 1)
       },
       { rootMargin: "400px" }
     )
     observer.observe(el)
     return () => observer.disconnect()
-  }, [loading, loadingMore, hasMore, menuItems.length, fetchPage])
+  }, [loading, loadingMore, hasMore, setSize])
 
   function handleSearchSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (searchInput === search) return
-    setLoading(true)
     setSearch(searchInput)
   }
 
   function handleCategoryClick(catId: string) {
     if (catId === activeCategory) return
     const category = categories.find((item) => item.id === catId)
-    setLoading(true)
     setActiveCategory(catId)
     setActiveSub(category?.subs?.[0] ?? null)
   }
 
   function handleSubClick(sub: string) {
     if (sub === activeSub) return
-    setLoading(true)
     setActiveSub(sub)
   }
 
   function handleClearFilters() {
     if (!hasActiveFilters) return
-    setLoading(true)
     setActiveCategory("all")
     setActiveSub(null)
     setSort("default")
@@ -438,15 +413,15 @@ function CatalogContent({
           <span className="block font-nunito text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">{t("sortBy")}</span>
           <select
             value={sort}
-            onChange={(e) => { setLoading(true); setSort(e.target.value) }}
+            onChange={(e) => setSort(e.target.value)}
             className="mt-2 w-full border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none transition-colors focus:border-neutral-400"
           >
             {sortOptions.map((option) => <option key={option.id} value={option.id}>{t(option.labelKey)}</option>)}
           </select>
         </label>
 
-        <RangeInputs label={t("calories")} minValue={minCal} maxValue={maxCal} minPlaceholder={t("minCal")} maxPlaceholder={t("maxCal")} onMinChange={(value) => { setLoading(true); setMinCal(value) }} onMaxChange={(value) => { setLoading(true); setMaxCal(value) }} />
-        <RangeInputs label={t("price")} minValue={minPrice} maxValue={maxPrice} minPlaceholder={t("minPrice")} maxPlaceholder={t("maxPrice")} onMinChange={(value) => { setLoading(true); setMinPrice(value) }} onMaxChange={(value) => { setLoading(true); setMaxPrice(value) }} />
+        <RangeInputs label={t("calories")} minValue={minCal} maxValue={maxCal} minPlaceholder={t("minCal")} maxPlaceholder={t("maxCal")} onMinChange={setMinCal} onMaxChange={setMaxCal} />
+        <RangeInputs label={t("price")} minValue={minPrice} maxValue={maxPrice} minPlaceholder={t("minPrice")} maxPlaceholder={t("maxPrice")} onMinChange={setMinPrice} onMaxChange={setMaxPrice} />
       </div>
     </div>
   )
@@ -494,7 +469,7 @@ function CatalogContent({
               {searchInput && (
                 <button
                   type="button"
-                  onClick={() => { setLoading(true); setSearchInput(""); setSearch("") }}
+                  onClick={() => { setSearchInput(""); setSearch("") }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
                 >
                   <X size={15} />

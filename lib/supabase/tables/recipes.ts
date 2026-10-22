@@ -39,6 +39,8 @@ export interface ListRecipesFilters {
   sort?: RecipeSort
   offset?: number
   limit?: number
+  /** Include each serving's ingredient list. Omitted by default to keep list responses small. */
+  includeIngredients?: boolean
 }
 
 export interface RecipeListResult {
@@ -96,15 +98,33 @@ export async function deleteRecipe(
   if (error) throw error
 }
 
+const RECIPE_COLUMNS = "id, name, category, description, is_active, image_path, primary_protein_ingredient_id"
+const SERVING_COLUMNS = "name, price, calories, nutrition, is_active"
+const SERVING_INGREDIENT_COLUMNS = "serving_ingredients(quantity_g, unit, ingredient:ingredients(name, nutrition, fatsecret_id))"
+
 export async function listRecipes(
   supabase: import("@supabase/supabase-js").SupabaseClient,
   filters: ListRecipesFilters = {},
 ): Promise<RecipeListResult> {
+  const servings = filters.includeIngredients
+    ? `servings(${SERVING_COLUMNS}, ${SERVING_INGREDIENT_COLUMNS})`
+    : `servings(${SERVING_COLUMNS})`
+  const offset = filters.offset ?? 0
+  const limit = filters.limit
+
+  // Price/calorie filters and sorts depend on the first serving, so they are
+  // applied after mapping. Name sorts can be paginated by the database.
+  const canPaginateInSql =
+    limit !== undefined &&
+    filters.minCalories === undefined &&
+    filters.maxCalories === undefined &&
+    filters.minPrice === undefined &&
+    filters.maxPrice === undefined &&
+    (filters.sort === "name" || filters.sort === "name_desc")
+
   let query = supabase
     .from("recipes")
-    .select(
-      "*, servings(name, price, calories, nutrition, is_active, serving_ingredients(quantity_g, unit, ingredient:ingredients(name, nutrition, fatsecret_id)))",
-    )
+    .select(`${RECIPE_COLUMNS}, ${servings}`, { count: canPaginateInSql ? "exact" : undefined })
 
   if (filters.search) {
     for (const tok of filters.search.split(/\s+/).filter(Boolean)) {
@@ -118,16 +138,24 @@ export async function listRecipes(
   if (filters.isActive !== undefined) {
     query = query.eq("is_active", filters.isActive)
   }
+  if (filters.ids && filters.ids.length > 0) {
+    query = query.in("id", filters.ids)
+  }
 
-  const { data: recipes, error } = await query
+  if (canPaginateInSql) {
+    query = query
+      .order("name", { ascending: filters.sort !== "name_desc" })
+      .range(offset, offset + limit - 1)
+  }
+
+  const { data: recipes, error, count } = await query
 
   if (error) throw error
 
   let data = (recipes as Record<string, unknown>[]).map(mapRecipeWithServings)
 
-  if (filters.ids && filters.ids.length > 0) {
-    const wanted = new Set(filters.ids)
-    data = data.filter((recipe) => wanted.has(recipe.id))
+  if (canPaginateInSql) {
+    return { data, total: count ?? data.length }
   }
 
   data = data.filter((recipe) => {
@@ -146,8 +174,6 @@ export async function listRecipes(
   sortRecipes(data, filters.sort)
 
   const total = data.length
-  const offset = filters.offset ?? 0
-  const limit = filters.limit
   if (limit !== undefined) data = data.slice(offset, offset + limit)
   else if (offset > 0) data = data.slice(offset)
 

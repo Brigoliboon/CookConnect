@@ -111,6 +111,7 @@ export function SubscriptionForm({
       const q = new URLSearchParams({ limit: "24" })
       if (mealSearch.trim()) q.set("search", mealSearch.trim())
       if (category) q.set("category", category)
+      q.set("include", "ingredients")
       fetch(`/api/recipe?${q.toString()}`)
         .then((r) => r.json())
         .then((d) => setMeals(d.data ?? []))

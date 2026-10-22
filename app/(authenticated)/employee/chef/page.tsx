@@ -167,7 +167,7 @@ export default function EmployeeChefPage() {
   function fetchRecipes(cat: string) {
     setMealsLoading(true)
     const q = cat ? `&category=${encodeURIComponent(cat)}` : ""
-    fetch(`/api/recipe?sort=name&limit=${RECIPE_LIMIT}${q}`)
+    fetch(`/api/recipe?sort=name&limit=${RECIPE_LIMIT}${q}&include=ingredients`)
       .then(async (res) => {
         const data = await res.json()
         if (!res.ok) throw new Error(data.error ?? "Failed to fetch recipes")
@@ -472,7 +472,7 @@ export default function EmployeeChefPage() {
     setError("")
     try {
       const [recipesRes, standardsRes, picksRes, creditsRes] = await Promise.all([
-        fetch("/api/recipe?sort=name").then((r) => r.json()),
+        fetch("/api/recipe?sort=name&include=ingredients").then((r) => r.json()),
         fetch(`/api/daily-standards?date=${selected}`).then((r) => r.json()),
         fetch(`/api/chef-schedules?subscription_ids=${daySubs.map((s) => s.id).join(",")}`).then((r) => r.json()),
         fetch("/api/plan-protein-credits").then((r) => r.json()),

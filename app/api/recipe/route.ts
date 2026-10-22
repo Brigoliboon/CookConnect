@@ -99,6 +99,14 @@ function parseRecipeFilters(params: URLSearchParams): ListRecipesFilters {
     throw new Error("is_active must be true or false")
   }
 
+  const include = params.get("include")
+  if (include !== null) {
+    const fields = include.split(",").map((value) => value.trim()).filter(Boolean)
+    if (fields.some((value) => value !== "ingredients")) {
+      throw new Error("include must be ingredients")
+    }
+  }
+
   const minCalories = parseNumber("min_cal")
   const maxCalories = parseNumber("max_cal")
   const minPrice = parseNumber("min_price")
@@ -134,6 +142,7 @@ function parseRecipeFilters(params: URLSearchParams): ListRecipesFilters {
     sort: sort as RecipeSort | undefined,
     offset: parseNonNegativeInteger("offset"),
     limit,
+    includeIngredients: include?.split(",").map((value) => value.trim()).includes("ingredients"),
   }
 }
 

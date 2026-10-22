@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useMemo, useState } from "react"
 import dynamic from "next/dynamic"
 import Image from "next/image"
 import { motion } from "framer-motion"
@@ -9,6 +9,7 @@ import { useTranslations, useLocale } from "next-intl"
 import { Link } from "@/i18n/navigation"
 import { translateContent } from "@/constants/translations"
 import { PremiumGallery } from "@/components/landing/PremiumGallery"
+import { recipeListUrl, useRecipes } from "@/hooks/useRecipes"
 import { MealCard } from "@/components/landing/MealCard"
 import { toDialogMeal } from "@/lib/meal-detail"
 import type { MealServingOption, MenuItem as DialogMeal } from "@/constants"
@@ -134,38 +135,17 @@ const catValues: Record<string, string> = {
 export function FeaturedMeals() {
   const t = useTranslations("featured")
   const locale = useLocale()
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([])
-  const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState("meals")
   const [activeSub, setActiveSub] = useState("beef")
   const [selected, setSelected] = useState<DialogMeal | null>(null)
   const activeCat = categories.find((c) => c.id === activeCategory)
   const activeValue = activeCat?.subs ? (subValues[activeSub] ?? activeCat.subs[0]) : catValues[activeCategory]
-
-  useEffect(() => {
-    const controller = new AbortController()
-    const params = new URLSearchParams({ sort: "name" })
-    if (activeValue) params.set("category", activeValue)
-
-    fetch(`/api/recipe?${params.toString()}`, { signal: controller.signal })
-      .then(async (res) => {
-        if (!res.ok) throw new Error("Failed to fetch recipes")
-        return res.json() as Promise<{ data: Record<string, unknown>[] }>
-      })
-      .then(({ data }) => {
-        if (!controller.signal.aborted) setMenuItems(data.map(mapRecipe))
-      })
-      .catch((e) => {
-        if (e.name !== "AbortError") console.error("[FEATURED] Failed to fetch recipes:", e)
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false)
-      })
-
-    return () => controller.abort()
-  }, [activeValue])
-
-  const filtered = menuItems
+  const recipeUrl = recipeListUrl({ category: activeValue, sort: "name" })
+  const { data, isLoading } = useRecipes(recipeUrl)
+  const filtered = useMemo(
+    () => (data?.data ?? []).map((recipe) => mapRecipe(recipe as unknown as Record<string, unknown>)),
+    [data],
+  )
 
   return (
     <section id="meals" className="relative overflow-hidden bg-[#aa9a88]">
@@ -224,7 +204,7 @@ export function FeaturedMeals() {
 
         {/* Gallery */}
         <PremiumGallery key={activeValue} className=" h-[340px] md:h-[412px] mt-5 w-full max-sm:mt-4" itemScale={1}>
-          {loading ? (
+          {isLoading ? (
             <div className="flex h-full w-full items-center justify-center">
               <div className="size-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
             </div>
@@ -272,7 +252,6 @@ export function FeaturedMeals() {
                 key={cat.id}
                 onClick={() => {
                   if (cat.id === activeCategory) return
-                  setLoading(true)
                   setActiveCategory(cat.id)
                   if (cat.subs?.length) setActiveSub(cat.subs[0])
                 }}
@@ -303,7 +282,6 @@ export function FeaturedMeals() {
                     key={sub}
                     onClick={() => {
                       if (sub === activeSub) return
-                      setLoading(true)
                       setActiveSub(sub)
                     }}
                     className={`font-nunito shrink-0 rounded-full border px-4 py-1.5 text-xs font-medium backdrop-blur-sm transition-colors max-sm:snap-center ${
