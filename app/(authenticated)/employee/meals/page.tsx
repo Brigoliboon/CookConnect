@@ -7,6 +7,7 @@ import type { CsvImportPreviewRow } from "@/components/ui/CsvImportDialog"
 import { MENU_CATEGORIES } from "@/constants"
 import type { MenuCategory, MenuItem, MealServingOption } from "@/constants"
 import { CSV_HEADERS, downloadCsv, parseCsv } from "@/lib/meals/csv"
+import { imageVariant } from "@/lib/images"
 import { Plus, UtensilsCrossed, Utensils, Search, Pencil, Trash2, Power, PowerOff, FileSpreadsheet, FileDown, FileUp, Download, ChevronDown, X, LayoutGrid, Drumstick, Beef, Fish, Salad, Sandwich, Egg, Wheat, Soup, Pizza, Hamburger, CupSoda, CookingPot, ChefHat, Blender, Citrus, Coffee, CakeSlice, HandPlatter, Carrot, type LucideIcon } from "lucide-react"
 
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
@@ -730,7 +731,7 @@ export default function EmployeeMealsPage() {
                         className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-neutral-100 text-neutral-300 sm:size-24 lg:size-28"
                       >
                         {item.image_path ? (
-                          <img src={item.image_path} alt={item.name} className="h-full w-full object-cover" />
+                          <img src={imageVariant(item.image_path, 600)} alt={item.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                         ) : (
                           <UtensilsCrossed size={28} />
                         )}

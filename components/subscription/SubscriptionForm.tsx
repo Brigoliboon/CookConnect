@@ -7,6 +7,7 @@ import { ChefHat, SlidersHorizontal, Check, ChevronDown, Croissant, User, Mail, 
 import { SUBSCRIPTION_PLANS, DELIVERY_DAYS } from "@/constants/subscriptions"
 import { FloatingInput } from "@/components/ui/FloatingInput"
 import { LocationPicker, type Coordinates } from "@/components/ui/LocationPicker"
+import { imageVariant } from "@/lib/images"
 import { resolveDeliveryAddress } from "@/utils/mapbox"
 
 interface Ingredient { id: string; name: string }
@@ -437,9 +438,17 @@ export function SubscriptionForm({
                   <button
                     key={m.id}
                     onClick={() => setSelectedMeals((p) => (active ? p.filter((x) => x !== m.id) : [...p, m.id]))}
-                    className={`relative aspect-[4/3] overflow-hidden rounded-xl bg-cover bg-center text-left ${active ? "ring-2 ring-neutral-900" : "opacity-85 hover:opacity-100"}`}
-                    style={m.image_path ? { backgroundImage: `url(${m.image_path})` } : undefined}
+                    className={`relative aspect-[4/3] overflow-hidden rounded-xl bg-neutral-100 text-left ${active ? "ring-2 ring-neutral-900" : "opacity-85 hover:opacity-100"}`}
                   >
+                    {m.image_path && (
+                      <img
+                        src={imageVariant(m.image_path, 600)}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
                     {active && <span className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-white text-neutral-900"><Check size={12} /></span>}
                     <span className="absolute bottom-0 left-0 right-0 truncate p-2 text-xs font-semibold text-white">{m.name}</span>

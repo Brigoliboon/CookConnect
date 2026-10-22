@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 import type { Order, OrderItem, OrderItemAddon } from "@/lib/supabase/models"
 import { formatPrice, resolveDeliveryAddress } from "@/utils/mapbox"
+import { imageThumb, imageVariant } from "@/lib/images"
 import { OrderPrintButton } from "@/components/ui/OrderPrintButton"
 import { Modal } from "@/components/ui/Modal"
 import { LocationPicker, type Coordinates } from "@/components/ui/LocationPicker"
@@ -156,10 +157,11 @@ function PosMealCard({
     <li className="group flex flex-col overflow-hidden rounded-2xl border border-neutral-200/70 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-lg hover:shadow-neutral-200/60">
       <div className="relative">
         <Image
-          src={item.image || fallbackImages[item.category] || "/drink_sample.svg"}
+          src={imageVariant(item.image || fallbackImages[item.category] || "/drink_sample.svg", 600)}
           alt={item.name}
           width={600}
           height={600}
+          unoptimized
           loading="lazy"
           className="aspect-square w-full object-cover"
         />
@@ -911,7 +913,7 @@ export default function EmployeeOrdersPage() {
                   >
                     <div className="flex items-center gap-2">
                       {line.image && (
-                        <img src={line.image} alt={line.name} width={44} height={44} loading="lazy" className="h-11 w-11 shrink-0 rounded-lg object-cover" />
+                        <img src={imageThumb(line.image)} alt={line.name} width={44} height={44} loading="lazy" className="h-11 w-11 shrink-0 rounded-lg object-cover" />
                       )}
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-semibold text-neutral-900">{line.name}</p>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Check } from "lucide-react"
+import { imageThumb } from "@/lib/images"
 
 interface SideOption {
   id: string
@@ -67,7 +68,7 @@ export function CartSidePicker({
         className="flex w-full items-center gap-2 rounded-xl border border-neutral-200 bg-neutral-50 p-2 text-left transition-colors hover:border-neutral-300"
       >
         {selected.addon_image_path && (
-          <img src={selected.addon_image_path} alt={selected.addon_name} width={40} height={32} loading="lazy" decoding="async" className="h-8 w-10 shrink-0 rounded-lg object-cover" />
+          <img src={imageThumb(selected.addon_image_path)} alt={selected.addon_name} width={40} height={32} loading="lazy" decoding="async" className="h-8 w-10 shrink-0 rounded-lg object-cover" />
         )}
         <span className="min-w-0 flex-1">
           <span className="block truncate text-xs font-semibold text-neutral-900">{selected.addon_name}</span>
@@ -90,11 +91,19 @@ export function CartSidePicker({
               onSelect(opt)
               setExpanded(false)
             }}
-            className={`relative aspect-[4/3] w-24 shrink-0 cursor-pointer overflow-hidden rounded-xl bg-cover bg-center text-left transition-all ${
+            className={`relative aspect-[4/3] w-24 shrink-0 cursor-pointer overflow-hidden rounded-xl bg-neutral-100 text-left transition-all ${
               active ? "ring-2 ring-brand-900" : "opacity-80 hover:opacity-100"
             }`}
-            style={opt.addon_image_path ? { backgroundImage: `url(${opt.addon_image_path})` } : undefined}
           >
+            {opt.addon_image_path && (
+              <img
+                src={opt.addon_image_path}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
             {active && (
               <span className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-brand-900 text-white">

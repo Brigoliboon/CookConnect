@@ -1,10 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
 import { ShoppingCart, Check, Flame, Beef, Wheat, Bubbles, ChevronDown } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { getCart, setCart } from "@/utils/cart"
+import { imageSrcSet, imageVariant } from "@/lib/images"
 import type { MealServingOption } from "@/constants"
 
 const fallbackImages: Record<string, string> = {
@@ -115,12 +115,14 @@ export function CatalogMealCard({
       >
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative h-28 w-28 overflow-hidden sm:h-26 sm:w-26">
-            <Image
-              src={imgSrc}
-              alt={name}
-              fill
+            <img
+              src={imageVariant(imgSrc, 600)}
+              srcSet={imageSrcSet(imgSrc, [128, 600])}
               sizes="96px"
-              className="object-cover"
+              alt={name}
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-cover"
             />
           </div>
         </div>

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import Image from "next/image"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui"
+import { imageThumb } from "@/lib/images"
 import { proteinBuckets, type ProteinAllowance } from "@/lib/chef/credits"
 import { autoFillDay, type AutoFillResult } from "@/lib/chef/autoFill"
 import type { DailyStandard } from "@/lib/supabase/models"
@@ -823,7 +824,7 @@ export default function EmployeeChefPage() {
                             <div key={r.id} className="flex items-center gap-2.5 rounded-xl bg-neutral-50 p-2 ring-1 ring-neutral-100">
                               <div className="relative size-10 shrink-0 overflow-hidden rounded-lg bg-neutral-200">
                                 {r.image_path ? (
-                                  <Image src={r.image_path} alt={r.name} fill sizes="40px" className="object-cover" loading="lazy" />
+                                  <Image src={imageThumb(r.image_path)} alt={r.name} fill unoptimized sizes="40px" className="object-cover" loading="lazy" />
                                 ) : (
                                   <div className="flex size-full items-center justify-center text-neutral-400"><ChefHat size={16} /></div>
                                 )}
@@ -841,7 +842,7 @@ export default function EmployeeChefPage() {
                                     <div key={r.id} className="flex items-center gap-2.5 rounded-xl bg-neutral-50 p-2 ring-1 ring-neutral-100">
                                       <div className="relative size-10 shrink-0 overflow-hidden rounded-lg bg-neutral-200">
                                         {r.image_path ? (
-                                          <Image src={r.image_path} alt={r.name} fill sizes="40px" className="object-cover" loading="lazy" />
+                                          <Image src={imageThumb(r.image_path)} alt={r.name} fill unoptimized sizes="40px" className="object-cover" loading="lazy" />
                                         ) : (
                                           <div className="flex size-full items-center justify-center text-neutral-400"><ChefHat size={16} /></div>
                                         )}
@@ -951,7 +952,7 @@ export default function EmployeeChefPage() {
               <div key={recipeId} className={`flex items-center gap-3 rounded-2xl border p-3 backdrop-blur-sm transition-colors ${allDone ? "border-emerald-200/70 bg-emerald-50/50" : "border-neutral-200/60 bg-white/80"}`}>
                 <div className="relative size-14 shrink-0 overflow-hidden rounded-xl bg-neutral-100">
                   {recipe?.image_path ? (
-                    <Image src={recipe.image_path} alt={recipe.name} fill sizes="56px" className="object-cover" loading="lazy" />
+                    <Image src={imageThumb(recipe.image_path)} alt={recipe.name} fill unoptimized sizes="56px" className="object-cover" loading="lazy" />
                   ) : (
                     <div className="flex size-full items-center justify-center text-neutral-300"><ChefHat size={20} /></div>
                   )}
@@ -1143,9 +1144,10 @@ export default function EmployeeChefPage() {
                         <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
                           {m.image_path ? (
                             <Image
-                              src={m.image_path}
+                              src={imageThumb(m.image_path)}
                               alt={m.name}
                               fill
+                              unoptimized
                               sizes="56px"
                               className="object-cover"
                               loading="lazy"
@@ -1459,9 +1461,10 @@ export default function EmployeeChefPage() {
                         <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
                           {m.image_path ? (
                             <Image
-                              src={m.image_path}
+                              src={imageThumb(m.image_path)}
                               alt={m.name}
                               fill
+                              unoptimized
                               sizes="56px"
                               className="object-cover"
                               loading="lazy"

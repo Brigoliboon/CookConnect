@@ -8,6 +8,7 @@ import { getCart, setCart, type CartItem } from "@/utils/cart"
 import { LocationPicker, type Coordinates } from "@/components/ui/LocationPicker"
 import { FloatingInput } from "@/components/ui/FloatingInput"
 import { CartSidePicker } from "@/components/landing/CartSidePicker"
+import { imageThumb } from "@/lib/images"
 import { resolveDeliveryAddress, formatPrice } from "@/utils/mapbox"
 
 export function CartDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -248,7 +249,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                       <div className="flex min-w-0 flex-1 items-center gap-3">
                         {item.image && (
-                          <img src={item.image} alt={item.name} width={56} height={56} loading="lazy" decoding="async" className="h-14 w-14 shrink-0 rounded-lg object-cover" />
+                          <img src={imageThumb(item.image)} alt={item.name} width={56} height={56} loading="lazy" decoding="async" className="h-14 w-14 shrink-0 rounded-lg object-cover" />
                         )}
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold text-neutral-900">{item.name}</p>
