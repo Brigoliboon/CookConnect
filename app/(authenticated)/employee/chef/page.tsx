@@ -7,7 +7,7 @@ import { Button } from "@/components/ui"
 import { proteinBuckets, type ProteinAllowance } from "@/lib/chef/credits"
 import { autoFillDay, type AutoFillResult } from "@/lib/chef/autoFill"
 import type { DailyStandard } from "@/lib/supabase/models"
-import { CalendarDays, Check, CheckCircle2, ChefHat, ChevronLeft, ChevronRight, Clock, Flame, Search, Sun, Sunrise, Sunset, X } from "lucide-react"
+import { CalendarDays, Check, CheckCircle2, ChefHat, ChevronDown, ChevronLeft, ChevronRight, Clock, Flame, Search, Sun, Sunrise, Sunset, X } from "lucide-react"
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -143,6 +143,8 @@ export default function EmployeeChefPage() {
   const [draft, setDraft] = useState<string[]>([])
   const [search, setSearch] = useState("")
   const [category, setCategory] = useState("")
+  const [categoryQuery, setCategoryQuery] = useState("")
+  const [categoryOpen, setCategoryOpen] = useState(false)
   const [categories, setCategories] = useState<string[]>([""])
   const [mealsLoading, setMealsLoading] = useState(false)
   const [showHidden, setShowHidden] = useState(false)
@@ -323,6 +325,8 @@ export default function EmployeeChefPage() {
     setDraft(preset ?? [...(picksBySub.get(subId) ?? [])])
     setSearch("")
     setCategory("")
+    setCategoryQuery("")
+    setCategoryOpen(false)
     setShowHidden(false)
     setStandardTarget(null)
     setCreditAllowances([])
@@ -349,6 +353,16 @@ export default function EmployeeChefPage() {
     setCategory(c)
     fetchRecipes(c)
   }
+
+  function chooseCategory(c: string) {
+    selectCategory(c)
+    setCategoryQuery("")
+    setCategoryOpen(false)
+  }
+
+  const categoryMatches = categories.filter(
+    (c) => c && c.toLowerCase().includes(categoryQuery.trim().toLowerCase()),
+  )
 
   function hiddenByRestriction(sub: SubRow): RecipeRow[] {
     const restricted = restrictionSet(sub.details)
@@ -414,6 +428,8 @@ export default function EmployeeChefPage() {
     )
     setSearch("")
     setCategory("")
+    setCategoryQuery("")
+    setCategoryOpen(false)
     fetchRecipes("")
   }
 
@@ -1030,32 +1046,86 @@ export default function EmployeeChefPage() {
               </button>
             </div>
             <div className="flex-1 space-y-4 overflow-y-auto p-5">
-              <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search meals..."
-                  className="w-full rounded-xl border border-neutral-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-neutral-900"
-                />
-              </div>
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {categories.map((c) => (
-                  <button
-                    key={c || "all"}
-                    onClick={() => selectCategory(c)}
-                    className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium capitalize transition-all ${category === c ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-200 text-neutral-600 hover:border-neutral-400"}`}
-                  >
-                    {c || "All"}
-                  </button>
-                ))}
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search meals..."
+                    className="w-full rounded-xl border border-neutral-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-neutral-900"
+                  />
+                </div>
+                <div className="relative w-40 shrink-0">
+                  <input
+                    value={categoryOpen ? categoryQuery : category}
+                    onChange={(e) => {
+                      setCategoryQuery(e.target.value)
+                      setCategoryOpen(true)
+                    }}
+                    onFocus={() => {
+                      setCategoryQuery("")
+                      setCategoryOpen(true)
+                    }}
+                    onBlur={() => setCategoryOpen(false)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        setCategoryOpen(false)
+                        e.currentTarget.blur()
+                      } else if (e.key === "ArrowDown") {
+                        e.preventDefault()
+                        setCategoryOpen(true)
+                      } else if (e.key === "Enter") {
+                        e.preventDefault()
+                        if (categoryMatches.length > 0) chooseCategory(categoryMatches[0])
+                        else if (!categoryQuery.trim()) chooseCategory("")
+                        else setCategoryOpen(false)
+                      }
+                    }}
+                    placeholder={category || "All categories"}
+                    role="combobox"
+                    aria-expanded={categoryOpen}
+                    aria-controls="standard-category-options"
+                    aria-label="Filter by category"
+                    className="w-full rounded-xl border border-neutral-200 bg-white py-2.5 pl-3 pr-8 text-sm font-medium capitalize text-neutral-700 outline-none placeholder:text-neutral-400 focus:border-neutral-900"
+                  />
+                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                  {categoryOpen && (
+                    <div className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white p-1 shadow-lg" id="standard-category-options">
+                      <button
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => chooseCategory("")}
+                        className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm ${category === "" ? "bg-neutral-100 font-semibold text-neutral-900" : "text-neutral-600 hover:bg-neutral-50"}`}
+                      >
+                        All categories
+                        {category === "" && <Check size={12} />}
+                      </button>
+                      {categoryMatches.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => chooseCategory(c)}
+                          className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm ${category === c ? "bg-neutral-100 font-semibold text-neutral-900" : "text-neutral-600 hover:bg-neutral-50"}`}
+                        >
+                          <span className="truncate capitalize">{c}</span>
+                          {category === c && <Check size={12} />}
+                        </button>
+                      ))}
+                      {categoryMatches.length === 0 && (
+                        <p className="px-2.5 py-2 text-xs text-neutral-400">No categories found.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
               {mealsLoading ? (
                 <div className="flex h-32 items-center justify-center">
                   <div className="size-6 animate-spin rounded-full border-2 border-neutral-200 border-t-neutral-900" />
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div className="space-y-2">
                   {(search.trim()
                     ? recipes.filter((m) => {
                         const q = search.trim().toLowerCase()
@@ -1068,28 +1138,38 @@ export default function EmployeeChefPage() {
                       <button
                         key={m.id}
                         onClick={() => setStandardDraft((p) => (active ? p.filter((x) => x !== m.id) : [...p, m.id]))}
-                        className={`group overflow-hidden rounded-xl border text-left transition-all ${active ? "border-neutral-900 ring-2 ring-neutral-900" : "border-neutral-200 hover:border-neutral-400"}`}
+                        className={`group flex w-full items-center gap-3 rounded-xl border p-2.5 text-left transition-all ${active ? "border-neutral-900 bg-neutral-50 ring-2 ring-neutral-900" : "border-neutral-200 hover:border-neutral-400 hover:bg-neutral-50"}`}
                       >
-                        <div className="relative aspect-[4/3] w-full bg-neutral-100">
+                        <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
                           {m.image_path ? (
                             <Image
                               src={m.image_path}
                               alt={m.name}
                               fill
-                              sizes="(max-width: 640px) 50vw, 33vw"
+                              sizes="56px"
                               className="object-cover"
                               loading="lazy"
                             />
                           ) : (
-                            <div className="flex size-full items-center justify-center text-neutral-300"><ChefHat size={24} /></div>
+                            <div className="flex size-full items-center justify-center text-neutral-300"><ChefHat size={20} /></div>
                           )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                          {active && <span className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-white text-neutral-900"><Check size={12} /></span>}
                         </div>
-                        <div className="p-2">
-                          <p className="truncate text-xs font-semibold text-neutral-900">{m.name}</p>
-                          {m.category && <p className="mt-0.5 text-[11px] capitalize text-neutral-500">{m.category}</p>}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-neutral-900">{m.name}</p>
+                          {m.description && (
+                            <p className="mt-0.5 truncate text-xs text-neutral-500">{m.description}</p>
+                          )}
+                          {m.category && (
+                            <span className="mt-1 inline-block rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-600">
+                              {m.category}
+                            </span>
+                          )}
                         </div>
+                        <span
+                          className={`flex size-6 shrink-0 items-center justify-center rounded-full border transition-all ${active ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-300 text-transparent group-hover:border-neutral-400"}`}
+                        >
+                          <Check size={13} />
+                        </span>
                       </button>
                     )
                   })}
@@ -1288,60 +1368,124 @@ export default function EmployeeChefPage() {
                 )}
               </div>
 
-              <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search meals..."
-                  className="w-full rounded-xl border border-neutral-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-neutral-900"
-                />
-              </div>
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {categories.map((c) => (
-                  <button
-                    key={c || "all"}
-                    onClick={() => selectCategory(c)}
-                    className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium capitalize transition-all ${category === c ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-200 text-neutral-600 hover:border-neutral-400"}`}
-                  >
-                    {c || "All"}
-                  </button>
-                ))}
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search meals..."
+                    className="w-full rounded-xl border border-neutral-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-neutral-900"
+                  />
+                </div>
+                <div className="relative w-40 shrink-0">
+                  <input
+                    value={categoryOpen ? categoryQuery : category}
+                    onChange={(e) => {
+                      setCategoryQuery(e.target.value)
+                      setCategoryOpen(true)
+                    }}
+                    onFocus={() => {
+                      setCategoryQuery("")
+                      setCategoryOpen(true)
+                    }}
+                    onBlur={() => setCategoryOpen(false)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        setCategoryOpen(false)
+                        e.currentTarget.blur()
+                      } else if (e.key === "ArrowDown") {
+                        e.preventDefault()
+                        setCategoryOpen(true)
+                      } else if (e.key === "Enter") {
+                        e.preventDefault()
+                        if (categoryMatches.length > 0) chooseCategory(categoryMatches[0])
+                        else if (!categoryQuery.trim()) chooseCategory("")
+                        else setCategoryOpen(false)
+                      }
+                    }}
+                    placeholder={category || "All categories"}
+                    role="combobox"
+                    aria-expanded={categoryOpen}
+                    aria-controls="category-options"
+                    aria-label="Filter by category"
+                    className="w-full rounded-xl border border-neutral-200 bg-white py-2.5 pl-3 pr-8 text-sm font-medium capitalize text-neutral-700 outline-none placeholder:text-neutral-400 focus:border-neutral-900"
+                  />
+                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                  {categoryOpen && (
+                    <div className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white p-1 shadow-lg" id="category-options">
+                      <button
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => chooseCategory("")}
+                        className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm ${category === "" ? "bg-neutral-100 font-semibold text-neutral-900" : "text-neutral-600 hover:bg-neutral-50"}`}
+                      >
+                        All categories
+                        {category === "" && <Check size={12} />}
+                      </button>
+                      {categoryMatches.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => chooseCategory(c)}
+                          className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm ${category === c ? "bg-neutral-100 font-semibold text-neutral-900" : "text-neutral-600 hover:bg-neutral-50"}`}
+                        >
+                          <span className="truncate capitalize">{c}</span>
+                          {category === c && <Check size={12} />}
+                        </button>
+                      ))}
+                      {categoryMatches.length === 0 && (
+                        <p className="px-2.5 py-2 text-xs text-neutral-400">No categories found.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
               {mealsLoading ? (
                 <div className="flex h-32 items-center justify-center">
                   <div className="size-6 animate-spin rounded-full border-2 border-neutral-200 border-t-neutral-900" />
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div className="space-y-2">
                   {mealsFor(activeSub).map((m) => {
                     const active = draft.includes(m.id)
                     return (
                       <button
                         key={m.id}
                         onClick={() => setDraft((p) => (active ? p.filter((x) => x !== m.id) : [...p, m.id]))}
-                        className={`group overflow-hidden rounded-xl border text-left transition-all ${active ? "border-neutral-900 ring-2 ring-neutral-900" : "border-neutral-200 hover:border-neutral-400"}`}
+                        className={`group flex w-full items-center gap-3 rounded-xl border p-2.5 text-left transition-all ${active ? "border-neutral-900 bg-neutral-50 ring-2 ring-neutral-900" : "border-neutral-200 hover:border-neutral-400 hover:bg-neutral-50"}`}
                       >
-                        <div className="relative aspect-[4/3] w-full bg-neutral-100">
+                        <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
                           {m.image_path ? (
                             <Image
                               src={m.image_path}
                               alt={m.name}
                               fill
-                              sizes="(max-width: 640px) 50vw, 33vw"
+                              sizes="56px"
                               className="object-cover"
                               loading="lazy"
                             />
                           ) : (
-                            <div className="flex size-full items-center justify-center text-neutral-300"><ChefHat size={24} /></div>
+                            <div className="flex size-full items-center justify-center text-neutral-300"><ChefHat size={20} /></div>
                           )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                          {active && <span className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-white text-neutral-900"><Check size={12} /></span>}
                         </div>
-                        <div className="p-2">
-                          <p className="truncate text-xs font-semibold text-neutral-900">{m.name}</p>
-                          {m.category && <p className="mt-0.5 text-[11px] capitalize text-neutral-500">{m.category}</p>}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-neutral-900">{m.name}</p>
+                          {m.description && (
+                            <p className="mt-0.5 truncate text-xs text-neutral-500">{m.description}</p>
+                          )}
+                          {m.category && (
+                            <span className="mt-1 inline-block rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-600">
+                              {m.category}
+                            </span>
+                          )}
                         </div>
+                        <span
+                          className={`flex size-6 shrink-0 items-center justify-center rounded-full border transition-all ${active ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-300 text-transparent group-hover:border-neutral-400"}`}
+                        >
+                          <Check size={13} />
+                        </span>
                       </button>
                     )
                   })}
