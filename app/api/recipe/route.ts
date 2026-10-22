@@ -1,5 +1,7 @@
+import { createHash } from "node:crypto"
 import { createRecipe, listRecipes, type CreateRecipeInput, type ListRecipesFilters, type RecipeSort } from "@/lib/supabase/tables/recipes"
 import { createServing, linkServingIngredients, type ServingIngredientInput } from "@/lib/supabase/tables/servings"
+import { createPublicClient } from "@/utils/supabase/public"
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
 
@@ -23,25 +25,54 @@ interface CreateMealBody extends CreateRecipeInput {
 const SORTS = new Set<RecipeSort>(["name", "name_desc", "calories", "calories_desc", "price", "price_desc"])
 const MAX_LIMIT = 100
 
+const CACHE_HEADERS = {
+  "Cache-Control": "public, max-age=0, must-revalidate",
+  "CDN-Cache-Control": "public, s-maxage=60, stale-while-revalidate=300, stale-if-error=600",
+}
+const NO_STORE_HEADERS = { "Cache-Control": "no-store" }
+
+function matchesEtag(value: string | null, etag: string) {
+  if (!value) return false
+  return value.split(",").some((candidate) => {
+    const tag = candidate.trim()
+    return tag === "*" || tag.replace(/^W\//, "") === etag
+  })
+}
+
 export async function GET(request: Request) {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
+  const supabase = createPublicClient()
 
   let filters: ListRecipesFilters
   try {
     filters = parseRecipeFilters(new URL(request.url).searchParams)
   } catch (err) {
     const message = err instanceof Error ? err.message : "Invalid filter parameters"
-    return Response.json({ error: message }, { status: 400 })
+    return Response.json({ error: message }, { status: 400, headers: NO_STORE_HEADERS })
   }
 
   try {
     const recipes = await listRecipes(supabase, filters)
-    return Response.json(recipes)
+    const body = JSON.stringify(recipes)
+    const etag = `"${createHash("sha1").update(body).digest("hex")}"`
+
+    if (matchesEtag(request.headers.get("if-none-match"), etag)) {
+      return new Response(null, { status: 304, headers: { ...CACHE_HEADERS, ETag: etag } })
+    }
+
+    return new Response(body, {
+      headers: {
+        ...CACHE_HEADERS,
+        "Content-Type": "application/json",
+        ETag: etag,
+      },
+    })
   } catch (err) {
     console.error("[API] GET /api/recipe error:", err)
     const message = err instanceof Error ? err.message : "Internal server error"
-    return Response.json({ error: message, detail: err instanceof Error ? err.stack : null }, { status: 500 })
+    return Response.json(
+      { error: message, detail: err instanceof Error ? err.stack : null },
+      { status: 500, headers: NO_STORE_HEADERS },
+    )
   }
 }
 
@@ -112,18 +143,18 @@ export async function POST(request: Request) {
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 })
+    return Response.json({ error: "Unauthorized" }, { status: 401, headers: NO_STORE_HEADERS })
   }
 
   let body: CreateMealBody
   try {
     body = await request.json()
   } catch {
-    return Response.json({ error: "Invalid JSON body" }, { status: 400 })
+    return Response.json({ error: "Invalid JSON body" }, { status: 400, headers: NO_STORE_HEADERS })
   }
 
   if (!body.name || typeof body.name !== "string" || !body.name.trim()) {
-    return Response.json({ error: "name is required" }, { status: 400 })
+    return Response.json({ error: "name is required" }, { status: 400, headers: NO_STORE_HEADERS })
   }
 
   try {
@@ -168,9 +199,9 @@ export async function POST(request: Request) {
       createdServings.push(created)
     }
 
-    return Response.json({ ...recipe, servings: createdServings }, { status: 201 })
+    return Response.json({ ...recipe, servings: createdServings }, { status: 201, headers: NO_STORE_HEADERS })
   } catch (err) {
     const message = err instanceof Error ? err.message : "Internal server error"
-    return Response.json({ error: message }, { status: 500 })
+    return Response.json({ error: message }, { status: 500, headers: NO_STORE_HEADERS })
   }
 }

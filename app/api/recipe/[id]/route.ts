@@ -2,6 +2,8 @@ import { updateRecipe, deleteRecipe, getRecipe, type CreateRecipeInput } from "@
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
 
+const NO_STORE_HEADERS = { "Cache-Control": "no-store" }
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -11,7 +13,7 @@ export async function PATCH(
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 })
+    return Response.json({ error: "Unauthorized" }, { status: 401, headers: NO_STORE_HEADERS })
   }
 
   const { id } = await params
@@ -20,18 +22,18 @@ export async function PATCH(
   try {
     body = await request.json()
   } catch {
-    return Response.json({ error: "Invalid JSON body" }, { status: 400 })
+    return Response.json({ error: "Invalid JSON body" }, { status: 400, headers: NO_STORE_HEADERS })
   }
 
   try {
     await updateRecipe(supabase, id, body)
 
     const updated = await getRecipe(supabase, id)
-    return Response.json(updated)
+    return Response.json(updated, { headers: NO_STORE_HEADERS })
   } catch (err) {
     console.error("[API] PATCH /api/recipe/[id] error:", err)
     const message = err instanceof Error ? err.message : "Internal server error"
-    return Response.json({ error: message, detail: err instanceof Error ? err.stack : null }, { status: 500 })
+    return Response.json({ error: message, detail: err instanceof Error ? err.stack : null }, { status: 500, headers: NO_STORE_HEADERS })
   }
 }
 
@@ -44,17 +46,17 @@ export async function DELETE(
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 })
+    return Response.json({ error: "Unauthorized" }, { status: 401, headers: NO_STORE_HEADERS })
   }
 
   const { id } = await params
 
   try {
     await deleteRecipe(supabase, id)
-    return Response.json({ success: true })
+    return Response.json({ success: true }, { headers: NO_STORE_HEADERS })
   } catch (err) {
     console.error("[API] DELETE /api/recipe/[id] error:", err)
     const message = err instanceof Error ? err.message : "Internal server error"
-    return Response.json({ error: message, detail: err instanceof Error ? err.stack : null }, { status: 500 })
+    return Response.json({ error: message, detail: err instanceof Error ? err.stack : null }, { status: 500, headers: NO_STORE_HEADERS })
   }
 }
