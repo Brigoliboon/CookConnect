@@ -9,7 +9,9 @@
     "teamId": "team_XarmqBfaHwDmYv8u3kgiTl9D"
   },
   "dev": {
-    "ports": [3000],
+    "ports": [
+      3000
+    ],
     "scripts": {
       "web": {
         "cmd": "npm run dev"
@@ -18,15 +20,23 @@
   },
   "terminals": [
     {
+      "name": "opencode",
+      "command": "opencode",
+      "pane": "left"
+    },
+    {
+      "name": "shell",
+      "pane": "left"
+    },
+    {
       "name": "dashboard",
-      "command": "devsuite"
+      "command": "devsuite",
+      "pane": "right"
     },
     {
       "name": "web",
-      "command": "npm run dev"
-    },
-    {
-      "name": "shell"
+      "command": "npm run dev",
+      "pane": "right"
     }
   ],
   "refresh": {
@@ -34,5 +44,6 @@
     "git": "5s",
     "processes": "5s"
   },
-  "notifications": true
+  "notifications": true,
+  "launcher": "tmux"
 }

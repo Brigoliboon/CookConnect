@@ -50,6 +50,10 @@ const itemVariants = {
 
 type StatusFilter = "all" | "enabled" | "disabled"
 
+function formatMicros(value: number): number {
+  return Number.isFinite(value) ? Number(value.toFixed(2)) : 0
+}
+
 const PER_PAGE = 8
 
 const VALID_CATEGORIES: Set<string> = new Set(MENU_CATEGORIES.map((c) => c.value))
@@ -752,9 +756,9 @@ export default function EmployeeMealsPage() {
                           </span>
                           <span className="font-bold text-neutral-900">{item.price} <span className="font-semibold text-neutral-400">DH</span></span>
                           <span className="font-semibold">{item.calories} Cal</span>
-                          <span>P {item.protein}g</span>
-                          <span>C {item.carbs}g</span>
-                          <span>F {item.fats}g</span>
+                          <span>P {formatMicros(item.protein)}g</span>
+                          <span>C {formatMicros(item.carbs)}g</span>
+                          <span>F {formatMicros(item.fats)}g</span>
                         </div>
                         {item.description && (
                           <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-neutral-500 sm:text-sm">{item.description}</p>
