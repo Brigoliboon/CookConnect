@@ -1,7 +1,6 @@
 "use client"
 
 import { useTranslations } from "next-intl"
-import Image from "next/image"
 import { Link } from "@/i18n/navigation"
 import { motion } from "framer-motion"
 import { useLocale } from "next-intl"
@@ -28,14 +27,18 @@ export function Hero() {
 
   return (
     <section className="relative min-h-[122vh] overflow-hidden max-h-[122vh] bg-black max-sm:min-h-screen">
-      <Image
-        src="/bg.jpg"
+      {/* Static WebP (see tools/optimize-hero-images.mjs): decorative art must
+          not spend the metered image optimizer or preload ahead of the LCP. */}
+      <img
+        src="/hero/bg-1000.webp"
+        srcSet="/hero/bg-640.webp 640w, /hero/bg-1000.webp 1000w"
+        sizes="100vw"
         alt=""
         aria-hidden
-        fill
-        preload
-        sizes="100vw"
-        quality={75}
+        width={1000}
+        height={576}
+        loading="eager"
+        decoding="async"
         className="absolute inset-0 h-[122vh] w-full object-cover opacity-40 max-sm:h-screen"
       />
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/90" />
@@ -75,15 +78,16 @@ export function Hero() {
           </motion.div>
 
           <motion.div variants={fadeUp} className="flex items-end justify-end max-sm:justify-center">
-            <Image
-              src="/hero-menu.png"
+            <img
+              src="/hero/hero-menu-560.webp"
+              srcSet="/hero/hero-menu-64.webp 64w, /hero/hero-menu-560.webp 560w, /hero/hero-menu-1120.webp 1120w"
+              sizes="(max-width: 640px) 0vw, 560px"
               alt={t("imageAlt")}
               width={560}
               height={562}
               loading="eager"
               fetchPriority="high"
-              sizes="(max-width: 640px) 0vw, 560px"
-              quality={75}
+              decoding="async"
               className="w-full hidden sm:flex max-w-lg object-contain"
             />
           </motion.div>

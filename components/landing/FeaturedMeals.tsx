@@ -93,17 +93,19 @@ function mapRecipe(r: Record<string, unknown>): MenuItem {
   }
 }
 
+// Thumbnails come from public/menu-icons/ (see tools/optimize-category-icons.mjs)
+// so a 32px nav icon never ships its 1-5MB source art.
 const categories = [
-  { id: "meals", image: "/menus/beef-steak.png", subs: ["beef", "chicken", "seafood", "soup", "biryani", "risotto", "vegetable", "breakfast"] },
-  { id: "salad", image: "/menus/salad.png" },
-  { id: "rice-sides", image: "/icons/ricensides_model.svg" },
-  { id: "platters", image: "/icons/platters_model.svg" },
-  { id: "pasta", image: "/icons/pasta_model.svg" },
-  { id: "wraps", image: "/icons/wraps_model.svg" },
-  { id: "pizza", image: "/icons/pizza_model.svg" },
-  { id: "burgers", image: "/icons/burgernfries_model.svg" },
-  { id: "desserts", image: "/icons/dessert_model.svg" },
-  { id: "drinks", image: "/drink_sample.svg", subs: ["smoothie", "juice", "beverages"] },
+  { id: "meals", image: "/menu-icons/meals.webp", subs: ["beef", "chicken", "seafood", "soup", "biryani", "risotto", "vegetable", "breakfast"] },
+  { id: "salad", image: "/menu-icons/salad.webp" },
+  { id: "rice-sides", image: "/menu-icons/rice-sides.webp" },
+  { id: "platters", image: "/menu-icons/platters.webp" },
+  { id: "pasta", image: "/menu-icons/pasta.webp" },
+  { id: "wraps", image: "/menu-icons/wraps.webp" },
+  { id: "pizza", image: "/menu-icons/pizza.webp" },
+  { id: "burgers", image: "/menu-icons/burgers.webp" },
+  { id: "desserts", image: "/menu-icons/desserts.webp" },
+  { id: "drinks", image: "/menu-icons/drinks.webp", subs: ["smoothie", "juice", "beverages"] },
 ]
 
 const subValues: Record<string, string> = {
