@@ -187,6 +187,8 @@ export type OrderStatus =
   | "delivered"
   | "cancelled";
 
+export type OrderOrigin = "web" | "pos" | "whatsapp";
+
 export interface Order {
   id: UUID;
   customer_id: UUID | null; // -> public.accounts.id, null for guest checkout
@@ -195,6 +197,7 @@ export interface Order {
   mobile_number: string;
   address: string | null;
   status: OrderStatus;
+  origin: OrderOrigin; // web | pos | whatsapp, decided server-side on create
   subtotal_cents: number; // numeric
   shipping_cents: number; // numeric
   vat_cents: number; // numeric, 5% of subtotal_cents rounded, already included in subtotal
@@ -203,6 +206,7 @@ export interface Order {
   details: any; // jsonb // default {}
   created_at: string; // ISO timestamptz
   updated_at: string; // ISO timestamptz
+  delivered_at: string | null; // ISO timestamptz, set by trigger when status reaches delivered
 }
 
 export type OrderDeliveryStatus = "assigned" | "delivered" | "cancelled";

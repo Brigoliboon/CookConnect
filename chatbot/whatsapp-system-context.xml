@@ -233,7 +233,7 @@
 
   <tools_available>
     <tool>GET /api/recipe?category=&amp;sort= — live menu by category</tool>
-    <tool>POST /api/orders — create inquiry (requires name, email, mobile, location, items)</tool>
+    <tool>POST /api/orders — create inquiry (requires name, email, mobile, location, items; always send the x-bot-secret header with the WHATSAPP_BOT_SECRET value so the order is tagged origin=whatsapp)</tool>
     <tool>POST /api/subscriptions — create subscription inquiry</tool>
     <tool>Mapbox geocoding for address resolution</tool>
     <tool>WhatsApp link builder: https://wa.me/971556634050?text={encoded}</tool>

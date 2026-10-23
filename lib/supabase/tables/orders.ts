@@ -1,4 +1,4 @@
-import type { Order, OrderItem, OrderItemAddon, OrderStatus } from "../models"
+import type { Order, OrderItem, OrderItemAddon, OrderOrigin, OrderStatus } from "../models"
 import { resolveMealPrice } from "./recipe_addons"
 
 export interface CreateOrderInput {
@@ -7,6 +7,7 @@ export interface CreateOrderInput {
   email: string
   mobile_number: string
   address?: string | null
+  origin?: OrderOrigin
   subtotal_cents: number
   shipping_cents: number
   vat_cents?: number
@@ -37,6 +38,7 @@ export async function listOrders(
   supabase: import("@supabase/supabase-js").SupabaseClient,
   status?: OrderStatus,
   locationOnly?: boolean,
+  origin?: OrderOrigin,
 ): Promise<OrderWithItems[]> {
   let query = supabase
     .from("orders")
@@ -47,6 +49,9 @@ export async function listOrders(
   }
   if (locationOnly) {
     query = query.not("location", "is", null)
+  }
+  if (origin) {
+    query = query.eq("origin", origin)
   }
 
   const { data, error } = await query.order("created_at", { ascending: false })
@@ -125,6 +130,7 @@ export async function createOrder(
       mobile_number: input.mobile_number,
       address: input.address ?? null,
       status: "inquiry",
+      origin: input.origin ?? "web",
       subtotal_cents: input.subtotal_cents,
       shipping_cents: input.shipping_cents,
       vat_cents,

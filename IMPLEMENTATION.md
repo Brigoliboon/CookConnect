@@ -235,6 +235,33 @@ Domain `https://cookconnectae.com/` — en canonical at `/`, ar at `/ar`. GSC ve
 
 ---
 
+### Module 11: Sales Tracking & Order Origin — ⏳ In Progress
+
+Orders are tagged with their channel and sales are reportable without a ledger table.
+
+- `orders.origin` — `web` | `pos` | `whatsapp`, set by the server (bot `x-bot-secret` header → whatsapp, `/employee/` referer → pos, admin/employee session without referer → pos, otherwise web). Never taken from the request body. Historical rows: `address = 'Dine-in'` → `pos`, all others → `web`
+- `orders.delivered_at` — set by a DB trigger when status reaches `delivered`, cleared if the order moves away from it. Needed because `order_deliveries.delivered_at` is rider-only RLS and staff cannot read it
+- Sales rules: orders count only at `delivered`, per order-item (`unit_price_cents × qty`) with delivery fees reported separately; subscriptions count per `subscription_payments` row (partial payments included)
+- Dates are UAE (`Asia/Dubai`) days; totals are grouped by currency so AED orders never mix with another plan currency
+- Reporting is derived from existing tables at read time — no `sales` table, no backfill ledger
+
+Checkpoint (all must pass before marking complete):
+- [x] Superseded draft migrations deleted (`20261022000001_recipe_sales_stats.sql`, `20261022000002_sales_rpc.sql`)
+- [x] Testcase file: `tests/SALES_TRACKING_TESTCASE.md` (M1–M4, O1–O6, S1–S10)
+- [x] Migration: `20261023000000_order_origin_delivered_at.sql` — `orders.origin`, `orders.delivered_at`, trigger, index, backfill, draft cleanup
+- [x] `lib/supabase/models.ts` — `OrderOrigin`, `Order.origin`, `Order.delivered_at`
+- [x] `lib/orders/origin.ts` — `inferOrderOrigin`
+- [x] `lib/supabase/tables/orders.ts` — `CreateOrderInput.origin`, `createOrder` stores it, `listOrders` filters by it
+- [x] `app/api/orders/route.ts` — POST infers origin, GET accepts `?origin=`
+- [x] `lib/supabase/tables/sales.ts` — `getSalesSummary`
+- [x] `app/api/sales/route.ts` — staff-only `GET` (401 unauthenticated, 403 non-staff)
+- [x] `chatbot/whatsapp-system-context.xml` — bot instructed to send `x-bot-secret`
+- [x] `npx tsc --noEmit` clean; `eslint` unchanged at 16 pre-existing errors (0 new)
+- [x] Pure-logic checks: `inferOrderOrigin` (10 cases) + `validateSalesRange` (6 cases) + UAE day boundaries
+- [ ] **Pending:** apply `20261023000000_order_origin_delivered_at.sql` to Supabase, then run `tests/SALES_TRACKING_TESTCASE.md` (M1–M4, O1–O6, S1–S10)
+
+---
+
 ## Gaps / Next Steps
 
 1. **Supabase Auth** — wire signIn/signOut, session management, role-based redirects
