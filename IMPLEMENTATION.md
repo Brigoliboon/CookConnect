@@ -244,6 +244,7 @@ Orders are tagged with their channel and sales are reportable without a ledger t
 - Sales rules: orders count only at `delivered`, per order-item (`unit_price_cents × qty`) with delivery fees reported separately; subscriptions count per `subscription_payments` row (partial payments included)
 - Dates are UAE (`Asia/Dubai`) days; totals are grouped by currency so AED orders never mix with another plan currency
 - Reporting is derived from existing tables at read time — no `sales` table, no backfill ledger
+- `GET /api/recipe` accepts `sort=sales` / `sort=sales_desc` (units sold, delivered orders only) and composes with `category`, `limit`, `offset`. Units are loaded only when a sales sort is requested; ordering happens in memory with a `name` tie-break. The response is sort-only — no sales figure is exposed on the publicly cached menu endpoint
 
 Checkpoint (all must pass before marking complete):
 - [x] Superseded draft migrations deleted (`20261022000001_recipe_sales_stats.sql`, `20261022000002_sales_rpc.sql`)
@@ -257,6 +258,19 @@ Checkpoint (all must pass before marking complete):
 - [x] `app/api/sales/route.ts` — staff-only `GET` (401 unauthenticated, 403 non-staff)
 - [x] `chatbot/whatsapp-system-context.xml` — bot instructed to send `x-bot-secret`
 - [x] `npx tsc --noEmit` clean; `eslint` unchanged at 16 pre-existing errors (0 new)
+- [x] `RecipeSort` + route `SORTS` gained `sales` / `sales_desc` (`lib/supabase/tables/recipes.ts`, `app/api/recipe/route.ts`)
+- [x] `sortRecipes` handles sales explicitly with a name tie-break (not the price fallthrough); `loadUnitsSold` queries delivered ⋈ `order_items` only for sales sorts
+- [x] Testcase file: `tests/RECIPE_SORT_TESTCASE.md` (U1–U19, V1–V8, D1–D3)
+- [ ] **Pending:** D3 — re-verify live ordering once a delivered order carries `recipe_id` (all 4 delivered items today predate recipe linking → every recipe ties at 0)
+- [x] Showcase top sellers — server-side function (no RPC; sales stay a single read-time definition) returning **1 recipe per category** in one response for `beef, seafood, wrap, pizza`
+- [x] Testcase file: `tests/SHOWCASE_TOP_SELLERS_TESTCASE.md` (C1–C10, U1–U8, L1–L5, D1–D2)
+- [x] `getTopSellersByCategory` in `lib/supabase/tables/recipes.ts` — 2 queries total (recipes by category, units once), active-only, units desc + name tie-break via shared `sortRecipes`, `recipe: null` for empty categories
+- [x] `app/api/showcase/route.ts` — public `GET`, `?categories=` (defaults to the 4 above), 400 on empty / >20 entries / entry >64 chars, never guesses aliases (`wrap` ≠ `wraps`)
+- [x] `utils/httpCache.ts` — `etaggedJson` + cache headers shared by `/api/recipe` and `/api/showcase` (one definition, no drift); `/api/recipe` re-verified 200 → 304 after the extraction
+- [x] `npx tsc --noEmit` clean; `eslint` unchanged (0 new); 18 showcase + 19 recipe-sort unit assertions pass; live C/U/L checks pass
+- [ ] **Pending:** D1/D2 — showcase winner is name-ordered until a delivered order carries `recipe_id` (same root cause as D3 above)
+- [x] `hooks/useShowcase.ts` + `components/landing/Hero.tsx` — hero row renders the 4 winners via shared `toMenuItem`; hardcoded `featured` fallback removed so no stale/fake dish is ever shown (row is empty until the fetch resolves)
+- [ ] **Pending:** H5 — manual browser check of the hero swap (no browser automation in this environment)
 - [x] Pure-logic checks: `inferOrderOrigin` (10 cases) + `validateSalesRange` (6 cases) + UAE day boundaries
 - [ ] **Pending:** apply `20261023000000_order_origin_delivered_at.sql` to Supabase, then run `tests/SALES_TRACKING_TESTCASE.md` (M1–M4, O1–O6, S1–S10)
 

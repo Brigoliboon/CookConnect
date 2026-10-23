@@ -24,7 +24,15 @@ export interface RecipeWithServings extends Recipe {
   servings: RecipeServing[]
 }
 
-export type RecipeSort = "name" | "name_desc" | "calories" | "calories_desc" | "price" | "price_desc"
+export type RecipeSort =
+  | "name"
+  | "name_desc"
+  | "calories"
+  | "calories_desc"
+  | "price"
+  | "price_desc"
+  | "sales"
+  | "sales_desc"
 
 /** Filters accepted by `GET /api/recipe`. */
 export interface ListRecipesFilters {
@@ -171,13 +179,52 @@ export async function listRecipes(
     )
   })
 
-  sortRecipes(data, filters.sort)
+  const unitsSold =
+    filters.sort === "sales" || filters.sort === "sales_desc" ? await loadUnitsSold(supabase) : null
+  sortRecipes(data, filters.sort, unitsSold)
 
   const total = data.length
   if (limit !== undefined) data = data.slice(offset, offset + limit)
   else if (offset > 0) data = data.slice(offset)
 
   return { data, total }
+}
+
+export interface CategoryTopSeller {
+  category: string
+  recipe: RecipeWithServings | null
+}
+
+export async function getTopSellersByCategory(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  categories: string[],
+): Promise<CategoryTopSeller[]> {
+  const wanted: string[] = []
+  for (const raw of categories) {
+    const category = raw.trim()
+    if (category && !wanted.includes(category)) wanted.push(category)
+  }
+  if (wanted.length === 0) return []
+
+  const { data: recipes, error } = await supabase
+    .from("recipes")
+    .select(`${RECIPE_COLUMNS}, servings(${SERVING_COLUMNS})`)
+    .in("category", wanted)
+    .eq("is_active", true)
+
+  if (error) throw error
+
+  const unitsSold = await loadUnitsSold(supabase)
+
+  const groups = new Map<string, RecipeWithServings[]>()
+  for (const category of wanted) groups.set(category, [])
+  for (const raw of (recipes ?? []) as Record<string, unknown>[]) {
+    const recipe = mapRecipeWithServings(raw)
+    groups.get(recipe.category ?? "")?.push(recipe)
+  }
+  for (const group of groups.values()) sortRecipes(group, "sales_desc", unitsSold)
+
+  return wanted.map((category) => ({ category, recipe: groups.get(category)?.[0] ?? null }))
 }
 
 function mapRecipeWithServings(r: Record<string, unknown>): RecipeWithServings {
@@ -203,10 +250,44 @@ function mapRecipeWithServings(r: Record<string, unknown>): RecipeWithServings {
   }
 }
 
-function sortRecipes(recipes: RecipeWithServings[], sort: RecipeSort | undefined) {
+async function loadUnitsSold(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+): Promise<Map<string, number>> {
+  const { data, error } = await supabase
+    .from("order_items")
+    .select("recipe_id, qty, orders!inner(status, delivered_at)")
+    .eq("orders.status", "delivered")
+    .not("orders.delivered_at", "is", null)
+
+  if (error) throw error
+
+  const totals = new Map<string, number>()
+  for (const row of (data ?? []) as Record<string, unknown>[]) {
+    const recipeId = row.recipe_id as string | null
+    if (!recipeId) continue
+    totals.set(recipeId, (totals.get(recipeId) ?? 0) + (Number(row.qty) || 0))
+  }
+  return totals
+}
+
+function sortRecipes(
+  recipes: RecipeWithServings[],
+  sort: RecipeSort | undefined,
+  unitsSold?: Map<string, number> | null,
+) {
   if (!sort) return
 
   const direction = sort.endsWith("_desc") ? -1 : 1
+
+  if (sort.startsWith("sales")) {
+    const sold = (recipe: RecipeWithServings) => unitsSold?.get(recipe.id) ?? 0
+    recipes.sort((a, b) => {
+      const diff = sold(a) - sold(b)
+      return diff !== 0 ? direction * diff : a.name.localeCompare(b.name)
+    })
+    return
+  }
+
   recipes.sort((a, b) => {
     if (sort.startsWith("name")) return direction * a.name.localeCompare(b.name)
 

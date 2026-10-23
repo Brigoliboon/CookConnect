@@ -1,6 +1,6 @@
-import { createHash } from "node:crypto"
 import { createRecipe, listRecipes, type CreateRecipeInput, type ListRecipesFilters, type RecipeSort } from "@/lib/supabase/tables/recipes"
 import { createServing, linkServingIngredients, type ServingIngredientInput } from "@/lib/supabase/tables/servings"
+import { etaggedJson, NO_STORE_HEADERS } from "@/utils/httpCache"
 import { createPublicClient } from "@/utils/supabase/public"
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
@@ -22,22 +22,17 @@ interface CreateMealBody extends CreateRecipeInput {
   servings?: ServingInput[]
 }
 
-const SORTS = new Set<RecipeSort>(["name", "name_desc", "calories", "calories_desc", "price", "price_desc"])
+const SORTS = new Set<RecipeSort>([
+  "name",
+  "name_desc",
+  "calories",
+  "calories_desc",
+  "price",
+  "price_desc",
+  "sales",
+  "sales_desc",
+])
 const MAX_LIMIT = 100
-
-const CACHE_HEADERS = {
-  "Cache-Control": "public, max-age=0, must-revalidate",
-  "CDN-Cache-Control": "public, s-maxage=60, stale-while-revalidate=300, stale-if-error=600",
-}
-const NO_STORE_HEADERS = { "Cache-Control": "no-store" }
-
-function matchesEtag(value: string | null, etag: string) {
-  if (!value) return false
-  return value.split(",").some((candidate) => {
-    const tag = candidate.trim()
-    return tag === "*" || tag.replace(/^W\//, "") === etag
-  })
-}
 
 export async function GET(request: Request) {
   const supabase = createPublicClient()
@@ -52,20 +47,7 @@ export async function GET(request: Request) {
 
   try {
     const recipes = await listRecipes(supabase, filters)
-    const body = JSON.stringify(recipes)
-    const etag = `"${createHash("sha1").update(body).digest("hex")}"`
-
-    if (matchesEtag(request.headers.get("if-none-match"), etag)) {
-      return new Response(null, { status: 304, headers: { ...CACHE_HEADERS, ETag: etag } })
-    }
-
-    return new Response(body, {
-      headers: {
-        ...CACHE_HEADERS,
-        "Content-Type": "application/json",
-        ETag: etag,
-      },
-    })
+    return etaggedJson(request, recipes)
   } catch (err) {
     console.error("[API] GET /api/recipe error:", err)
     const message = err instanceof Error ? err.message : "Internal server error"
