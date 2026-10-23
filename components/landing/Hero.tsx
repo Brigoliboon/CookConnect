@@ -60,13 +60,13 @@ export function Hero() {
             </p>
             <motion.div variants={fadeUp} className="mt-10 flex items-center gap-4 max-sm:flex-col max-sm:items-start">
               <Link
-                href="#subscription"
+                href="#meals"
                 className="rounded-xl bg-white px-7 py-3 text-sm font-semibold text-black transition-all hover:bg-white/90 max-sm:w-full max-sm:text-center"
               >
                 {t("cta")}
               </Link>
               <Link
-                href="#meals"
+                href="#subscription"
                 className="rounded-xl border border-white/20 px-7 py-3 text-sm font-semibold text-white transition-all hover:bg-white/10 max-sm:w-full max-sm:text-center"
               >
                 {t("ctaSecondary")}

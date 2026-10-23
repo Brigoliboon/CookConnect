@@ -63,8 +63,14 @@ export const SOCIALS = {
   whatsapp: "https://wa.me/971556634050",
 } as const;
 
-export const OG_IMAGE = `${SITE_URL}/ogg-banner_en.png`;
+export const OG_IMAGE_EN = `${SITE_URL}/ogg-banner_en.png`;
+export const OG_IMAGE_AR = `${SITE_URL}/ogg-banner_ar.png`;
+export const OG_IMAGE = OG_IMAGE_EN;
 export const LOGO = `${SITE_URL}/favicon.png`;
+
+export function ogImage(locale: string): string {
+  return locale === "ar" ? OG_IMAGE_AR : OG_IMAGE_EN;
+}
 
 export function localeUrl(locale: string, path = ""): string {
   const clean = path.startsWith("/") ? path : `/${path}`;

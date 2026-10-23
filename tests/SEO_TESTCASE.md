@@ -21,8 +21,9 @@ Domain: https://cookconnectae.com/ — en canonical at `/`, ar at `/ar`. GSC ver
 - [ ] `<link rel="canonical">` = `https://cookconnectae.com/` (en), `.../ar` (ar)
 - [ ] `hreflang en/ar/x-default` present
 - [ ] OG title/description/image + twitter card present
+- [ ] OG/twitter image is locale-specific: `/ogg-banner_en.png` (en), `/ogg-banner_ar.png` (ar), both 1200×630
 - [ ] `geo.region=AE-AJ`, `geo.placename=Ajman`, `ICBM` = `25.3969036, 55.5220053`
-- [ ] title en ≠ title ar (localized from `messages/*/meta` via `lib/seo.ts`)
+- [ ] title en ≠ title ar (localized from `SITE_META` in `lib/seo.ts`; `messages/*/meta` is unused)
 
 ## T5 — JSON-LD
 - [ ] Landing HTML contains `Restaurant` schema: name `Cook Connect Restaurant LLC`, phone `+971556634050`, address Ajman, geo 25.3969036/55.5220053, hours Sat–Thu 08:00–22:00, sameAs IG/FB/WA

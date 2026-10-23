@@ -194,6 +194,7 @@ Checkpoint (all must pass before marking complete):
 - `lib/fonts.ts` + `globals.css`: Cairo font for Arabic; RTL font-variable swap via `html[dir="rtl"]`
 - `constants/translations.ts`: `AR_CONTENT` dictionary + `translateContent(text, locale)` for menu/category/plan data (English fallback; DB bilingual columns deferred)
 - Landing components converted to `useTranslations`: Nav (+language toggle), CartButton, Hero, Footer, Contact, AboutUs, Subscription, MealCard, CartDialog, HealthyCampaign, FeaturedMeals, FeaturedSection, MealsDisplay, DrinkCard, GalleryCard, PremiumGallery
+- Hero copy (`messages/*/hero` + `Hero.tsx`) covers dine-in, delivery/pickup and meal plans — not subscription-only; primary CTA → `#meals`, secondary → `#subscription`
 - Pages converted: `[locale]/page`, `[locale]/login`, `[locale]/terms`, `[locale]/privacy` (legal content message-driven)
 - English canonical at `/`; Arabic at `/ar/*` — no `/en` prefix in URLs
 - Checkpoints: `npx tsc --noEmit` clean; `eslint` no errors on converted files; `npm run build` SSG for `/`, `/en/*`, `/ar/*`; auth dashboards unchanged
@@ -224,7 +225,7 @@ Domain `https://cookconnectae.com/` — en canonical at `/`, ar at `/ar`. GSC ve
 - `app/robots.ts` — allow `/`, disallow `/api/`, `/customer`, `/employee/`, `/rider`, `/sticker-preview`; sitemap + host
 - `app/sitemap.ts` — `/`, `/menu`, `/terms`, `/privacy` + `/ar` variants with hreflang alternates; excludes login/tracking/auth
 - `app/manifest.ts` — CookConnect PWA manifest, theme `#118B50`
-- `app/[locale]/layout.tsx` — `generateMetadata`: metadataBase, title template, OG, Twitter, canonical + hreflang en/ar/x-default, geo (`AE-AJ`, Ajman, ICBM), viewport themeColor
+- `app/[locale]/layout.tsx` — `generateMetadata`: metadataBase, title template, OG, Twitter (locale-specific image via `ogImage(locale)`: `/ogg-banner_en.png` / `/ogg-banner_ar.png`), canonical + hreflang en/ar/x-default, geo (`AE-AJ`, Ajman, ICBM), viewport themeColor
 - `app/[locale]/page.tsx` — `Restaurant` + `WebSite` JSON-LD via `components/seo/RestaurantJsonLd.tsx`
 - `app/[locale]/menu/` (renamed from `catalog/`; 308 redirects `/catalog*`, `/en/catalog*`, `/ar/catalog*` → `/menu*` + `/menu.php` → `/menu` in `next.config.ts`; SSR: server `page.tsx` fetches first 24 via `listRecipes()` + passes to `MenuClient.tsx`, `ItemList` + `OrderAction` JSON-LD; route now dynamic)
 - `app/[locale]/menu/[category]/` — 10 SSR category pages (meals/salad/rice-sides/platters/pasta/wraps/pizza/burgers/desserts/drinks) with H1, canonical + hreflang, `ItemList`; empty → noindex; in sitemap (0.7); linked from `/menu` pills (locale-aware `Link`, client filter preserved); shared mapper `lib/menu-map.ts`

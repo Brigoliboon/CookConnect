@@ -14,13 +14,13 @@
     "openCart": "Open cart"
   },
   "hero": {
-    "eyebrow": "Subscription Meal Plans",
-    "title": "Fresh, Custom Meal Plans — Delivered",
-    "subtitle": "CookConnect makes it easy to subscribe to a meal plan that fits your lifestyle.",
-    "subtitle2": "Customize your weekly menu, and we'll handle the rest.",
-    "cta": "View Subscriptions",
-    "ctaSecondary": "Explore Menu",
-    "imageAlt": "Menu preview"
+    "eyebrow": "Dine-In · Delivery · Meal Plans",
+    "title": "Fresh, Healthy Food in Ajman — Dine In or Delivered",
+    "subtitle": "Eat at CookConnect, order delivery or pickup, or subscribe to a flexible meal plan.",
+    "subtitle2": "Fresh menu, customized weekly — we handle the rest.",
+    "cta": "Explore the Menu",
+    "ctaSecondary": "View Meal Plans",
+    "imageAlt": "CookConnect menu preview"
   },
   "featured": {
     "eyebrow": "Chef's Selection",

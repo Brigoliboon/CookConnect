@@ -6,7 +6,7 @@ import { getMessages } from "next-intl/server";
 import { routing } from "@/i18n/routing";
 import { fontVariables } from "@/lib/fonts";
 import { Providers } from "../providers";
-import { GEO, OG_IMAGE, SITE_META, SITE_URL, localeUrl } from "@/lib/seo";
+import { GEO, SITE_META, SITE_URL, localeUrl, ogImage } from "@/lib/seo";
 import { GoogleTag } from "@/components/seo/GoogleTag";
 import "../globals.css";
 
@@ -54,13 +54,13 @@ export async function generateMetadata({
       siteName: "CookConnect",
       title: meta.title,
       description: meta.description,
-      images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: "CookConnect" }],
+      images: [{ url: ogImage(locale), width: 1200, height: 630, alt: meta.title }],
     },
     twitter: {
       card: "summary_large_image",
       title: meta.title,
       description: meta.description,
-      images: [OG_IMAGE],
+      images: [ogImage(locale)],
     },
     icons: { icon: "/favicon.svg", apple: "/logo-horizontal.png" },
     manifest: "/manifest.webmanifest",
