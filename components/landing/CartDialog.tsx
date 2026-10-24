@@ -170,13 +170,10 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
           location: pickup ? null : location,
           shipping_cents: pickup ? 0 : feeCents,
           items: cart.map((item) => ({
-            recipe_id: item.recipeId ?? null,
+            recipe_id: item.recipeId ?? "",
             addon_recipe_id: item.addonRecipeId ?? null,
-            name: item.name,
-            unit_price_cents: Math.round(item.price * 100),
             qty: item.qty,
             note: item.note?.trim() || null,
-            image_path: item.image ?? null,
           })),
         }),
       })

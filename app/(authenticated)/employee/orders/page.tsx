@@ -742,11 +742,8 @@ export default function EmployeeOrdersPage() {
           items: cart.map((l) => ({
             recipe_id: l.recipeId,
             addon_recipe_id: l.addonRecipeId,
-            name: l.name,
-            unit_price_cents: Math.round(l.unitPrice * 100),
             qty: l.qty,
             note: (l.note?.trim() ? `[${orderType.replace("_", " ")}] ${l.note.trim()}` : `[${orderType.replace("_", " ")}]`) || null,
-            image_path: l.image ?? null,
           })),
         }),
       })

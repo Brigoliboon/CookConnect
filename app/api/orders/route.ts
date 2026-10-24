@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
-import { listOrders, createOrder, type CreateOrderItemInput } from "@/lib/supabase/tables/orders"
+import { listOrders, createOrder, OrderInputError, type CreateOrderItemInput } from "@/lib/supabase/tables/orders"
 import { notifyOrderCreated } from "@/lib/notifications/orders"
 import { inferOrderOrigin } from "@/lib/orders/origin"
 import type { OrderOrigin, OrderStatus } from "@/lib/supabase/models"
@@ -25,6 +25,16 @@ export async function GET(request: Request) {
   const status = searchParams.get("status")
   const locationOnly = searchParams.get("location_only") === "true"
   const origin = searchParams.get("origin")
+  const phone = searchParams.get("phone")?.trim() || undefined
+  const limitParam = searchParams.get("limit")
+  let limit: number | undefined
+  if (limitParam) {
+    const parsed = Number(limitParam)
+    if (!Number.isInteger(parsed) || parsed < 1) {
+      return Response.json({ error: "limit must be a positive integer" }, { status: 400 })
+    }
+    limit = parsed
+  }
 
   if (status && !ORDER_STATUSES.includes(status as OrderStatus)) {
     return Response.json(
@@ -46,6 +56,8 @@ export async function GET(request: Request) {
       (status as OrderStatus) ?? undefined,
       locationOnly,
       (origin as OrderOrigin) ?? undefined,
+      phone,
+      limit,
     )
     return Response.json(data)
   } catch (err) {
@@ -83,11 +95,6 @@ export async function POST(request: Request) {
   const name = body.name?.trim() || "Walk-in"
   const mobile_number = body.mobile_number?.trim() || ""
 
-  const subtotal_cents = body.items.reduce(
-    (sum, item) => sum + item.unit_price_cents * item.qty,
-    0,
-  )
-
   const referer = request.headers.get("referer")
   let role: string | null = null
   if (!referer) {
@@ -119,7 +126,6 @@ export async function POST(request: Request) {
         address: body.address ?? null,
         origin,
         location: body.location ?? null,
-        subtotal_cents,
         shipping_cents: body.shipping_cents ?? 0,
       },
       body.items,
@@ -130,7 +136,9 @@ export async function POST(request: Request) {
     return Response.json(data, { status: 201 })
   } catch (err) {
     console.error("[API] POST /api/orders error:", err)
-    console.error("[API] POST /api/orders detail:", err instanceof Error ? err.stack : null)
+    if (err instanceof OrderInputError) {
+      return Response.json({ error: err.message }, { status: 400 })
+    }
     const message = err instanceof Error ? err.message : "Internal server error"
     return Response.json({ error: message, detail: err instanceof Error ? err.stack : null }, { status: 500 })
   }

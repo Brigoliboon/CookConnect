@@ -246,6 +246,8 @@ Orders are tagged with their channel and sales are reportable without a ledger t
 - Dates are UAE (`Asia/Dubai`) days; totals are grouped by currency so AED orders never mix with another plan currency
 - Reporting is derived from existing tables at read time — no `sales` table, no backfill ledger
 - `GET /api/recipe` accepts `sort=sales` / `sort=sales_desc` (units sold, delivered orders only) and composes with `category`, `limit`, `offset`. Units are loaded only when a sales sort is requested; ordering happens in memory with a `name` tie-break. The response is sort-only — no sales figure is exposed on the publicly cached menu endpoint
+- `GET /api/orders` accepts `?status=`, `?origin=`, `?location_only=true`, `?phone=` (partial, case-insensitive match on `mobile_number`), `?limit=` (positive integer) — all composable; response is the order list, newest first
+- `POST /api/orders` is server-authoritative: `items[]` carries only `recipe_id` (required), `addon_recipe_id`, `qty` (int 1–100), `note`. Name/image snapshot from `recipes`, price from `servings`/`recipe_addons` (`resolveMealPrice`), subtotal/VAT recomputed server-side. Unknown/inactive recipe, invalid side, or bad qty → `400` (`OrderInputError`); client-sent price/name/image fields are ignored. Null-recipe items are rejected. Legacy rows keep their stored snapshots
 
 Checkpoint (all must pass before marking complete):
 - [x] Superseded draft migrations deleted (`20261022000001_recipe_sales_stats.sql`, `20261022000002_sales_rpc.sql`)
@@ -255,6 +257,9 @@ Checkpoint (all must pass before marking complete):
 - [x] `lib/orders/origin.ts` — `inferOrderOrigin`
 - [x] `lib/supabase/tables/orders.ts` — `CreateOrderInput.origin`, `createOrder` stores it, `listOrders` filters by it
 - [x] `app/api/orders/route.ts` — POST infers origin, GET accepts `?origin=`
+- [x] GET `?phone=` + `?limit=` filters (`lib/supabase/tables/orders.ts` `listOrders`, route validation)
+- [x] Trimmed POST payload — `CreateOrderItemInput` = `recipe_id`/`addon_recipe_id`/`qty`/`note`; `createOrder` validates recipe + qty and snapshots name/image/price from DB; `OrderInputError` → 400; callers trimmed (`components/landing/CartDialog.tsx`, `app/(authenticated)/employee/orders/page.tsx`)
+- [x] Verified live: spoofed `name`/`unit_price_cents`/`image_path` ignored (DB values stored), 400s for unknown recipe / missing recipe_id / qty 0 / bad addon / empty items, GET `phone`+`limit` filters work; `npx tsc --noEmit` clean, eslint 0 errors
 - [x] `lib/supabase/tables/sales.ts` — `getSalesSummary`
 - [x] `app/api/sales/route.ts` — staff-only `GET` (401 unauthenticated, 403 non-staff)
 - [x] `chatbot/whatsapp-system-context.xml` — bot instructed to send `x-bot-secret`
