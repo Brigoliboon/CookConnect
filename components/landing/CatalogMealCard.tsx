@@ -41,11 +41,7 @@ const catColors: Record<string, string> = {
   soup: "bg-cat-soup",
 }
 
-const catBgs: Record<string, string> = {
-  salad: "/meal-backgrounds/salad.jpg",
-}
-
-const defaultBg = "/meal-backgrounds/meal.jpg"
+const defaultBg = "/menu-bg/menu-bg-640.webp"
 
 interface CatalogMealCardProps {
   id: string
@@ -111,7 +107,7 @@ export function CatalogMealCard({
     >
       <div
         className="relative h-28 w-full overflow-hidden bg-neutral-100 sm:h-32"
-        style={{ backgroundImage: `url(${catBgs[category] ?? defaultBg})`, backgroundSize: "cover", backgroundPosition: "center" }}
+        style={{ backgroundImage: `url(${defaultBg})`, backgroundSize: "cover", backgroundPosition: "center" }}
       >
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative h-28 w-28 overflow-hidden sm:h-26 sm:w-26">

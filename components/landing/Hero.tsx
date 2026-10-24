@@ -27,8 +27,9 @@ export function Hero() {
 
   return (
     <section className="relative min-h-[122vh] overflow-hidden max-h-[122vh] bg-black max-sm:min-h-screen">
-      {/* Static WebP (see tools/optimize-hero-images.mjs): decorative art must
-          not spend the metered image optimizer or preload ahead of the LCP. */}
+      {/* Static WebP (see tools/optimize-hero-images.mjs): avoids the metered
+          /_next/image pipeline. React SSR emits an eager <link rel="preload">
+          for both images below, which now resolves to immutable static files. */}
       <img
         src="/hero/bg-1000.webp"
         srcSet="/hero/bg-640.webp 640w, /hero/bg-1000.webp 1000w"
