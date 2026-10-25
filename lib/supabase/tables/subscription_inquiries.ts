@@ -32,6 +32,17 @@ export async function listSubscriptionInquiries(
   return (data ?? []) as SubscriptionInquiry[]
 }
 
+export async function countSubscriptionInquiries(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+): Promise<number> {
+  const { count, error } = await supabase
+    .from("subscription_inquiries")
+    .select("id", { count: "exact", head: true })
+
+  if (error) throw error
+  return count ?? 0
+}
+
 export async function createSubscriptionInquiry(
   supabase: import("@supabase/supabase-js").SupabaseClient,
   input: CreateSubscriptionInquiryInput,

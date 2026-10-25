@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { MapboxMap } from "@/components/ui/MapboxMap"
 import { SUBSCRIPTIONS } from "@/constants"
-import { Package, Truck, UserPlus, ClipboardList, Receipt, LayoutDashboard, ChefHat, type LucideIcon } from "lucide-react"
+import { Package, Truck, UserPlus, ClipboardList, Store, LayoutDashboard, ChefHat, type LucideIcon } from "lucide-react"
 import { StatCard, WeeklyMenu, QuickActionCard } from "@/components/ui"
 import { PopularMealsChart, CarbPreferenceChart, RestrictionsChart, GoalsChart } from "@/components/charts"
 
@@ -54,9 +54,20 @@ function parseOrderLocation(location: unknown): { lat: number; lng: number } | n
   }
 }
 
+interface DashboardStats {
+  pendingOrders: number
+  pendingSubscriptions: number
+  readyForPickup: number
+  outForDelivery: number
+}
+
 export default function EmployeeDashboardPage() {
-  const [activeOrders, setActiveOrders] = useState(0)
-  const [pendingOrders, setPendingOrders] = useState(0)
+  const [stats, setStats] = useState<DashboardStats>({
+    pendingOrders: 0,
+    pendingSubscriptions: 0,
+    readyForPickup: 0,
+    outForDelivery: 0,
+  })
   const [orders, setOrders] = useState<DashboardOrder[]>([])
 
   useEffect(() => {
@@ -71,11 +82,18 @@ export default function EmployeeDashboardPage() {
         if (!res.ok) throw new Error(data.error ?? "Failed to fetch map orders")
         return data as DashboardOrder[]
       }),
+      fetch("/api/nav-counts")
+        .then(async (res) => (res.ok ? (await res.json()) as { subscriptions?: number } : { subscriptions: 0 }))
+        .catch(() => ({ subscriptions: 0 })),
     ])
-      .then(([all, located]) => {
+      .then(([all, located, nav]) => {
         setOrders(located)
-        setActiveOrders(all.filter((o) => !["cancelled", "delivered"].includes(o.status)).length)
-        setPendingOrders(all.filter((o) => o.status === "inquiry").length)
+        setStats({
+          pendingOrders: all.filter((o) => o.status === "inquiry").length,
+          pendingSubscriptions: Number(nav.subscriptions ?? 0),
+          readyForPickup: all.filter((o) => o.status === "ready_for_pickup").length,
+          outForDelivery: all.filter((o) => o.status === "out_for_delivery").length,
+        })
       })
       .catch((e) => console.error("[DASHBOARD] Orders fetch error:", e.message || e))
   }, [])
@@ -109,10 +127,10 @@ export default function EmployeeDashboardPage() {
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard icon={Package as LucideIcon} label="Pending Orders" value={pendingOrders} />
-          <StatCard icon={ClipboardList as LucideIcon} label="Active Subscriptions" value={SUBSCRIPTIONS.length} />
-          <StatCard icon={Truck as LucideIcon} label="Confirmed Orders" value={orders.filter((o) => o.status === "confirmed").length} />
-          <StatCard icon={Receipt as LucideIcon} label="Active Orders" value={activeOrders} />
+          <StatCard icon={Package as LucideIcon} label="Pending Orders" value={stats.pendingOrders} />
+          <StatCard icon={ClipboardList as LucideIcon} label="Pending Subscriptions" value={stats.pendingSubscriptions} />
+          <StatCard icon={Store as LucideIcon} label="Ready for Pickup" value={stats.readyForPickup} />
+          <StatCard icon={Truck as LucideIcon} label="Out for Delivery" value={stats.outForDelivery} />
         </div>
       </motion.div>
 

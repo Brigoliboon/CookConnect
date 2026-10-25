@@ -227,6 +227,19 @@ export async function createOrder(
   return { ...order, items: itemsWithAddons }
 }
 
+export async function countOrdersByStatus(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  status: OrderStatus,
+): Promise<number> {
+  const { count, error } = await supabase
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("status", status)
+
+  if (error) throw error
+  return count ?? 0
+}
+
 export async function updateOrderStatus(
   supabase: import("@supabase/supabase-js").SupabaseClient,
   id: string,
