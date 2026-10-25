@@ -41,8 +41,8 @@ export const NAP = {
   city: "Ajman",
   country: "UAE",
   full: "Sheikh Zayed Street, Al Hamidiya 1, Ajman, UAE",
-  phone: "+971556634050",
-  phoneHref: "tel:+971556634050",
+  phone: "+971 56 335 6051",
+  phoneHref: "tel:+971563356051",
   email: "cookconnectrestaurant@gmail.com",
   hours: "Sat–Thu, 8:00 AM – 10:00 PM",
   license: "77454",
@@ -60,7 +60,7 @@ export const GEO = {
 export const SOCIALS = {
   instagram: "https://www.instagram.com/cookconnectrestaurant",
   facebook: "https://www.facebook.com/cookConnectLLC",
-  whatsapp: "https://wa.me/971556634050",
+  whatsapp: "https://wa.me/971563356051",
 } as const;
 
 export const OG_IMAGE_EN = `${SITE_URL}/ogg-banner_en.png`;

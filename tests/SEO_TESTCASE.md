@@ -26,7 +26,7 @@ Domain: https://cookconnectae.com/ — en canonical at `/`, ar at `/ar`. GSC ver
 - [ ] title en ≠ title ar (localized from `SITE_META` in `lib/seo.ts`; `messages/*/meta` is unused)
 
 ## T5 — JSON-LD
-- [ ] Landing HTML contains `Restaurant` schema: name `Cook Connect Restaurant LLC`, phone `+971556634050`, address Ajman, geo 25.3969036/55.5220053, hours Sat–Thu 08:00–22:00, sameAs IG/FB/WA
+- [ ] Landing HTML contains `Restaurant` schema: name `Cook Connect Restaurant LLC`, phone `+971 56 335 6051`, address Ajman, geo 25.3969036/55.5220053, hours Sat–Thu 08:00–22:00, sameAs IG/FB/WA
 - [ ] Validate at validator.schema.org — 0 errors
 
 ## T6 — NAP consistency

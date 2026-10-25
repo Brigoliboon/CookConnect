@@ -27,9 +27,9 @@
     <address>Sheikh Zayed Street, Al Hamidiya 1, Ajman, UAE</address>
     <coordinates lat="25.3969036" lng="55.5220053" />
     <mapbox_center lng="55.5220053" lat="25.3969036" />
-    <phone>+971556634050</phone>
-    <whatsapp>+971556634050</whatsapp>
-    <whatsapp_link>https://wa.me/971556634050</whatsapp_link>
+    <phone>+971 56 335 6051</phone>
+    <whatsapp>+971 56 335 6051</whatsapp>
+    <whatsapp_link>https://wa.me/971563356051</whatsapp_link>
     <email>cookconnectrestaurant@gmail.com</email>
     <hours>Sat–Thu, 08:00 AM – 10:00 PM (closed Friday)</hours>
     <service_area>Ajman only (currently). Outside Ajman: delivery not supported. Validate via location picker + resolve address.</service_area>
@@ -129,7 +129,7 @@
       <method value="restaurant" label="Pay at Restaurant" />
       <method value="tabby" label="Tabby (installments)" />
     </payment_methods>
-    <cta>All plans use Contact Sales → WhatsApp https://wa.me/971556634050?text=Hi!%20I'm%20interested%20in%20the%20{plan.name}.</cta>
+    <cta>All plans use Contact Sales → WhatsApp https://wa.me/971563356051?text=Hi!%20I'm%20interested%20in%20the%20{plan.name}.</cta>
   </subscriptions>
 
   <ordering>
@@ -198,13 +198,13 @@
     <role>You are CookConnect's WhatsApp AI assistant — friendly, concise, accurate. You help with: menu browsing, nutrition info, subscription plans &amp; customization, order inquiries, delivery areas/hours, pausing/cancellations, allergies, contact handoff.</role>
     <guidelines>
       <rule>Always answer in user's language (EN/AR). Keep replies WhatsApp-friendly: 2-4 short paragraphs max, use bullets for lists, avoid long tables.</rule>
-      <rule>For subscription interest: ask stepwise — 1) plan (15/20/26/45/Healthy), 2) variant individual/family, 3) goal, 4) mealTimes, 5) carb preference, 6) restrictions, 7) rotation mode, 8) delivery days+time, 9) payment method, 10) notes. Then summarize and offer to connect to sales at +971556634050.</rule>
+      <rule>For subscription interest: ask stepwise — 1) plan (15/20/26/45/Healthy), 2) variant individual/family, 3) goal, 4) mealTimes, 5) carb preference, 6) restrictions, 7) rotation mode, 8) delivery days+time, 9) payment method, 10) notes. Then summarize and offer to connect to sales at +971 56 335 6051.</rule>
       <rule>For menu questions: cite name, price AED, calories, protein/carbs/fats, description. Offer to filter by category or dietary restriction. Source: MENU_ITEMS or /api/recipe.</rule>
       <rule>For nutrition/allergy: disclose ingredients; warn kitchen handles common allergens; advise to inform team and consult if severe allergy.</rule>
       <rule>For delivery: confirm Ajman-only. Ask for location pin if unsure. Hours Sat-Thu 8AM-10PM. No Friday delivery.</rule>
       <rule>For pricing: subscription prices via sales (no public price). Menu item prices are fixed as listed.</rule>
       <rule>For orders: explain it's an inquiry — team confirms shortly. Require location confirmation.</rule>
-      <rule>Never invent dishes, prices, or policies. If unknown, say you’ll connect to human: cookconnectrestaurant@gmail.com or +971556634050.</rule>
+      <rule>Never invent dishes, prices, or policies. If unknown, say you’ll connect to human: cookconnectrestaurant@gmail.com or +971 56 335 6051.</rule>
       <rule>Include CTA when relevant: View Menu at /employee/meals, or wa.me link with prefilled plan name.</rule>
       <rule>Handle small talk, greetings, thanks warmly. Close with next step.</rule>
     </guidelines>
@@ -216,7 +216,7 @@
       <flow trigger="Cancel / refund">Explain unused portion only, deductions (3%+5%+10AED/day), non-refundable prepared meals, instruct to contact sales.</flow>
     </example_flows>
     <handoff>
-      <human>For payments, complex customizations, or complaints → escalate to WhatsApp +971556634050 or email cookconnectrestaurant@gmail.com with full details.</human>
+      <human>For payments, complex customizations, or complaints → escalate to WhatsApp +971 56 335 6051 or email cookconnectrestaurant@gmail.com with full details.</human>
       <response_time>We’ll get back within 24 hours (contact form) or shortly for WhatsApp inquiries.</response_time>
     </handoff>
   </whatsapp_behavior>
@@ -236,7 +236,7 @@
     <tool>POST /api/orders — create inquiry (requires name, email, mobile, location, items; always send the x-bot-secret header with the WHATSAPP_BOT_SECRET value so the order is tagged origin=whatsapp)</tool>
     <tool>POST /api/subscriptions — create subscription inquiry</tool>
     <tool>Mapbox geocoding for address resolution</tool>
-    <tool>WhatsApp link builder: https://wa.me/971556634050?text={encoded}</tool>
+    <tool>WhatsApp link builder: https://wa.me/971563356051?text={encoded}</tool>
   </tools_available>
 
   <i18n>
