@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button, Modal, Select, SubscriptionDialog } from "@/components/ui"
-import { PAYMENT_METHODS } from "@/constants"
-import { Plus, ClipboardList, X } from "lucide-react"
+import { PAYMENT_METHODS, SUBSCRIPTION_PLANS } from "@/constants"
+import { Copy, Link2, Plus, X } from "lucide-react"
 import { SubscriptionForm } from "@/components/subscription/SubscriptionForm"
 
 interface SubscriptionRow {
@@ -58,6 +58,44 @@ export default function EmployeeSubscriptionsPage() {
   const [payMethod, setPayMethod] = useState("bank-transfer")
   const [payRef, setPayRef] = useState("")
   const [payMap, setPayMap] = useState<Record<string, { paid: number; total: number | null }>>({})
+  const [showInvite, setShowInvite] = useState(false)
+  const [invitePlan, setInvitePlan] = useState(SUBSCRIPTION_PLANS[0].id)
+  const [inviteDays, setInviteDays] = useState("14")
+  const [inviteLink, setInviteLink] = useState("")
+  const [inviteError, setInviteError] = useState("")
+  const [inviteLoading, setInviteLoading] = useState(false)
+  const [inviteCopied, setInviteCopied] = useState(false)
+
+  async function handleGenerateInvite() {
+    setInviteLoading(true)
+    setInviteError("")
+    setInviteLink("")
+    setInviteCopied(false)
+    try {
+      const res = await fetch("/api/subscription-invites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: invitePlan, expiresInDays: Number(inviteDays) }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Failed to generate invite link")
+      setInviteLink(data.url as string)
+    } catch (e) {
+      setInviteError(e instanceof Error ? e.message : "Failed to generate invite link")
+    } finally {
+      setInviteLoading(false)
+    }
+  }
+
+  async function copyInviteLink() {
+    if (!inviteLink) return
+    try {
+      await navigator.clipboard.writeText(inviteLink)
+      setInviteCopied(true)
+    } catch {
+      setInviteError("Could not copy. Select the link manually.")
+    }
+  }
 
   async function fetchSubscriptions() {
     try {
@@ -251,10 +289,16 @@ export default function EmployeeSubscriptionsPage() {
           <h1 className="font-playfair mt-2 text-3xl font-medium text-neutral-900 sm:text-4xl">Subscriptions</h1>
           <p className="font-nunito mt-2 text-sm text-neutral-500">Review inquiries or manage existing subscriptions.</p>
         </div>
-        <Button onClick={() => { resetForm(); setShowForm(true) }}>
-          <Plus size={16} />
-          New Subscription
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => { setShowInvite(true); setInviteLink(""); setInviteError(""); setInviteCopied(false) }}>
+            <Link2 size={16} />
+            Invite link
+          </Button>
+          <Button onClick={() => { resetForm(); setShowForm(true) }}>
+            <Plus size={16} />
+            New Subscription
+          </Button>
+        </div>
       </div>
 
       <div>
@@ -379,6 +423,59 @@ export default function EmployeeSubscriptionsPage() {
         payments={payMap}
         onPaymentsChanged={refreshPayMap}
       />
+
+      <Modal
+        open={showInvite}
+        onClose={() => setShowInvite(false)}
+        title="Create invite link"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-neutral-500">
+            Send this link to a customer. They will complete the progressive onboarding form for the selected plan.
+          </p>
+          <Select
+            label="Plan"
+            options={SUBSCRIPTION_PLANS.map((plan) => ({ label: plan.name, value: plan.id }))}
+            value={invitePlan}
+            onChange={(e) => setInvitePlan(e.target.value)}
+          />
+          <div>
+            <label className="mb-1 block text-sm font-medium text-neutral-700">Valid for (days)</label>
+            <input
+              type="number"
+              min={1}
+              max={365}
+              value={inviteDays}
+              onChange={(e) => setInviteDays(e.target.value)}
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-900"
+            />
+          </div>
+          {inviteError && <p className="text-sm text-red-500">{inviteError}</p>}
+          {inviteLink && (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-neutral-700">Share this link</label>
+              <textarea
+                readOnly
+                value={inviteLink}
+                rows={3}
+                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600"
+              />
+              <Button variant="outline" onClick={copyInviteLink} className="w-full">
+                <Copy size={15} />
+                {inviteCopied ? "Copied" : "Copy link"}
+              </Button>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={() => setShowInvite(false)} className="flex-1">
+              Close
+            </Button>
+            <Button onClick={handleGenerateInvite} disabled={inviteLoading} className="flex-1">
+              {inviteLoading ? "Generating..." : inviteLink ? "Regenerate" : "Generate link"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <AnimatePresence>
         {showForm && (

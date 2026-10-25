@@ -25,9 +25,7 @@ const MealDetailDialog = dynamic(
 
 const PAGE_SIZE = 24
 
-/** Checkout links (?ids=&checkout=) add to cart once per param value, even under StrictMode. */
-const completedCheckouts = new Set<string>()
-
+/** Checkout links (?ids=&checkout=) add to cart once per mount, even under StrictMode. */
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   visible: (i = 0) => ({
@@ -222,6 +220,7 @@ function CatalogContent({
   const [minPrice, setMinPrice] = useState("")
   const [maxPrice, setMaxPrice] = useState("")
   const [selected, setSelected] = useState<DialogMeal | null>(null)
+  const checkoutHandledRef = useRef<string | null>(null)
 
   const activeCat = categories.find((c) => c.id === activeCategory)
   const hasActiveFilters = search !== "" || activeCategory !== "all" || sort !== "default" || minCal !== "" || maxCal !== "" || minPrice !== "" || maxPrice !== ""
@@ -275,8 +274,8 @@ function CatalogContent({
 
   useEffect(() => {
     if (!checkoutRequested || loading || loadingMore || menuItems.length === 0 || hasMore) return
-    if (completedCheckouts.has(sharedIdsKey)) return
-    completedCheckouts.add(sharedIdsKey)
+    if (checkoutHandledRef.current === sharedIdsKey) return
+    checkoutHandledRef.current = sharedIdsKey
     const cart = getCart()
     for (const item of menuItems) {
       const firstServing = item.servings[0]

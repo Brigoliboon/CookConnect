@@ -173,7 +173,7 @@ Schema already deployed (`lib/supabase/models.ts` is the source of truth). Verif
 - `subscription_plans`: name, validity_days, price_cents, currency, details, is_active
 - `subscriptions.customer_id` → `accounts.id` (user link), `subscriptions.subscription_plan_id` → `subscription_plans.id`
 - status `active`/`cancelled`, `started_at`/`expires_at`/`cancelled_at`
-- Flow: customer views plans → inquiry (table not created yet) → sales creates subscription
+- Flow: customer views plans → `/subscription-onboarding` inquiry → sales reviews/approves → subscription created
 
 Checkpoint (all must pass before marking complete):
 - [x] `lib/supabase/tables/subscription_plans.ts` — `listActivePlans`
@@ -181,9 +181,13 @@ Checkpoint (all must pass before marking complete):
 - [x] `app/api/subscription-plans/route.ts` — GET active plans
 - [x] `app/api/subscriptions/route.ts` — GET list, POST create (maps exclusion/unique violations → 409)
 - [x] `app/api/subscriptions/[id]/route.ts` — PATCH cancel (DELETE removed; no hard-delete)
-- [x] Testcase file: `tests/SUBSCRIPTIONS_BACKEND_TESTCASE.md` (+ Postman collection)
-- [x] Lint + typecheck pass
+- [x] `/subscription-onboarding` progressive form (Plan → Details → Preferences → Meals → Delivery → Review); legacy `/subscription` redirects preserving `plan` + `token`
+- [x] Signed invite token (`lib/subscription/invite-token.ts`) with expiry + plan binding; validated by `GET /api/subscription-invites/validate` and enforced again on inquiry submit
+- [x] `POST /api/subscription-invites` (employee/admin) + invite-link modal on `/employee/subscriptions`
+- [x] Testcases: `tests/SUBSCRIPTIONS_BACKEND_TESTCASE.md`, `tests/SUBSCRIPTION_ONBOARDING_TESTCASE.md`
+- [x] Lint + typecheck + build pass
 - [ ] **Pending:** Postman verification of `tests/SUBSCRIPTIONS_BACKEND_TESTCASE.md` (P1–P2, S1–S7) + RLS checks across customer/employee/anonymous sessions
+- [ ] **Pending:** Run `tests/SUBSCRIPTION_ONBOARDING_TESTCASE.md` authenticated API + manual UI checks
 
 ### Module 9: Public Landing — Arabic (i18n) — ✅ Complete
 

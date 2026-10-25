@@ -72,7 +72,7 @@ export function Subscription() {
                 </ul>
                 <div className="mt-auto pt-8">
                   <Link
-                    href={`/subscription?plan=${plan.id}`}
+                    href={`/subscription-onboarding?plan=${plan.id}`}
                     className={`font-nunito flex w-full items-center justify-center rounded-xl py-3.5 text-sm font-semibold transition-all duration-300 ${
                       isHealthy
                         ? "bg-white text-brand-900 hover:bg-neutral-100"
