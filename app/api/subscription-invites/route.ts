@@ -1,6 +1,9 @@
+import { cookies } from "next/headers"
 import { getCurrentUser } from "@/lib/auth"
 import { SUBSCRIPTION_PLANS } from "@/constants/subscriptions"
 import { createSubscriptionInviteToken } from "@/lib/subscription/invite-token"
+import { createClient } from "@/utils/supabase/server"
+import { getSubscriptionPlanRate } from "@/lib/supabase/tables/subscription_plan_rates"
 
 function checkBotRequest(request: Request): "authorized" | "missing-secret" | "invalid" | "none" {
   const provided = request.headers.get("x-bot-secret")
@@ -78,6 +81,32 @@ export async function POST(request: Request) {
   }
 
   try {
+    if (botAuthorized) {
+      if (mealsPerDay === undefined) {
+        return Response.json({ error: "meals_per_day is required for bot invitations" }, { status: 400 })
+      }
+      if (priceCents === undefined) {
+        return Response.json({ error: "price_cents is required for bot invitations" }, { status: 400 })
+      }
+
+      const cookieStore = await cookies()
+      const supabase = createClient(cookieStore)
+      const rate = await getSubscriptionPlanRate(supabase, plan.id, mealsPerDay)
+      if (!rate) {
+        return Response.json(
+          { error: `No active rate for ${plan.id} at ${mealsPerDay} meals/day` },
+          { status: 400 },
+        )
+      }
+      const allowedPrices = [rate.list_price_cents, ...rate.counter_offers_cents]
+      if (!allowedPrices.includes(priceCents)) {
+        return Response.json(
+          { error: `price_cents is not a configured rate for ${plan.id} at ${mealsPerDay} meals/day` },
+          { status: 400 },
+        )
+      }
+    }
+
     const { token, expiresAt } = createSubscriptionInviteToken(plan.id, expiresInDays, {
       agreedPriceCents: priceCents,
       basePriceCents,

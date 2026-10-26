@@ -349,6 +349,34 @@ the restaurant binds the bot-signed price and never re-derives it.
 
 ---
 
+### Module 14: Backend-Owned Subscription Rates — ⏳ In Progress
+
+The bot must look up `plan slug + meals/day` and receive the price from the
+restaurant backend instead of reading `config/subscriptions.json`.
+
+**Decisions:**
+- `subscription_plan_rates` is the price source of truth: one row per
+  `(subscription_plan_id, meals_per_day)` with list/floor/counter offers in cents.
+- `GET /api/subscription-rates?plan=<slug>&meals_per_day=<1-5>` is public read
+  (RLS select policy for active rates).
+- Bot `get_subscription_offer` and `subscription_signup_link` call that endpoint;
+  `get_subscription_plans` no longer exposes `list_price`.
+- Bot-created invites are validated against the backend rate before a token is
+  issued; staff-created invites keep arbitrary positive pricing.
+- `standard-6` and `standard-30` are seeded as duration plans.
+
+**Checkpoint:**
+- [x] Testcase file: `tests/SUBSCRIPTION_RATES_TESTCASE.md`
+- [x] Migration/seed SQL supplied and applied (31 rate rows; anon SELECT verified)
+- [x] `lib/supabase/tables/subscription_plan_rates.ts`
+- [x] `app/api/subscription-rates/route.ts`
+- [x] Bot `get_subscription_offer` / `subscription_signup_link` use the endpoint
+- [x] Bot payload still maps to `plan_slug` + `meals_per_day`
+- [x] `npx tsc --noEmit` clean; eslint clean on changed files; `node --check` clean
+- [ ] Live bot → `/api/subscription-rates` round-trip after deploy
+
+---
+
 ## Gaps / Next Steps
 
 1. **Supabase Auth** — wire signIn/signOut, session management, role-based redirects
