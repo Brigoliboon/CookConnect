@@ -139,7 +139,7 @@ app/
 
 ### Module 4: Employee Module — ✅ UI Complete (no API)
 
-- `/employee` dashboard with stats, map, StatusGallery — done; stat cards now show Pending Orders, Pending Subscriptions, Ready for Pickup, and Out for Delivery, fed by `GET /api/orders` + `GET /api/nav-counts`
+- `/employee` dashboard — live dashboard with collapsible sections (Needs attention, Performance, Quick actions, Operations, Sales performance). Needs attention uses `GET /api/nav-counts`; Performance uses `GET /api/sales` (current + previous range) and `GET /api/subscriptions`; pipeline uses `GET /api/dashboard/pipeline`; delivery map uses `GET /api/dashboard/map`; revenue trend, origin split, top meals, top plans come from the current sales summary; subscriber overview comes from `GET /api/subscriptions`. Today/7D/30D range applies to sales panels.
 - `/employee/customers` table with search, icons — done
 - `/employee/customers/[id]` detail/edit page — done
 - `/employee/subscriptions` gallery + create form — done

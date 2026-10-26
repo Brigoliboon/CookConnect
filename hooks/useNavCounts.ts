@@ -17,7 +17,7 @@ async function fetchNavCounts(url: string): Promise<NavCounts> {
 }
 
 export function useNavCounts(enabled = true) {
-  const { data } = useSWR<NavCounts>(enabled ? NAV_COUNTS_URL : null, fetchNavCounts, {
+  const { data, isLoading } = useSWR<NavCounts>(enabled ? NAV_COUNTS_URL : null, fetchNavCounts, {
     refreshInterval: 30_000,
     revalidateOnFocus: true,
     dedupingInterval: 5_000,
@@ -26,5 +26,6 @@ export function useNavCounts(enabled = true) {
   return {
     orders: data?.orders ?? 0,
     subscriptions: data?.subscriptions ?? 0,
+    loading: isLoading,
   }
 }
