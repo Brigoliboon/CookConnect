@@ -26,6 +26,8 @@ Run date: TBD · `npx tsc --noEmit` · `npm run lint`
 - [ ] **V7** Unknown `plan` → 400
 - [ ] **V8** Employee/admin cookie flow still works without bot header
 - [ ] **V9** Response never echoes `SUBSCRIPTION_INVITE_SECRET` / service key
+- [ ] **V10** Employee dialog with a price → 201 and the generated token carries `agreedPriceCents`
+- [ ] **V11** Employee dialog with a blank price → unpriced invite (legacy behaviour)
 
 ## G — Validate endpoint
 

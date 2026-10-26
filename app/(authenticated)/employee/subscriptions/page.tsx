@@ -75,6 +75,7 @@ export default function EmployeeSubscriptionsPage() {
   const [showInvite, setShowInvite] = useState(false)
   const [invitePlan, setInvitePlan] = useState(SUBSCRIPTION_PLANS[0].id)
   const [inviteDays, setInviteDays] = useState("14")
+  const [invitePrice, setInvitePrice] = useState("")
   const [inviteLink, setInviteLink] = useState("")
   const [inviteError, setInviteError] = useState("")
   const [inviteLoading, setInviteLoading] = useState(false)
@@ -85,11 +86,23 @@ export default function EmployeeSubscriptionsPage() {
     setInviteError("")
     setInviteLink("")
     setInviteCopied(false)
+
+    const priceCents = invitePrice.trim() ? Math.round(Number(invitePrice) * 100) : undefined
+    if (priceCents !== undefined && (!Number.isFinite(priceCents) || priceCents <= 0)) {
+      setInviteError("Price must be a positive amount.")
+      setInviteLoading(false)
+      return
+    }
+
     try {
       const res = await fetch("/api/subscription-invites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: invitePlan, expiresInDays: Number(inviteDays) }),
+        body: JSON.stringify({
+          plan: invitePlan,
+          expiresInDays: Number(inviteDays),
+          ...(priceCents !== undefined ? { price_cents: priceCents } : {}),
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Failed to generate invite link")
@@ -304,7 +317,7 @@ export default function EmployeeSubscriptionsPage() {
           <p className="font-nunito mt-2 text-sm text-neutral-500">Review inquiries or manage existing subscriptions.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => { setShowInvite(true); setInviteLink(""); setInviteError(""); setInviteCopied(false) }}>
+          <Button variant="outline" onClick={() => { setShowInvite(true); setInviteLink(""); setInvitePrice(""); setInviteError(""); setInviteCopied(false) }}>
             <Link2 size={16} />
             Invite link
           </Button>
@@ -465,6 +478,18 @@ export default function EmployeeSubscriptionsPage() {
             value={invitePlan}
             onChange={(e) => setInvitePlan(e.target.value)}
           />
+          <div>
+            <label className="mb-1 block text-sm font-medium text-neutral-700">Price (AED, optional)</label>
+            <input
+              type="number"
+              min={0}
+              step={0.5}
+              value={invitePrice}
+              onChange={(e) => setInvitePrice(e.target.value)}
+              placeholder="Leave blank for no fixed price"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-900"
+            />
+          </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-neutral-700">Valid for (days)</label>
             <input
