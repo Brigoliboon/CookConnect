@@ -23,15 +23,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     payment = {}
   }
 
-  if (payment.total_cents === undefined || payment.total_cents === null || Number(payment.total_cents) < 0) {
-    return Response.json({ error: "total_cents is required" }, { status: 400 })
-  }
-  const totalCents = Math.round(Number(payment.total_cents))
-  const amountCents = Math.round(Number(payment.amount_cents ?? 0))
-  if (!Number.isFinite(totalCents) || !Number.isFinite(amountCents) || amountCents < 0 || amountCents > totalCents) {
-    return Response.json({ error: "amount_cents must be between 0 and total_cents" }, { status: 400 })
-  }
-
   const { data: inquiry, error: inqError } = await supabase
     .from("subscription_inquiries")
     .select("*")
@@ -44,19 +35,46 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const row = inquiry as Record<string, unknown>
   const details = (row.details as Record<string, unknown>) ?? {}
+  const invite = (details.invite as Record<string, unknown> | undefined) ?? {}
+  const agreedPriceCents =
+    typeof invite.agreedPriceCents === "number" && Number.isInteger(invite.agreedPriceCents) && invite.agreedPriceCents > 0
+      ? invite.agreedPriceCents
+      : null
+
+  let totalCents: number
+  if (payment.total_cents === undefined || payment.total_cents === null) {
+    if (agreedPriceCents === null) {
+      return Response.json({ error: "total_cents is required" }, { status: 400 })
+    }
+    totalCents = agreedPriceCents
+  } else {
+    totalCents = Math.round(Number(payment.total_cents))
+    if (!Number.isFinite(totalCents) || totalCents < 0) {
+      return Response.json({ error: "total_cents is invalid" }, { status: 400 })
+    }
+    if (agreedPriceCents !== null && totalCents !== agreedPriceCents) {
+      return Response.json(
+        { error: `total_cents must match the agreed price (AED ${(agreedPriceCents / 100).toFixed(2)})` },
+        { status: 400 },
+      )
+    }
+  }
+
+  const amountCents = Math.round(Number(payment.amount_cents ?? 0))
+  if (!Number.isFinite(amountCents) || amountCents < 0 || amountCents > totalCents) {
+    return Response.json({ error: "amount_cents must be between 0 and total_cents" }, { status: 400 })
+  }
 
   const customerId: string | null = null
 
   const validityDays = PLAN_DAYS[row.plan_id as string] ?? 30
-  const { data: plan, error: planError } = await supabase
+  const { data: plan } = await supabase
     .from("subscription_plans")
     .select("id, validity_days, is_active")
     .eq("validity_days", validityDays)
     .eq("is_active", true)
     .limit(1)
     .maybeSingle()
-
-  console.log("[APPROVE] plan lookup:", { planId: row.plan_id, validityDays, plan, planError: planError?.message })
 
   const planRow = plan as { id: string } | null
   if (!planRow) {
@@ -78,6 +96,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         location: (row.location as { lat: number; lng: number } | null) ?? null,
         total_cents: totalCents,
         ...(details as Record<string, unknown>),
+        ...(agreedPriceCents !== null ? { agreed_price_cents: agreedPriceCents } : {}),
       },
     })
     if (amountCents > 0) {

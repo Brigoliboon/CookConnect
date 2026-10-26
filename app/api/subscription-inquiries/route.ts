@@ -48,13 +48,21 @@ export async function POST(request: Request) {
     return Response.json({ error: "plan_id, name, mobile_number and address are required" }, { status: 400 })
   }
 
-  let inviteExpiresAt: string | undefined
+  let verifiedInvite:
+    | {
+        expiresAt?: string
+        agreedPriceCents?: number
+        basePriceCents?: number
+        concession?: string
+        currency?: string
+      }
+    | undefined
   if (body.invite_token) {
     const invite = verifySubscriptionInviteToken(body.invite_token, body.plan_id)
     if (!invite.valid) {
       return Response.json({ error: invite.error ?? "Invalid invitation token" }, { status: 400 })
     }
-    inviteExpiresAt = invite.expiresAt
+    verifiedInvite = invite
   }
 
   try {
@@ -75,7 +83,22 @@ export async function POST(request: Request) {
         days: body.days ?? [],
         slots: (body.slots ?? ["morning"]).filter((s) => ["morning", "noon", "evening"].includes(s)),
         onCall: body.onCall ?? false,
-        ...(inviteExpiresAt ? { invite: { verified: true, expiresAt: inviteExpiresAt } } : {}),
+        ...(verifiedInvite
+          ? {
+              invite: {
+                verified: true,
+                expiresAt: verifiedInvite.expiresAt,
+                ...(verifiedInvite.agreedPriceCents !== undefined
+                  ? { agreedPriceCents: verifiedInvite.agreedPriceCents }
+                  : {}),
+                ...(verifiedInvite.basePriceCents !== undefined
+                  ? { basePriceCents: verifiedInvite.basePriceCents }
+                  : {}),
+                ...(verifiedInvite.concession ? { concession: verifiedInvite.concession } : {}),
+                ...(verifiedInvite.currency ? { currency: verifiedInvite.currency } : {}),
+              },
+            }
+          : {}),
       },
     })
     return Response.json(data, { status: 201 })

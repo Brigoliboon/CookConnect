@@ -48,7 +48,15 @@ type StepId = "plan" | "details" | "preferences" | "meals" | "delivery" | "revie
 type InviteState =
   | { status: "none" }
   | { status: "checking" }
-  | { status: "valid"; plan: string; expiresAt: string }
+  | {
+      status: "valid"
+      plan: string
+      expiresAt: string
+      agreedPriceCents?: number
+      basePriceCents?: number
+      concession?: string
+      currency?: string
+    }
   | { status: "invalid"; message: string }
 
 const STEP_DEFS: { id: StepId; label: string }[] = [
@@ -143,6 +151,14 @@ export function SubscriptionForm({
       ? invite.plan
       : planParam
   const plan = SUBSCRIPTION_PLANS.find((p) => p.id === planId) ?? SUBSCRIPTION_PLANS[0]
+  const agreedPriceLabel =
+    !staffMode && invite.status === "valid" && typeof invite.agreedPriceCents === "number"
+      ? `${invite.currency ?? "AED"} ${(invite.agreedPriceCents / 100).toFixed(2)}`
+      : null
+  const basePriceLabel =
+    !staffMode && invite.status === "valid" && typeof invite.basePriceCents === "number"
+      ? `${invite.currency ?? "AED"} ${(invite.basePriceCents / 100).toFixed(2)}`
+      : null
 
   useEffect(() => {
     if (staffMode || !tokenParam) return
@@ -156,12 +172,24 @@ export function SubscriptionForm({
           valid?: boolean
           plan?: string
           expiresAt?: string
+          agreedPriceCents?: number
+          basePriceCents?: number
+          concession?: string
+          currency?: string
           error?: string
         }
         if (!res.ok || !data.valid || !data.plan || !data.expiresAt) {
           throw new Error(data.error ?? "This invitation link is invalid")
         }
-        setInvite({ status: "valid", plan: data.plan, expiresAt: data.expiresAt })
+        setInvite({
+          status: "valid",
+          plan: data.plan,
+          expiresAt: data.expiresAt,
+          ...(typeof data.agreedPriceCents === "number" ? { agreedPriceCents: data.agreedPriceCents } : {}),
+          ...(typeof data.basePriceCents === "number" ? { basePriceCents: data.basePriceCents } : {}),
+          ...(typeof data.concession === "string" ? { concession: data.concession } : {}),
+          ...(typeof data.currency === "string" ? { currency: data.currency } : {}),
+        })
       })
       .catch((err: unknown) => {
         if (err instanceof Error && err.name === "AbortError") return
@@ -529,6 +557,15 @@ export function SubscriptionForm({
                     </li>
                   ))}
                 </ul>
+                {agreedPriceLabel && (
+                  <div className="mt-4 rounded-2xl border border-brand-900/15 bg-brand-700/20 px-4 py-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-brand-900">Agreed price</p>
+                    <p className="mt-0.5 text-xl font-bold text-neutral-900">{agreedPriceLabel}</p>
+                    {basePriceLabel && basePriceLabel !== agreedPriceLabel && (
+                      <p className="mt-0.5 text-xs text-neutral-500">Special offer applied · list {basePriceLabel}</p>
+                    )}
+                  </div>
+                )}
                 {staffMode && (
                   <div className="mt-5 border-t border-brand-700/40 pt-5">
                     <h3 className="text-sm font-bold text-neutral-900">Change plan</h3>
@@ -891,6 +928,7 @@ export function SubscriptionForm({
                 <p className="text-sm text-neutral-500">Check everything below before accepting the service agreement.</p>
                 <div className="divide-y divide-brand-700/40 overflow-hidden rounded-2xl border border-brand-700/40 bg-white">
                   <SummaryRow label="Plan" value={`${plan.name} · ${plan.durationDays} days`} onEdit={() => goToStep("plan")} />
+                  {agreedPriceLabel && <SummaryRow label="Agreed price" value={agreedPriceLabel} onEdit={() => goToStep("plan")} />}
                   <SummaryRow label="Name" value={name} onEdit={() => goToStep("details")} />
                   <SummaryRow label="WhatsApp" value={`+971 ${sanitizeUaLocal(mobile)}`} onEdit={() => goToStep("details")} />
                   <SummaryRow label="Email" value={email || "Not provided"} onEdit={() => goToStep("details")} />

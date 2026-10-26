@@ -37,8 +37,22 @@ interface InquiryRow {
     slot?: string | null
     time?: string | null
     onCall?: boolean
+    invite?: {
+      verified?: boolean
+      expiresAt?: string
+      agreedPriceCents?: number
+      basePriceCents?: number
+      concession?: string
+      currency?: string
+    }
   }
   created_at: string
+}
+
+function agreedPriceLabel(details: InquiryRow["details"] | undefined): string | null {
+  const cents = details?.invite?.agreedPriceCents
+  if (typeof cents !== "number") return null
+  return `${details?.invite?.currency ?? "AED"} ${(cents / 100).toFixed(2)}`
 }
 
 export default function EmployeeSubscriptionsPage() {
@@ -327,7 +341,13 @@ export default function EmployeeSubscriptionsPage() {
                 <p className="font-nunito mt-1 text-xs text-neutral-500">{q.plan_id} · {q.mobile_number}</p>
                 <p className="font-nunito mt-0.5 line-clamp-1 text-xs text-neutral-400">{q.address}</p>
                 <button
-                  onClick={() => setInquiryId(q.id)}
+                  onClick={() => {
+                    setInquiryId(q.id)
+                    const cents = q.details?.invite?.agreedPriceCents
+                    setPayTotal(typeof cents === "number" ? (cents / 100).toFixed(2) : "")
+                    setPayAmount("")
+                    setPayRef("")
+                  }}
                   className="font-nunito mt-3 w-full border border-neutral-900 bg-neutral-900 py-2 text-xs font-semibold text-white transition-all hover:bg-neutral-800"
                 >
                   View Details
@@ -342,6 +362,12 @@ export default function EmployeeSubscriptionsPage() {
         {selectedInquiry && (
           <div className="space-y-3 text-sm">
             <div className="flex justify-between"><span className="text-neutral-500">Plan</span><span className="font-semibold">{selectedInquiry.plan_id}</span></div>
+            {agreedPriceLabel(selectedInquiry.details) && (
+              <div className="flex justify-between">
+                <span className="text-neutral-500">Agreed price</span>
+                <span className="font-semibold">{agreedPriceLabel(selectedInquiry.details)}</span>
+              </div>
+            )}
             <div className="flex justify-between"><span className="text-neutral-500">Mobile</span><span className="font-semibold">{selectedInquiry.mobile_number}</span></div>
             {selectedInquiry.email && <div className="flex justify-between"><span className="text-neutral-500">Email</span><span className="font-semibold">{selectedInquiry.email}</span></div>}
             <div><p className="text-neutral-500">Address</p><p className="font-medium">{selectedInquiry.address}</p></div>

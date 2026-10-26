@@ -309,6 +309,46 @@ Checkpoint (all must pass before marking complete):
 
 ---
 
+### Module 13: Negotiated Subscription Price in Invite Links — ⏳ In Progress
+
+Bot-quoted subscription prices must survive the hand-off to the web onboarding form
+and the staff approval step. The WhatsApp bot remains the pricing authority (option A);
+the restaurant binds the bot-signed price and never re-derives it.
+
+**Decisions (finalized):**
+- Pricing bounds/list/floor/counter-offers stay in the bot's `config/subscriptions.json`.
+- The bot authenticates to the invite API with `x-bot-secret` (`WHATSAPP_BOT_SECRET`),
+  matching the existing reminder/delivery bot endpoints.
+- The agreed amount is stored **inside the HMAC-signed invite token** as integer fils
+  (`agreed_price_cents`), plus `base_price_cents`, `concession`, `currency` (forced AED).
+- Legacy tokens without price fields remain valid (inquiry has no agreed price).
+- Onboarding only displays the agreed price; it never submits or lets the customer edit it.
+- `POST /api/subscription-inquiries` re-verifies the token and persists the price under
+  `details.invite`.
+- Approval defaults `total_cents` to the agreed price and rejects a mismatched amount
+  when an agreed price exists; inquiries without an agreed price keep today's behaviour.
+- Employee UI shows the agreed price and prefills the total field.
+
+**Modules:**
+1. `lib/subscription/invite-token.ts` — optional price fields in payload/result, validated.
+2. `app/api/subscription-invites/route.ts` — bot secret branch, price input, AED only.
+3. `app/api/subscription-invites/validate/route.ts` — already returns the result object.
+4. `components/subscription/SubscriptionForm.tsx` — agreed-price display in invite state.
+5. `app/api/subscription-inquiries/route.ts` — persist verified price in `details.invite`.
+6. `app/api/subscription-inquiries/[id]/approve/route.ts` — agreed-price default/enforcement.
+7. `app/(authenticated)/employee/subscriptions/page.tsx` — show agreed price, prefill total.
+
+**Checkpoint (all must pass before marking complete):**
+- [x] Testcase file: `tests/SUBSCRIPTION_INVITE_PRICE_TESTCASE.md`
+- [x] `npx tsc --noEmit` clean
+- [x] `npm run lint` — no new errors (2 pre-existing `<img>` warnings)
+- [ ] Token unit T1–T7 — T1–T4, T6, T7 pass; T5 (expired) pending
+- [ ] Live/route check: bot-authed invite returns price in token + validate response
+- [ ] Legacy token without price still validates and submits
+- [ ] Tampered price/token rejected; no inquiry row written
+
+---
+
 ## Gaps / Next Steps
 
 1. **Supabase Auth** — wire signIn/signOut, session management, role-based redirects
