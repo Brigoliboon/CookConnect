@@ -14,6 +14,7 @@ export interface CreateOrderInput {
   currency?: string
   location?: { lat: number; lng: number } | null
   details?: Record<string, unknown>
+  status?: OrderStatus
 }
 
 export interface CreateOrderItemInput {
@@ -158,7 +159,7 @@ export async function createOrder(
       email: input.email,
       mobile_number: input.mobile_number,
       address: input.address ?? null,
-      status: "inquiry",
+      status: input.status ?? "inquiry",
       origin: input.origin ?? "web",
       subtotal_cents: input.subtotal_cents,
       shipping_cents: input.shipping_cents,

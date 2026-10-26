@@ -79,6 +79,7 @@ export async function POST(request: Request) {
     location?: { lat: number; lng: number } | null
     shipping_cents?: number
     items?: CreateOrderItemInput[]
+    status?: string
   }
   try {
     body = await request.json()
@@ -96,8 +97,10 @@ export async function POST(request: Request) {
   const mobile_number = body.mobile_number?.trim() || ""
 
   const referer = request.headers.get("referer")
+  const requestedStatus = body.status
+
   let role: string | null = null
-  if (!referer) {
+  if (!referer || requestedStatus !== undefined) {
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -116,6 +119,13 @@ export async function POST(request: Request) {
     role,
   })
 
+  if (requestedStatus !== undefined && requestedStatus !== "inquiry" && requestedStatus !== "confirmed") {
+    return Response.json({ error: "status must be inquiry or confirmed" }, { status: 400 })
+  }
+  if (requestedStatus === "confirmed" && role !== "employee" && role !== "admin") {
+    return Response.json({ error: "Only staff can create confirmed orders" }, { status: 403 })
+  }
+
   try {
     const data = await createOrder(
       supabase,
@@ -127,6 +137,7 @@ export async function POST(request: Request) {
         origin,
         location: body.location ?? null,
         shipping_cents: body.shipping_cents ?? 0,
+        status: requestedStatus as OrderStatus | undefined,
       },
       body.items,
     )
