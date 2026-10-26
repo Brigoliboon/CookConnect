@@ -155,10 +155,6 @@ export function SubscriptionForm({
     !staffMode && invite.status === "valid" && typeof invite.agreedPriceCents === "number"
       ? `${invite.currency ?? "AED"} ${(invite.agreedPriceCents / 100).toFixed(2)}`
       : null
-  const basePriceLabel =
-    !staffMode && invite.status === "valid" && typeof invite.basePriceCents === "number"
-      ? `${invite.currency ?? "AED"} ${(invite.basePriceCents / 100).toFixed(2)}`
-      : null
 
   useEffect(() => {
     if (staffMode || !tokenParam) return
@@ -541,12 +537,17 @@ export function SubscriptionForm({
                   <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-900 text-white shadow-lg shadow-brand-900/25">
                     <ChefHat size={24} />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-brand-900">
-                      {plan.durationDays}-day plan
-                    </p>
-                    <h3 className="mt-1 text-xl font-bold text-neutral-900">{plan.name}</h3>
-                    <p className="mt-1 text-sm text-neutral-500">{plan.description}</p>
+                  <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-brand-900">
+                        {plan.durationDays}-day plan
+                      </p>
+                      <h3 className="mt-1 text-xl font-bold text-neutral-900">{plan.name}</h3>
+                      <p className="mt-1 text-sm text-neutral-500">{plan.description}</p>
+                    </div>
+                    {agreedPriceLabel && (
+                      <p className="shrink-0 self-end text-lg font-bold text-neutral-900 sm:self-start">{agreedPriceLabel}</p>
+                    )}
                   </div>
                 </div>
                 <ul className="mt-5 space-y-2.5">
@@ -557,15 +558,6 @@ export function SubscriptionForm({
                     </li>
                   ))}
                 </ul>
-                {agreedPriceLabel && (
-                  <div className="mt-4 rounded-2xl border border-brand-900/15 bg-brand-700/20 px-4 py-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-brand-900">Agreed price</p>
-                    <p className="mt-0.5 text-xl font-bold text-neutral-900">{agreedPriceLabel}</p>
-                    {basePriceLabel && basePriceLabel !== agreedPriceLabel && (
-                      <p className="mt-0.5 text-xs text-neutral-500">Special offer applied · list {basePriceLabel}</p>
-                    )}
-                  </div>
-                )}
                 {staffMode && (
                   <div className="mt-5 border-t border-brand-700/40 pt-5">
                     <h3 className="text-sm font-bold text-neutral-900">Change plan</h3>
@@ -928,7 +920,7 @@ export function SubscriptionForm({
                 <p className="text-sm text-neutral-500">Check everything below before accepting the service agreement.</p>
                 <div className="divide-y divide-brand-700/40 overflow-hidden rounded-2xl border border-brand-700/40 bg-white">
                   <SummaryRow label="Plan" value={`${plan.name} · ${plan.durationDays} days`} onEdit={() => goToStep("plan")} />
-                  {agreedPriceLabel && <SummaryRow label="Agreed price" value={agreedPriceLabel} onEdit={() => goToStep("plan")} />}
+                  {agreedPriceLabel && <SummaryRow label="Price" value={agreedPriceLabel} onEdit={() => goToStep("plan")} />}
                   <SummaryRow label="Name" value={name} onEdit={() => goToStep("details")} />
                   <SummaryRow label="WhatsApp" value={`+971 ${sanitizeUaLocal(mobile)}`} onEdit={() => goToStep("details")} />
                   <SummaryRow label="Email" value={email || "Not provided"} onEdit={() => goToStep("details")} />
