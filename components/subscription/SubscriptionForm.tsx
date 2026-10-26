@@ -156,6 +156,11 @@ export function SubscriptionForm({
     !staffMode && invite.status === "valid" && typeof invite.agreedPriceCents === "number"
       ? `${invite.currency ?? "AED"} ${(invite.agreedPriceCents / 100).toFixed(2)}`
       : null
+  const agreedMealsPerDay =
+    !staffMode && invite.status === "valid" && typeof invite.mealsPerDay === "number"
+      ? invite.mealsPerDay
+      : null
+  const mealsLocked = agreedPriceLabel !== null && agreedMealsPerDay !== null
 
   useEffect(() => {
     if (staffMode || !tokenParam) return
@@ -851,13 +856,18 @@ export function SubscriptionForm({
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <h3 className="text-sm font-bold text-neutral-900">Meals per day</h3>
-                    <p className="mt-0.5 text-xs text-neutral-400">Maximum 5 meals per day.</p>
+                    <p className="mt-0.5 text-xs text-neutral-400">
+                      {mealsLocked
+                        ? `Agreed: ${agreedMealsPerDay} meals/day. Contact us to change.`
+                        : "Maximum 5 meals per day."}
+                    </p>
                   </div>
                   <div className="flex items-center gap-2 rounded-full border border-brand-700/40 bg-brand-700/20 p-1">
                     <button
                       type="button"
+                      disabled={mealsLocked}
                       onClick={() => setMealsPerDay((v) => Math.max(1, v - 1))}
-                      className="flex size-8 items-center justify-center rounded-full border border-brand-700/60 bg-white text-brand-900 transition-all hover:bg-brand-700/40 active:scale-90"
+                      className={`flex size-8 items-center justify-center rounded-full border border-brand-700/60 bg-white text-brand-900 transition-all ${mealsLocked ? "cursor-not-allowed opacity-40" : "hover:bg-brand-700/40 active:scale-90"}`}
                       aria-label="Decrease meals per day"
                     >
                       −
@@ -867,8 +877,9 @@ export function SubscriptionForm({
                     </span>
                     <button
                       type="button"
+                      disabled={mealsLocked}
                       onClick={() => setMealsPerDay((v) => Math.min(5, v + 1))}
-                      className="flex size-8 items-center justify-center rounded-full border border-brand-700/60 bg-white text-brand-900 transition-all hover:bg-brand-700/40 active:scale-90"
+                      className={`flex size-8 items-center justify-center rounded-full border border-brand-700/60 bg-white text-brand-900 transition-all ${mealsLocked ? "cursor-not-allowed opacity-40" : "hover:bg-brand-700/40 active:scale-90"}`}
                       aria-label="Increase meals per day"
                     >
                       +

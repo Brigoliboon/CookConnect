@@ -47,7 +47,9 @@ Run date: TBD · `npx tsc --noEmit` · `npm run lint`
 - [ ] **O3** Submit with priced token succeeds and sends `invite_token`
 - [ ] **O4** Submit with tampered token → 400 and no inquiry row
 - [ ] **O5** Customer cannot edit the price anywhere in the form
-- [ ] **O6** Priced/meal invite prefills the Meals per day control; customer can change it (1–5)
+- [ ] **O6** Priced/meal invite prefills the Meals per day control
+- [ ] **O7** Priced invite locks Meals per day at the agreed count (buttons disabled + note)
+- [ ] **O8** Unpriced invite keeps Meals per day editable
 
 ## I — Inquiry persistence (`POST /api/subscription-inquiries`)
 
