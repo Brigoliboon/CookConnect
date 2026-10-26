@@ -8,6 +8,7 @@ const PLAN_DAYS: Record<string, number> = {
   "standard-20": 20,
   "healthy": 30,
   "standard-26": 26,
+  "standard-30": 30,
   "standard-45": 45,
 }
 
@@ -67,18 +68,27 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const customerId: string | null = null
 
-  const validityDays = PLAN_DAYS[row.plan_id as string] ?? 30
-  const { data: plan } = await supabase
+  const planSlug = String(row.plan_id ?? "")
+  const validityDays = PLAN_DAYS[planSlug] ?? 30
+  const { data: plans } = await supabase
     .from("subscription_plans")
-    .select("id, validity_days, is_active")
-    .eq("validity_days", validityDays)
+    .select("id, validity_days, details")
     .eq("is_active", true)
-    .limit(1)
-    .maybeSingle()
 
-  const planRow = plan as { id: string } | null
+  const planRows = (plans ?? []) as {
+    id: string
+    validity_days: number
+    details: { slug?: string } | null
+  }[]
+  const planRow =
+    planRows.find((candidate) => candidate.details?.slug === planSlug) ??
+    planRows.find((candidate) => candidate.validity_days === validityDays) ??
+    null
   if (!planRow) {
-    return Response.json({ error: `No active subscription plan with ${validityDays} validity days` }, { status: 400 })
+    return Response.json(
+      { error: `No active subscription plan matching "${planSlug}" (${validityDays} days)` },
+      { status: 400 },
+    )
   }
 
   try {

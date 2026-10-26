@@ -56,6 +56,7 @@ type InviteState =
       basePriceCents?: number
       concession?: string
       currency?: string
+      mealsPerDay?: number
     }
   | { status: "invalid"; message: string }
 
@@ -172,6 +173,7 @@ export function SubscriptionForm({
           basePriceCents?: number
           concession?: string
           currency?: string
+          mealsPerDay?: number
           error?: string
         }
         if (!res.ok || !data.valid || !data.plan || !data.expiresAt) {
@@ -185,7 +187,11 @@ export function SubscriptionForm({
           ...(typeof data.basePriceCents === "number" ? { basePriceCents: data.basePriceCents } : {}),
           ...(typeof data.concession === "string" ? { concession: data.concession } : {}),
           ...(typeof data.currency === "string" ? { currency: data.currency } : {}),
+          ...(typeof data.mealsPerDay === "number" ? { mealsPerDay: data.mealsPerDay } : {}),
         })
+        if (typeof data.mealsPerDay === "number") {
+          setMealsPerDay(Math.min(5, Math.max(1, data.mealsPerDay)))
+        }
       })
       .catch((err: unknown) => {
         if (err instanceof Error && err.name === "AbortError") return
@@ -845,7 +851,7 @@ export function SubscriptionForm({
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <h3 className="text-sm font-bold text-neutral-900">Meals per day</h3>
-                    <p className="mt-0.5 text-xs text-neutral-400">Maximum 4 meals per day.</p>
+                    <p className="mt-0.5 text-xs text-neutral-400">Maximum 5 meals per day.</p>
                   </div>
                   <div className="flex items-center gap-2 rounded-full border border-brand-700/40 bg-brand-700/20 p-1">
                     <button
@@ -861,7 +867,7 @@ export function SubscriptionForm({
                     </span>
                     <button
                       type="button"
-                      onClick={() => setMealsPerDay((v) => Math.min(4, v + 1))}
+                      onClick={() => setMealsPerDay((v) => Math.min(5, v + 1))}
                       className="flex size-8 items-center justify-center rounded-full border border-brand-700/60 bg-white text-brand-900 transition-all hover:bg-brand-700/40 active:scale-90"
                       aria-label="Increase meals per day"
                     >

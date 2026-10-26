@@ -28,6 +28,9 @@ Run date: TBD · `npx tsc --noEmit` · `npm run lint`
 - [ ] **V9** Response never echoes `SUBSCRIPTION_INVITE_SECRET` / service key
 - [ ] **V10** Employee dialog with a price → 201 and the generated token carries `agreedPriceCents`
 - [ ] **V11** Employee dialog with a blank price → unpriced invite (legacy behaviour)
+- [ ] **V12** Invite API accepts `meals_per_day` 1–5 and rejects 0/6
+- [ ] **V13** `standard-30` plan slug is accepted (migration + constants)
+- [ ] **V14** `healthy` still accepted
 
 ## G — Validate endpoint
 
@@ -35,6 +38,7 @@ Run date: TBD · `npx tsc --noEmit` · `npm run lint`
 - [ ] **G2** Valid legacy token → 200 without `agreedPriceCents`
 - [ ] **G3** Tampered token → 400
 - [ ] **G4** Plan mismatch → 400
+- [ ] **G5** Valid token with meals/day → 200 with `mealsPerDay`
 
 ## O — Onboarding form (`SubscriptionForm.tsx`)
 
@@ -43,6 +47,7 @@ Run date: TBD · `npx tsc --noEmit` · `npm run lint`
 - [ ] **O3** Submit with priced token succeeds and sends `invite_token`
 - [ ] **O4** Submit with tampered token → 400 and no inquiry row
 - [ ] **O5** Customer cannot edit the price anywhere in the form
+- [ ] **O6** Priced/meal invite prefills the Meals per day control; customer can change it (1–5)
 
 ## I — Inquiry persistence (`POST /api/subscription-inquiries`)
 
@@ -50,6 +55,7 @@ Run date: TBD · `npx tsc --noEmit` · `npm run lint`
 - [ ] **I2** Legacy token → `details.invite` still `{ verified: true, expiresAt }`
 - [ ] **I3** Body-supplied `agreedPriceCents` is ignored; token is the only source
 - [ ] **I4** Tampered/expired token → 400 and no row
+- [ ] **I5** Inquiry stores the submitted/edited `details.mealsPerDay`
 
 ## A — Approval (`POST /api/subscription-inquiries/[id]/approve`)
 
@@ -59,3 +65,4 @@ Run date: TBD · `npx tsc --noEmit` · `npm run lint`
 - [ ] **A4** Inquiry without agreed price → existing behaviour (UI-supplied total required)
 - [ ] **A5** Subscription `details` include `agreed_price_cents` for audit
 - [ ] **A6** Employee modal shows the agreed price and prefills the total field
+- [ ] **A7** Approve resolves `standard-30` vs `healthy` by slug (both 30 days)

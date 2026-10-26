@@ -90,6 +90,14 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     features: ["Flexible meal count", "Full menu access", "Macro preferences", "Priority support"],
   },
   {
+    id: "standard-30",
+    name: "30-Day Meal Plan",
+    type: "standard",
+    durationDays: 30,
+    description: "For individuals who want choice and flexibility.",
+    features: ["Flexible meal count", "Full menu access", "Macro preferences", "Priority support"],
+  },
+  {
     id: "standard-45",
     name: "45-Day Meal Plan",
     type: "standard",

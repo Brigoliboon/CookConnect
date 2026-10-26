@@ -8,6 +8,7 @@ export interface SubscriptionInviteResult {
   basePriceCents?: number
   concession?: string
   currency?: string
+  mealsPerDay?: number
   error?: string
 }
 
@@ -16,6 +17,7 @@ export interface SubscriptionInviteOptions {
   basePriceCents?: number | null
   concession?: string | null
   currency?: string | null
+  mealsPerDay?: number | null
 }
 
 interface InvitePayload {
@@ -25,11 +27,14 @@ interface InvitePayload {
   base_price_cents?: number
   concession?: string
   currency?: string
+  meals_per_day?: number
 }
 
 const DEFAULT_EXPIRY_DAYS = 14
 const MAX_EXPIRY_DAYS = 365
 const DEFAULT_CURRENCY = "AED"
+const MIN_MEALS_PER_DAY = 1
+const MAX_MEALS_PER_DAY = 5
 
 function optionalCents(value: number | null | undefined, label: string): number | undefined {
   if (value === null || value === undefined) return undefined
@@ -38,6 +43,15 @@ function optionalCents(value: number | null | undefined, label: string): number 
     throw new Error(`${label} must be a positive integer number of cents`)
   }
   return amount
+}
+
+function optionalMealsPerDay(value: number | null | undefined): number | undefined {
+  if (value === null || value === undefined) return undefined
+  const meals = Number(value)
+  if (!Number.isInteger(meals) || meals < MIN_MEALS_PER_DAY || meals > MAX_MEALS_PER_DAY) {
+    throw new Error(`mealsPerDay must be an integer between ${MIN_MEALS_PER_DAY} and ${MAX_MEALS_PER_DAY}`)
+  }
+  return meals
 }
 
 function getSecret(): string | null {
@@ -62,6 +76,7 @@ export function createSubscriptionInviteToken(
 
   const agreedPriceCents = optionalCents(options.agreedPriceCents, "agreedPriceCents")
   const basePriceCents = optionalCents(options.basePriceCents, "basePriceCents")
+  const mealsPerDay = optionalMealsPerDay(options.mealsPerDay)
 
   const days = Math.min(MAX_EXPIRY_DAYS, Math.max(1, Math.round(expiresInDays)))
   const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
@@ -71,6 +86,7 @@ export function createSubscriptionInviteToken(
     ...(agreedPriceCents !== undefined ? { agreed_price_cents: agreedPriceCents } : {}),
     ...(basePriceCents !== undefined ? { base_price_cents: basePriceCents } : {}),
     ...(options.concession ? { concession: String(options.concession) } : {}),
+    ...(mealsPerDay !== undefined ? { meals_per_day: mealsPerDay } : {}),
     ...(agreedPriceCents !== undefined || basePriceCents !== undefined
       ? { currency: options.currency?.trim() || DEFAULT_CURRENCY }
       : {}),
@@ -119,7 +135,8 @@ export function verifySubscriptionInviteToken(
 
   const agreedPriceCents = optionalPayloadCents(decoded.agreed_price_cents)
   const basePriceCents = optionalPayloadCents(decoded.base_price_cents)
-  if (agreedPriceCents === null || basePriceCents === null) {
+  const mealsPerDay = optionalPayloadMealsPerDay(decoded.meals_per_day)
+  if (agreedPriceCents === null || basePriceCents === null || mealsPerDay === null) {
     return { valid: false, error: "Invitation token is malformed" }
   }
   if (decoded.concession !== undefined && typeof decoded.concession !== "string") {
@@ -137,11 +154,25 @@ export function verifySubscriptionInviteToken(
     ...(basePriceCents !== undefined ? { basePriceCents } : {}),
     ...(decoded.concession ? { concession: decoded.concession } : {}),
     ...(decoded.currency ? { currency: decoded.currency } : {}),
+    ...(mealsPerDay !== undefined ? { mealsPerDay } : {}),
   }
 }
 
 function optionalPayloadCents(value: unknown): number | undefined | null {
   if (value === undefined) return undefined
   if (typeof value !== "number" || !Number.isInteger(value) || value <= 0) return null
+  return value
+}
+
+function optionalPayloadMealsPerDay(value: unknown): number | undefined | null {
+  if (value === undefined) return undefined
+  if (
+    typeof value !== "number" ||
+    !Number.isInteger(value) ||
+    value < MIN_MEALS_PER_DAY ||
+    value > MAX_MEALS_PER_DAY
+  ) {
+    return null
+  }
   return value
 }

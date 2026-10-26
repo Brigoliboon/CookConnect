@@ -76,6 +76,7 @@ export default function EmployeeSubscriptionsPage() {
   const [invitePlan, setInvitePlan] = useState(SUBSCRIPTION_PLANS[0].id)
   const [inviteDays, setInviteDays] = useState("14")
   const [invitePrice, setInvitePrice] = useState("")
+  const [inviteMealsPerDay, setInviteMealsPerDay] = useState("")
   const [inviteLink, setInviteLink] = useState("")
   const [inviteError, setInviteError] = useState("")
   const [inviteLoading, setInviteLoading] = useState(false)
@@ -93,6 +94,12 @@ export default function EmployeeSubscriptionsPage() {
       setInviteLoading(false)
       return
     }
+    const mealsPerDay = inviteMealsPerDay.trim() ? Number(inviteMealsPerDay) : undefined
+    if (mealsPerDay !== undefined && (!Number.isInteger(mealsPerDay) || mealsPerDay < 1 || mealsPerDay > 5)) {
+      setInviteError("Meals per day must be a whole number between 1 and 5.")
+      setInviteLoading(false)
+      return
+    }
 
     try {
       const res = await fetch("/api/subscription-invites", {
@@ -102,6 +109,7 @@ export default function EmployeeSubscriptionsPage() {
           plan: invitePlan,
           expiresInDays: Number(inviteDays),
           ...(priceCents !== undefined ? { price_cents: priceCents } : {}),
+          ...(mealsPerDay !== undefined ? { meals_per_day: mealsPerDay } : {}),
         }),
       })
       const data = await res.json()
@@ -317,7 +325,7 @@ export default function EmployeeSubscriptionsPage() {
           <p className="font-nunito mt-2 text-sm text-neutral-500">Review inquiries or manage existing subscriptions.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => { setShowInvite(true); setInviteLink(""); setInvitePrice(""); setInviteError(""); setInviteCopied(false) }}>
+          <Button variant="outline" onClick={() => { setShowInvite(true); setInviteLink(""); setInvitePrice(""); setInviteMealsPerDay(""); setInviteError(""); setInviteCopied(false) }}>
             <Link2 size={16} />
             Invite link
           </Button>
@@ -487,6 +495,18 @@ export default function EmployeeSubscriptionsPage() {
               value={invitePrice}
               onChange={(e) => setInvitePrice(e.target.value)}
               placeholder="Leave blank for no fixed price"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-900"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-neutral-700">Meals per day (optional)</label>
+            <input
+              type="number"
+              min={1}
+              max={5}
+              value={inviteMealsPerDay}
+              onChange={(e) => setInviteMealsPerDay(e.target.value)}
+              placeholder="Leave blank for the form default"
               className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-900"
             />
           </div>

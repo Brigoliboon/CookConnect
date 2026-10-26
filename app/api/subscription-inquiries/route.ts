@@ -77,7 +77,7 @@ export async function POST(request: Request) {
         mode: body.mode ?? "normal",
         restrictions: body.restrictions ?? [],
         restrictionNames: body.restrictionNames ?? {},
-        mealsPerDay: Math.min(4, Math.max(1, Math.round(body.mealsPerDay ?? 1))),
+        mealsPerDay: Math.min(5, Math.max(1, Math.round(body.mealsPerDay ?? 1))),
         breakfast: body.breakfast ?? false,
         includedMeals: body.includedMeals ?? [],
         days: body.days ?? [],

@@ -36,6 +36,7 @@ export async function POST(request: Request) {
     price_cents?: number
     base_price_cents?: number
     concession_id?: string
+    meals_per_day?: number
   }
   try {
     body = await request.json()
@@ -68,6 +69,13 @@ export async function POST(request: Request) {
   if (concession.length > 64) {
     return Response.json({ error: "concession_id is too long" }, { status: 400 })
   }
+  const mealsPerDay = body.meals_per_day === undefined ? undefined : Number(body.meals_per_day)
+  if (
+    mealsPerDay !== undefined &&
+    (!Number.isFinite(mealsPerDay) || !Number.isInteger(mealsPerDay) || mealsPerDay < 1 || mealsPerDay > 5)
+  ) {
+    return Response.json({ error: "meals_per_day must be an integer between 1 and 5" }, { status: 400 })
+  }
 
   try {
     const { token, expiresAt } = createSubscriptionInviteToken(plan.id, expiresInDays, {
@@ -75,6 +83,7 @@ export async function POST(request: Request) {
       basePriceCents,
       concession,
       currency: "AED",
+      mealsPerDay,
     })
     const locale = body.locale === "ar" ? "ar" : "en"
     const origin = new URL(request.url).origin
@@ -88,6 +97,7 @@ export async function POST(request: Request) {
         ...(priceCents !== undefined ? { price_cents: priceCents } : {}),
         ...(basePriceCents !== undefined ? { base_price_cents: basePriceCents } : {}),
         ...(concession ? { concession_id: concession } : {}),
+        ...(mealsPerDay !== undefined ? { meals_per_day: mealsPerDay } : {}),
         currency: "AED",
         path,
         url: `${origin}${path}`,
