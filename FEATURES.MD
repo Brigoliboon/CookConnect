@@ -111,3 +111,35 @@ Tabby integration (if used)
 
 - Store Tabby reference / installment plan metadata
 - Webhook handling (later) to move status from pending → confirmed when Tabby confirms
+
+---
+
+## WhatsApp subscription renewals (M3, bot issue #3)
+
+Bot-only renewal endpoints. All require `x-bot-secret: $WHATSAPP_BOT_SECRET`
+(matching the bot's `COOKCONNECT_BOT_SECRET`) and use the service-role client.
+
+- `GET /api/subscription-renewals?days=3&limit=50` — active, unpaused
+  subscriptions expiring within `days`. Returns customer phone, plan (including
+  slug), expiry, and saved `preferences` (the subscription `details`). Rows
+  already reminded for their current expiry are omitted.
+- `PATCH /api/subscription-renewals/[id]` — marks the renewal reminder sent.
+  Body `{ "expires_at": "<subscription expiry>" }` records which expiry was
+  reminded so the same expiry is not sent twice.
+- `POST /api/subscription-non-renewal` — logs a non-renewal reason. Body
+  `{ "phone": "9715...", "reason": "..." }` (or `subscription_id` instead of
+  phone). It stores `non_renewal_reason` and `non_renewal_reason_at`.
+
+Renewal invite links also carry the saved meal preferences in the signed token
+(plan, meals/day, normal/flexible mode, restrictions, breakfast, selected
+flexible meals, delivery days/slots, and on-call delivery). The onboarding form
+pre-fills those values so the customer can keep or change them; contact and
+address details are still entered on the form.
+
+Migration: `supabase/migrations/20261027000000_subscription_renewals.sql`
+adds `renewal_reminder_sent_at`, `renewal_reminder_expires_at`,
+`non_renewal_reason`, and `non_renewal_reason_at` to `subscriptions`. Do not
+run it against a remote database from this workspace.
+
+Phone lookup normalisation uses `DEFAULT_COUNTRY_CODE` (default `971`) and the
+subscription `details.mobile_number` or linked customer account number.

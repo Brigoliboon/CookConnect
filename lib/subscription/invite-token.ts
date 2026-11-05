@@ -1,5 +1,18 @@
 import { createHmac, timingSafeEqual } from "node:crypto"
 
+export type SubscriptionInviteSlot = "morning" | "noon" | "evening"
+
+export interface SubscriptionInvitePreferences {
+  mode?: "normal" | "flexible"
+  restrictions?: string[]
+  restrictionNames?: Record<string, string>
+  breakfast?: boolean
+  includedMeals?: string[]
+  days?: string[]
+  slots?: SubscriptionInviteSlot[]
+  onCall?: boolean
+}
+
 export interface SubscriptionInviteResult {
   valid: boolean
   plan?: string
@@ -9,6 +22,7 @@ export interface SubscriptionInviteResult {
   concession?: string
   currency?: string
   mealsPerDay?: number
+  preferences?: SubscriptionInvitePreferences
   error?: string
 }
 
@@ -18,6 +32,7 @@ export interface SubscriptionInviteOptions {
   concession?: string | null
   currency?: string | null
   mealsPerDay?: number | null
+  preferences?: SubscriptionInvitePreferences | null
 }
 
 interface InvitePayload {
@@ -28,6 +43,7 @@ interface InvitePayload {
   concession?: string
   currency?: string
   meals_per_day?: number
+  preferences?: SubscriptionInvitePreferences
 }
 
 const DEFAULT_EXPIRY_DAYS = 14
@@ -35,6 +51,8 @@ const MAX_EXPIRY_DAYS = 365
 const DEFAULT_CURRENCY = "AED"
 const MIN_MEALS_PER_DAY = 1
 const MAX_MEALS_PER_DAY = 5
+const MAX_PREFERENCE_ITEMS = 100
+const MAX_PREFERENCE_STRING = 200
 
 function optionalCents(value: number | null | undefined, label: string): number | undefined {
   if (value === null || value === undefined) return undefined
@@ -52,6 +70,89 @@ function optionalMealsPerDay(value: number | null | undefined): number | undefin
     throw new Error(`mealsPerDay must be an integer between ${MIN_MEALS_PER_DAY} and ${MAX_MEALS_PER_DAY}`)
   }
   return meals
+}
+
+function optionalStringArray(value: unknown, label: string): string[] | undefined {
+  if (value === undefined || value === null) return undefined
+  if (!Array.isArray(value) || value.length > MAX_PREFERENCE_ITEMS) {
+    throw new Error(`${label} must contain at most ${MAX_PREFERENCE_ITEMS} items`)
+  }
+  return value.map((item) => {
+    if (typeof item !== "string" || !item.trim() || item.length > MAX_PREFERENCE_STRING) {
+      throw new Error(`${label} contains an invalid value`)
+    }
+    return item.trim()
+  })
+}
+
+function optionalStringMap(value: unknown, label: string): Record<string, string> | undefined {
+  if (value === undefined || value === null) return undefined
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${label} must be an object`)
+  }
+  const entries = Object.entries(value as Record<string, unknown>)
+  if (entries.length > MAX_PREFERENCE_ITEMS) {
+    throw new Error(`${label} must contain at most ${MAX_PREFERENCE_ITEMS} items`)
+  }
+  const result: Record<string, string> = {}
+  for (const [key, item] of entries) {
+    if (
+      !key ||
+      key.length > MAX_PREFERENCE_STRING ||
+      typeof item !== "string" ||
+      !item.trim() ||
+      item.length > MAX_PREFERENCE_STRING
+    ) {
+      throw new Error(`${label} contains an invalid value`)
+    }
+    result[key] = item.trim()
+  }
+  return Object.keys(result).length ? result : undefined
+}
+
+function optionalBoolean(value: unknown, label: string): boolean | undefined {
+  if (value === undefined || value === null) return undefined
+  if (typeof value !== "boolean") throw new Error(`${label} must be a boolean`)
+  return value
+}
+
+function optionalMode(value: unknown): "normal" | "flexible" | undefined {
+  if (value === undefined || value === null) return undefined
+  if (value === "normal" || value === "flexible") return value
+  throw new Error("preferences.mode must be normal or flexible")
+}
+
+function optionalPreferences(value: unknown): SubscriptionInvitePreferences | undefined {
+  if (value === undefined || value === null) return undefined
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("preferences must be an object")
+  }
+
+  const input = value as Record<string, unknown>
+  const mode = optionalMode(input.mode)
+  const restrictions = optionalStringArray(input.restrictions, "preferences.restrictions")
+  const restrictionNames = optionalStringMap(input.restrictionNames, "preferences.restrictionNames")
+  const breakfast = optionalBoolean(input.breakfast, "preferences.breakfast")
+  const includedMeals = optionalStringArray(input.includedMeals, "preferences.includedMeals")
+  const days = optionalStringArray(input.days, "preferences.days")
+  const slots = optionalStringArray(input.slots, "preferences.slots")
+  if (slots?.some((slot) => slot !== "morning" && slot !== "noon" && slot !== "evening")) {
+    throw new Error("preferences.slots contains an invalid value")
+  }
+  const onCall = optionalBoolean(input.onCall, "preferences.onCall")
+
+  const preferences: SubscriptionInvitePreferences = {
+    ...(mode ? { mode } : {}),
+    ...(restrictions ? { restrictions } : {}),
+    ...(restrictionNames ? { restrictionNames } : {}),
+    ...(breakfast !== undefined ? { breakfast } : {}),
+    ...(includedMeals ? { includedMeals } : {}),
+    ...(days ? { days } : {}),
+    ...(slots ? { slots: slots as SubscriptionInviteSlot[] } : {}),
+    ...(onCall !== undefined ? { onCall } : {}),
+  }
+
+  return Object.keys(preferences).length ? preferences : undefined
 }
 
 function getSecret(): string | null {
@@ -77,6 +178,7 @@ export function createSubscriptionInviteToken(
   const agreedPriceCents = optionalCents(options.agreedPriceCents, "agreedPriceCents")
   const basePriceCents = optionalCents(options.basePriceCents, "basePriceCents")
   const mealsPerDay = optionalMealsPerDay(options.mealsPerDay)
+  const preferences = optionalPreferences(options.preferences)
 
   const days = Math.min(MAX_EXPIRY_DAYS, Math.max(1, Math.round(expiresInDays)))
   const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
@@ -87,6 +189,7 @@ export function createSubscriptionInviteToken(
     ...(basePriceCents !== undefined ? { base_price_cents: basePriceCents } : {}),
     ...(options.concession ? { concession: String(options.concession) } : {}),
     ...(mealsPerDay !== undefined ? { meals_per_day: mealsPerDay } : {}),
+    ...(preferences ? { preferences } : {}),
     ...(agreedPriceCents !== undefined || basePriceCents !== undefined
       ? { currency: options.currency?.trim() || DEFAULT_CURRENCY }
       : {}),
@@ -146,6 +249,13 @@ export function verifySubscriptionInviteToken(
     return { valid: false, error: "Invitation token is malformed" }
   }
 
+  let preferences: SubscriptionInvitePreferences | undefined
+  try {
+    preferences = optionalPreferences(decoded.preferences)
+  } catch {
+    return { valid: false, error: "Invitation token is malformed" }
+  }
+
   return {
     valid: true,
     plan: decoded.plan,
@@ -155,6 +265,7 @@ export function verifySubscriptionInviteToken(
     ...(decoded.concession ? { concession: decoded.concession } : {}),
     ...(decoded.currency ? { currency: decoded.currency } : {}),
     ...(mealsPerDay !== undefined ? { mealsPerDay } : {}),
+    ...(preferences ? { preferences } : {}),
   }
 }
 

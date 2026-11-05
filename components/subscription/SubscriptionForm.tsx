@@ -45,6 +45,17 @@ interface GalleryRecipe {
 
 type StepId = "plan" | "details" | "preferences" | "meals" | "delivery" | "review"
 
+type InvitePreferences = {
+  mode?: "normal" | "flexible"
+  restrictions?: string[]
+  restrictionNames?: Record<string, string>
+  breakfast?: boolean
+  includedMeals?: string[]
+  days?: string[]
+  slots?: ("morning" | "noon" | "evening")[]
+  onCall?: boolean
+}
+
 type InviteState =
   | { status: "none" }
   | { status: "checking" }
@@ -57,6 +68,7 @@ type InviteState =
       concession?: string
       currency?: string
       mealsPerDay?: number
+      preferences?: InvitePreferences
     }
   | { status: "invalid"; message: string }
 
@@ -179,6 +191,7 @@ export function SubscriptionForm({
           concession?: string
           currency?: string
           mealsPerDay?: number
+          preferences?: InvitePreferences
           error?: string
         }
         if (!res.ok || !data.valid || !data.plan || !data.expiresAt) {
@@ -193,9 +206,30 @@ export function SubscriptionForm({
           ...(typeof data.concession === "string" ? { concession: data.concession } : {}),
           ...(typeof data.currency === "string" ? { currency: data.currency } : {}),
           ...(typeof data.mealsPerDay === "number" ? { mealsPerDay: data.mealsPerDay } : {}),
+          ...(data.preferences ? { preferences: data.preferences } : {}),
         })
         if (typeof data.mealsPerDay === "number") {
           setMealsPerDay(Math.min(5, Math.max(1, data.mealsPerDay)))
+        }
+        if (data.preferences) {
+          const preferences = data.preferences
+          if (preferences.mode === "normal" || preferences.mode === "flexible") {
+            setMode(preferences.mode)
+          }
+          if (Array.isArray(preferences.restrictions)) {
+            const names = preferences.restrictionNames ?? {}
+            setRestricted(
+              preferences.restrictions.map((id) => ({
+                id,
+                name: names[id] || id,
+              })),
+            )
+          }
+          if (typeof preferences.breakfast === "boolean") setBreakfast(preferences.breakfast)
+          if (Array.isArray(preferences.includedMeals)) setSelectedMeals(preferences.includedMeals)
+          if (Array.isArray(preferences.days)) setDays(preferences.days)
+          if (Array.isArray(preferences.slots)) setSlots(preferences.slots)
+          if (typeof preferences.onCall === "boolean") setOnCall(preferences.onCall)
         }
       })
       .catch((err: unknown) => {

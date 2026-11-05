@@ -1,7 +1,7 @@
 import { cookies } from "next/headers"
 import { getCurrentUser } from "@/lib/auth"
 import { SUBSCRIPTION_PLANS } from "@/constants/subscriptions"
-import { createSubscriptionInviteToken } from "@/lib/subscription/invite-token"
+import { createSubscriptionInviteToken, type SubscriptionInvitePreferences } from "@/lib/subscription/invite-token"
 import { createClient } from "@/utils/supabase/server"
 import { getSubscriptionPlanRate } from "@/lib/supabase/tables/subscription_plan_rates"
 
@@ -40,6 +40,7 @@ export async function POST(request: Request) {
     base_price_cents?: number
     concession_id?: string
     meals_per_day?: number
+    preferences?: SubscriptionInvitePreferences
   }
   try {
     body = await request.json()
@@ -113,6 +114,7 @@ export async function POST(request: Request) {
       concession,
       currency: "AED",
       mealsPerDay,
+      preferences: body.preferences,
     })
     const locale = body.locale === "ar" ? "ar" : "en"
     const origin = new URL(request.url).origin
@@ -135,6 +137,7 @@ export async function POST(request: Request) {
     )
   } catch (err) {
     const message = err instanceof Error ? err.message : "Internal server error"
-    return Response.json({ error: message }, { status: 500 })
+    const status = message.startsWith("preferences") ? 400 : 500
+    return Response.json({ error: message }, { status })
   }
 }
