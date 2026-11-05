@@ -98,9 +98,13 @@ export async function POST(request: Request) {
 
   const referer = request.headers.get("referer")
   const requestedStatus = body.status
+  const posSecretHeader = request.headers.get("x-pos-secret")
+  const posSecretValid = !!process.env.POS_SECRET && posSecretHeader === process.env.POS_SECRET
 
   let role: string | null = null
-  if (!referer || requestedStatus !== undefined) {
+  if (posSecretValid) {
+    role = "employee"
+  } else if (!referer || requestedStatus !== undefined) {
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -115,6 +119,7 @@ export async function POST(request: Request) {
   }
   const origin = inferOrderOrigin({
     botSecretHeader: request.headers.get("x-bot-secret"),
+    posSecretHeader,
     referer,
     role,
   })
@@ -122,7 +127,7 @@ export async function POST(request: Request) {
   if (requestedStatus !== undefined && requestedStatus !== "inquiry" && requestedStatus !== "confirmed") {
     return Response.json({ error: "status must be inquiry or confirmed" }, { status: 400 })
   }
-  if (requestedStatus === "confirmed" && role !== "employee" && role !== "admin") {
+  if (requestedStatus === "confirmed" && !posSecretValid && role !== "employee" && role !== "admin") {
     return Response.json({ error: "Only staff can create confirmed orders" }, { status: 403 })
   }
 
