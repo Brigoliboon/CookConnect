@@ -45,6 +45,9 @@ Run date: 2026-10-25 · `npx tsc --noEmit` clean · `npm run build` successful �
 - [ ] **F8** Terms modal requires scrolling before submit
 - [ ] **F9** Staff mode still requires customer selection and creates via `POST /api/subscriptions`
 - [ ] **F10** Public submit creates `subscription_inquiries` row (not `subscriptions`)
+- [ ] **F11** Subscription location accepts Ajman (free), Sharjah (100.00 AED), Dubai (200.00 AED); other areas are blocked on Details
+- [ ] **F12** Sharjah/Dubai selections show an additional delivery-charge notice in the form; Ajman shows no additional charge
+- [ ] **F13** Review summary reflects whether an additional delivery charge applies for the selected area (no amount shown)
 
 ## I — Invite enforcement
 

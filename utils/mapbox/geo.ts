@@ -8,19 +8,21 @@ const DELIVERY_FEES: Record<string, number> = {
   ajman: 0,
 }
 
-const NORMALIZED_FEES: [string, number][] = Object.entries(DELIVERY_FEES).map(([k, v]) => [
-  k.replace(/[^a-z]/g, ""),
-  v,
-])
+export const SUBSCRIPTION_DELIVERY_FEES: Record<string, number> = {
+  ajman: 0,
+  sharjah: 10000,
+  dubai: 20000,
+}
 
 function normalize(s: string) {
   return s.toLowerCase().replace(/[^a-z]/g, "")
 }
 
-function detectArea(...texts: string[]): DeliveryArea {
+function detectArea(fees: Record<string, number>, ...texts: string[]): DeliveryArea {
   const normalized = normalize(texts.join(" "))
-  for (const [key, cents] of NORMALIZED_FEES) {
-    if (normalized.includes(key)) {
+  for (const [key, cents] of Object.entries(fees)) {
+    const normalizedKey = normalize(key)
+    if (normalized.includes(normalizedKey)) {
       return { area: key, supported: true, feeCents: cents }
     }
   }
@@ -41,6 +43,7 @@ interface GeoFeature {
 export async function resolveDeliveryAddress(
   lat: number,
   lng: number,
+  fees: Record<string, number> = DELIVERY_FEES,
 ): Promise<ResolvedAddress> {
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
   const res = await fetch(
@@ -55,7 +58,7 @@ export async function resolveDeliveryAddress(
   for (const ctx of place?.context ?? []) {
     if (ctx.text) texts.push(ctx.text)
   }
-  return { address, area: detectArea(...texts) }
+  return { address, area: detectArea(fees, ...texts) }
 }
 
 export function formatPrice(cents: number) {

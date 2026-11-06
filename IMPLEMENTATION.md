@@ -377,6 +377,29 @@ restaurant backend instead of reading `config/subscriptions.json`.
 
 ---
 
+### Module 15: Subscription Delivery Areas — ✅ Complete
+
+Subscription onboarding has its own delivery-area constraint, separate from the
+Ajman-only landing cart. Supported areas: Ajman (free), Sharjah (100.00 AED),
+Dubai (200.00 AED); all other areas are rejected on the Details step.
+
+**Implementation:**
+- `utils/mapbox/geo.ts` — `resolveDeliveryAddress` accepts an optional fee map; new
+  `SUBSCRIPTION_DELIVERY_FEES` (Ajman 0, Sharjah 10000, Dubai 20000 cents). The cart
+  keeps its existing Ajman-only fee map.
+- `utils/mapbox/index.ts` — exports `SUBSCRIPTION_DELIVERY_FEES`.
+- `components/subscription/SubscriptionForm.tsx` — resolves the picked location against
+  the subscription fee map, blocks unsupported areas, and indicates that additional
+  delivery charges apply for Sharjah/Dubai in Details and the Review summary (no amount shown).
+
+**Checkpoint:**
+- [x] Testcase entries added: `tests/SUBSCRIPTION_ONBOARDING_TESTCASE.md` F11–F13
+- [x] `npx tsc --noEmit` clean
+- [x] focused `eslint` — 0 errors (pre-existing `<img>` warnings only)
+- [ ] Manual UI check of Ajman / Sharjah / Dubai / unsupported flows
+
+---
+
 ## Gaps / Next Steps
 
 1. **Supabase Auth** — wire signIn/signOut, session management, role-based redirects

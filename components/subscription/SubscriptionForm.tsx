@@ -23,7 +23,11 @@ import { SUBSCRIPTION_PLANS, DELIVERY_DAYS } from "@/constants/subscriptions"
 import { FloatingInput } from "@/components/ui/FloatingInput"
 import { LocationPicker, type Coordinates } from "@/components/ui/LocationPicker"
 import { imageVariant } from "@/lib/images"
-import { resolveDeliveryAddress } from "@/utils/mapbox"
+import {
+  resolveDeliveryAddress,
+  SUBSCRIPTION_DELIVERY_FEES,
+  type DeliveryArea,
+} from "@/utils/mapbox"
 
 interface Ingredient { id: string; name: string }
 interface GalleryServing {
@@ -91,6 +95,11 @@ function sanitizeUaLocal(value: string) {
   return d.slice(0, 9)
 }
 
+function areaLabel(area: string | null) {
+  if (!area) return ""
+  return area.charAt(0).toUpperCase() + area.slice(1)
+}
+
 export function SubscriptionForm({
   staffMode = false,
   onCreated,
@@ -119,6 +128,9 @@ export function SubscriptionForm({
   const [mobile, setMobile] = useState("")
   const [location, setLocation] = useState<Coordinates | null>(null)
   const [address, setAddress] = useState("")
+  const [deliveryArea, setDeliveryArea] = useState<DeliveryArea | null>(null)
+  const [resolvingAddress, setResolvingAddress] = useState(false)
+  const resolveSeq = useRef(0)
   const [mode, setMode] = useState<"normal" | "flexible">("normal")
 
   const [ingSearch, setIngSearch] = useState("")
@@ -328,6 +340,9 @@ export function SubscriptionForm({
       if (staffMode && !customerId) return "Please select a customer."
       if (!name.trim() || sanitizeUaLocal(mobile).length < 9 || !address) {
         return "Please complete name, WhatsApp number and address."
+      }
+      if (!deliveryArea?.supported) {
+        return "We currently deliver subscriptions to Ajman, Sharjah, and Dubai only."
       }
     }
     if (id === "meals" && mode === "flexible" && selectedMeals.length === 0) {
@@ -659,11 +674,41 @@ export function SubscriptionForm({
                 <FloatingInput label="Email" icon={<Mail size={13} />} type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
                 <LocationPicker value={location} onChange={(loc) => {
                   setLocation(loc)
-                  if (loc) resolveDeliveryAddress(loc.lat, loc.lng).then((r) => setAddress(r.address)).catch(() => {})
+                  setAddress("")
+                  setDeliveryArea(null)
+                  if (!loc) return
+                  const seq = ++resolveSeq.current
+                  setResolvingAddress(true)
+                  resolveDeliveryAddress(loc.lat, loc.lng, SUBSCRIPTION_DELIVERY_FEES)
+                    .then((r) => {
+                      if (seq !== resolveSeq.current) return
+                      setAddress(r.address)
+                      setDeliveryArea(r.area)
+                    })
+                    .catch(() => {
+                      if (seq !== resolveSeq.current) return
+                      setDeliveryArea({ area: null, supported: false, feeCents: 0 })
+                    })
+                    .finally(() => {
+                      if (seq === resolveSeq.current) setResolvingAddress(false)
+                    })
                 }} />
+                {resolvingAddress && (
+                  <p className="text-xs text-neutral-400">Checking delivery area...</p>
+                )}
                 {address && (
                   <p className="rounded-xl border border-brand-700/40 bg-brand-700/20 px-4 py-3 text-sm text-brand-900">
                     {address}
+                  </p>
+                )}
+                {deliveryArea?.supported && deliveryArea.feeCents > 0 && (
+                  <p className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                    Additional charges apply for the delivery fee in {areaLabel(deliveryArea.area)}.
+                  </p>
+                )}
+                {deliveryArea && !deliveryArea.supported && (
+                  <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+                    Delivery is not available in this area. We currently deliver subscriptions to Ajman, Sharjah, and Dubai only.
                   </p>
                 )}
               </div>
@@ -976,6 +1021,17 @@ export function SubscriptionForm({
                   <SummaryRow label="WhatsApp" value={`+971 ${sanitizeUaLocal(mobile)}`} onEdit={() => goToStep("details")} />
                   <SummaryRow label="Email" value={email || "Not provided"} onEdit={() => goToStep("details")} />
                   <SummaryRow label="Address" value={address || "Not selected"} onEdit={() => goToStep("details")} />
+                  {deliveryArea?.supported && (
+                    <SummaryRow
+                      label="Delivery fee"
+                      value={
+                        deliveryArea.feeCents > 0
+                          ? `Additional charges apply for ${areaLabel(deliveryArea.area)}`
+                          : "Free"
+                      }
+                      onEdit={() => goToStep("details")}
+                    />
+                  )}
                   <SummaryRow label="Style" value={mode === "flexible" ? "Flexible — pick your meals" : "Normal — chef's choice"} onEdit={() => goToStep("preferences")} />
                   <SummaryRow label="Breakfast" value={breakfast ? "Included" : "Not included"} onEdit={() => goToStep("preferences")} />
                   <SummaryRow label="Restrictions" value={restrictionNamesList.length > 0 ? restrictionNamesList.join(", ") : "None"} onEdit={() => goToStep("preferences")} />
