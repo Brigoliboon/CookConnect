@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from "react"
 import dynamic from "next/dynamic"
+import Image from "next/image"
 import useSWRInfinite from "swr/infinite"
 import { motion } from "framer-motion"
-import { Search, X, ChevronDown, SlidersHorizontal, ArrowUp } from "lucide-react"
+import { Search, X, ArrowUp, ArrowUpDown } from "lucide-react"
 import { useTranslations, useLocale } from "next-intl"
 import { Link } from "@/i18n/navigation"
 import { translateContent } from "@/constants/translations"
@@ -101,17 +102,16 @@ function mapRecipe(r: Record<string, unknown>): MenuItem {
 }
 
 const categories = [
-  { id: "all", label: "All" },
-  { id: "meals", label: "Meals", subs: ["beef", "chicken", "seafood", "soup", "biryani", "risotto", "vegetable", "breakfast"] },
-  { id: "salad", label: "Salad" },
-  { id: "rice-sides", label: "Rice & Sides" },
-  { id: "platters", label: "Platters" },
-  { id: "pasta", label: "Pasta" },
-  { id: "wraps", label: "Wraps" },
-  { id: "pizza", label: "Pizza" },
-  { id: "burgers", label: "Burgers" },
-  { id: "desserts", label: "Desserts" },
-  { id: "drinks", label: "Drinks", subs: ["smoothie", "juice", "beverages"] },
+  { id: "meals", label: "Meals", image: "/menu-icons/meals.webp", subs: ["beef", "chicken", "seafood", "soup", "biryani", "risotto", "vegetable", "breakfast"] },
+  { id: "salad", label: "Salad", image: "/menu-icons/salad.webp" },
+  { id: "rice-sides", label: "Rice & Sides", image: "/menu-icons/rice-sides.webp" },
+  { id: "platters", label: "Platters", image: "/menu-icons/platters.webp" },
+  { id: "pasta", label: "Pasta", image: "/menu-icons/pasta.webp" },
+  { id: "wraps", label: "Wraps", image: "/menu-icons/wraps.webp" },
+  { id: "pizza", label: "Pizza", image: "/menu-icons/pizza.webp" },
+  { id: "burgers", label: "Burgers", image: "/menu-icons/burgers.webp" },
+  { id: "desserts", label: "Desserts", image: "/menu-icons/desserts.webp" },
+  { id: "drinks", label: "Drinks", image: "/menu-icons/drinks.webp", subs: ["smoothie", "juice", "beverages"] },
 ]
 
 const subValues: Record<string, string> = {
@@ -165,9 +165,9 @@ function RangeInputs({ label, minValue, maxValue, minPlaceholder, maxPlaceholder
     <div>
       <p className="font-nunito text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">{label}</p>
       <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-        <input type="number" min="0" value={minValue} onChange={(event) => onMinChange(event.target.value)} placeholder={minPlaceholder} aria-label={minPlaceholder} className="min-w-0 border border-neutral-200 bg-white px-2.5 py-2 text-sm text-neutral-900 placeholder-neutral-400 outline-none transition-colors focus:border-neutral-400" />
+        <input type="number" min="0" value={minValue} onChange={(event) => onMinChange(event.target.value)} placeholder={minPlaceholder} aria-label={minPlaceholder} className="min-w-0 border border-neutral-200 bg-white px-2.5 py-2 rounded-xl text-sm text-neutral-900 placeholder-neutral-400 outline-none transition-colors focus:border-brand-900 focus:ring-1 focus:ring-brand-900/20" />
         <span className="text-xs text-neutral-400">–</span>
-        <input type="number" min="0" value={maxValue} onChange={(event) => onMaxChange(event.target.value)} placeholder={maxPlaceholder} aria-label={maxPlaceholder} className="min-w-0 border border-neutral-200 bg-white px-2.5 py-2 text-sm text-neutral-900 placeholder-neutral-400 outline-none transition-colors focus:border-neutral-400" />
+        <input type="number" min="0" value={maxValue} onChange={(event) => onMaxChange(event.target.value)} placeholder={maxPlaceholder} aria-label={maxPlaceholder} className="min-w-0 border border-neutral-200 bg-white px-2.5 py-2 rounded-xl text-sm text-neutral-900 placeholder-neutral-400 outline-none transition-colors focus:border-brand-900 focus:ring-1 focus:ring-brand-900/20" />
       </div>
     </div>
   )
@@ -209,26 +209,27 @@ function CatalogContent({
   const sharedIdsKey = useMemo(() => [...sharedIds].sort().join(","), [sharedIds])
   const [showTop, setShowTop] = useState(false)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
-  const [activeCategory, setActiveCategory] = useState("all")
+  const [activeCategory, setActiveCategory] = useState("meals")
   const [activeSub, setActiveSub] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [searchInput, setSearchInput] = useState("")
-  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [filtersOpen] = useState(false)
   const [sort, setSort] = useState("default")
   const [minCal, setMinCal] = useState("")
   const [maxCal, setMaxCal] = useState("")
   const [minPrice, setMinPrice] = useState("")
   const [maxPrice, setMaxPrice] = useState("")
   const [selected, setSelected] = useState<DialogMeal | null>(null)
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false)
+  const sortDropdownRef = useRef<HTMLDivElement | null>(null)
+  const subCategoryRef = useRef<HTMLDivElement | null>(null)
   const checkoutHandledRef = useRef<string | null>(null)
 
   const activeCat = categories.find((c) => c.id === activeCategory)
-  const hasActiveFilters = search !== "" || activeCategory !== "all" || sort !== "default" || minCal !== "" || maxCal !== "" || minPrice !== "" || maxPrice !== ""
+  const hasActiveFilters = search !== "" || activeCategory !== "meals" || sort !== "default" || minCal !== "" || maxCal !== "" || minPrice !== "" || maxPrice !== ""
 
   const buildUrl = useCallback((offset: number) => {
-    const targetValue = activeCategory !== "all"
-      ? (activeCat?.subs ? (subValues[activeSub ?? ""] ?? activeCat.subs[0]) : catValues[activeCategory])
-      : undefined
+    const targetValue = activeCat?.subs ? (subValues[activeSub ?? ""] ?? activeCat.subs[0]) : catValues[activeCategory]
 
     return recipeListUrl({
       ids: sharedIds.length > 0 ? sharedIdsKey : undefined,
@@ -302,6 +303,16 @@ function CatalogContent({
   }, [])
 
   useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (!sortDropdownOpen || !sortDropdownRef.current) return
+      if (sortDropdownRef.current.contains(e.target as Node)) return
+      setSortDropdownOpen(false)
+    }
+    document.addEventListener("mousedown", onClick)
+    return () => document.removeEventListener("mousedown", onClick)
+  }, [sortDropdownOpen])
+
+  useEffect(() => {
     if (!checkoutRequested || !hasMore || loading || loadingMore) return
     setSize((current) => current + 1)
   }, [checkoutRequested, hasMore, loading, loadingMore, setSize])
@@ -341,7 +352,7 @@ function CatalogContent({
 
   function handleClearFilters() {
     if (!hasActiveFilters) return
-    setActiveCategory("all")
+    setActiveCategory("meals")
     setActiveSub(null)
     setSort("default")
     setMinCal("")
@@ -353,7 +364,7 @@ function CatalogContent({
   }
 
   const filterPanel = (
-    <div className="border border-neutral-200 bg-white p-4 sm:p-5">
+    <div className="border border-neutral-200 bg-white p-4 sm:p-5 rounded-2xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="font-nunito text-sm font-semibold text-neutral-900">{t("filters")}</p>
@@ -363,7 +374,7 @@ function CatalogContent({
           type="button"
           onClick={handleClearFilters}
           disabled={!hasActiveFilters}
-          className="border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-35"
+          className="border border-neutral-200 px-3 py-1.5 rounded-xl text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-35"
         >
           {t("clearAll")}
         </button>
@@ -377,7 +388,7 @@ function CatalogContent({
               key={cat.id}
               href={cat.id === "all" ? "/menu" : `/menu/${cat.id}`}
               onClick={(e) => { e.preventDefault(); handleCategoryClick(cat.id) }}
-              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`shrink-0 rounded-xl border px-3 py-1.5 text-xs font-medium transition-colors ${
                 activeCategory === cat.id
                   ? "border-neutral-900 bg-neutral-900 text-white"
                   : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300 hover:text-neutral-900"
@@ -394,7 +405,7 @@ function CatalogContent({
                 key={sub}
                 type="button"
                 onClick={() => handleSubClick(sub)}
-                className={`rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                className={`rounded-xl border px-2.5 py-1 text-[11px] font-medium transition-colors ${
                   activeSub === sub
                     ? "border-neutral-900 bg-neutral-900 text-white"
                     : "border-neutral-200 bg-transparent text-neutral-500 hover:border-neutral-300 hover:text-neutral-900"
@@ -413,7 +424,7 @@ function CatalogContent({
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
-            className="mt-2 w-full border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 outline-none transition-colors focus:border-neutral-400"
+            className="mt-2 w-full border border-neutral-200 bg-white px-3 py-2 rounded-xl text-sm text-neutral-900 outline-none transition-colors focus:border-brand-900 focus:ring-1 focus:ring-brand-900/20"
           >
             {sortOptions.map((option) => <option key={option.id} value={option.id}>{t(option.labelKey)}</option>)}
           </select>
@@ -435,66 +446,139 @@ function CatalogContent({
             initial="hidden"
             animate="visible"
             variants={fadeUp}
-            custom={0}
-            className="pb-6"
-          >
-            <p className="font-nunito text-[11px] font-semibold uppercase tracking-[0.3em] text-neutral-400">
-              {t("eyebrow")}
-            </p>
-            <h1 className="font-playfair mt-3 text-3xl font-medium leading-tight text-neutral-900 sm:text-4xl">
-              {t("title")}
-            </h1>
-            <p className="font-nunito mt-2 text-xs font-light text-neutral-500 sm:text-sm">
-              {t("subtitle")}
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={fadeUp}
             custom={1}
             className="pb-4"
           >
-            <form onSubmit={handleSearchSubmit} className="relative">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-              <input
-                type="text"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                placeholder={t("searchPlaceholder")}
-                className="w-full border border-neutral-200 bg-neutral-50 py-2 pl-9 pr-9 text-sm text-neutral-900 placeholder-neutral-400 outline-none transition-colors focus:border-neutral-400 focus:bg-white"
-              />
-              {searchInput && (
-                <button
-                  type="button"
-                  onClick={() => { setSearchInput(""); setSearch("") }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
-                >
-                  <X size={15} />
-                </button>
-              )}
-            </form>
+            <div className="flex items-center gap-3 flex-row sm:flex-row">
+              <form onSubmit={handleSearchSubmit} className="flex-1 relative mt-3 sm:mt-0">
+                <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
+                <input
+                  type="text"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder={t("searchPlaceholder")}
+                  className="w-full border border-neutral-200 bg-white pl-10 pr-10 py-2.5 rounded-full text-sm text-neutral-900 placeholder-neutral-400 outline-none transition-colors focus:border-brand-900 focus:ring-1 focus:ring-brand-900/20"
+                />
+                {searchInput && (
+                  <button
+                    type="button"
+                    onClick={() => { setSearchInput(""); setSearch("") }}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                  >
+                    <X size={15} />
+                  </button>
+                )}
+              </form>
+            </div>
           </motion.div>
 
-          <div className="pb-3 sm:hidden">
-            <button
-              type="button"
-              onClick={() => setFiltersOpen((isOpen) => !isOpen)}
-              aria-expanded={filtersOpen}
-              className="flex w-full items-center justify-between border border-neutral-200 bg-white px-3 py-2.5 text-sm font-medium text-neutral-900"
-            >
-              <span className="flex items-center gap-2">
-                <SlidersHorizontal size={15} />
-                {filtersOpen ? t("hideFilters") : t("filters")}
-                {hasActiveFilters && <span className="size-1.5 rounded-full bg-neutral-900" />}
-              </span>
-              <ChevronDown size={16} className={`transition-transform ${filtersOpen ? "rotate-180" : ""}`} />
-            </button>
+          <div className="mt-4 mb-4 overflow-x-auto pb-2 min-w-0">
+            <div className="flex gap-4">
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => handleCategoryClick(cat.id)}
+                  className={`flex flex-col items-center gap-1.5 shrink-0 transition-all duration-200 ${
+                    activeCategory === cat.id
+                      ? "text-brand-900 font-semibold"
+                      : "text-neutral-500 hover:text-neutral-900"
+                  }`}
+                >
+                  <Image
+                    src={cat.image}
+                    alt={cat.label}
+                    width={48}
+                    height={48}
+                    unoptimized
+                    loading="lazy"
+                    className={`size-12 rounded-xl object-cover transition-transform duration-200 ${
+                      activeCategory === cat.id ? "scale-110" : "hover:scale-110"
+                    }`}
+                  />
+                  <span className="font-nunito text-xs font-medium leading-none">{cat.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
+          <div className="mt-1 mb-8 flex flex-col items-end gap-1">
+            <div className="relative inline-block">
+              <button
+                type="button"
+                onClick={() => setSortDropdownOpen((o) => !o)}
+                className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl text-xs font-medium text-neutral-900 outline-none transition-colors hover:border-brand-900 focus:border-brand-900"
+              >
+                <p className=" flex font-nunito text-[14px] font-sm text-neutral-500">sort by
+                <ArrowUpDown size={15} className="ml-1 text-neutral-400 transition-transform duration-200" />
+                </p>
+                <span className="flex items-center gap-2">
+                  {t(sortOptions.find((o) => o.id === sort)?.labelKey ?? sort)}
+                </span>
+              </button>
+              {sortDropdownOpen && (
+                <div ref={sortDropdownRef} className="absolute right-0 mt-1.5 w-32 border border-neutral-200 bg-white rounded-xl shadow-lg py-1.5 z-20">
+                  {sortOptions.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => { setSort(option.id); setSortDropdownOpen(false) }}
+                      className={`flex w-full items-center gap-2 px-3 py-1.5 text-xs font-medium transition-colors ${
+                        option.id === sort
+                          ? "bg-brand-900/5 text-brand-900"
+                          : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
+                      }`}
+                    >
+                      {t(option.labelKey)}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {activeCat?.subs && activeCat.subs.length > 0 && (
+            <div
+              ref={subCategoryRef}
+              className="relative w-[100vw] mx-[calc(50%-50vw)] overflow-x-auto snap-x snap-mandatory mb-2 min-w-0 no-scrollbar"
+            >
+              <div className="absolute bottom-[-10px] left-0 right-0 h-[10px] bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
+              <div className="flex gap-4 min-w-fit px-4">
+                {activeCat.subs.map((sub) => (
+                  <button
+                    key={sub}
+                    type="button"
+                    data-sub={sub}
+                    onClick={() => {
+                      handleSubClick(sub)
+                      requestAnimationFrame(() => {
+                        if (subCategoryRef.current) {
+                          const btn = subCategoryRef.current.querySelector(`[data-sub="${sub}"]`)
+                          if (btn) {
+                            ;(btn as HTMLElement).scrollIntoView({
+                              behavior: "smooth",
+                              block: "nearest",
+                              inline: "center",
+                            })
+                          }
+                        }
+                      })
+                    }}
+                    className={`shrink-0 px-4 py-3 text-sm font-medium transition-colors duration-300 border-b-2 snap-center ${
+                      activeSub === sub
+                        ? "border-brand-900 text-brand-900"
+                        : "border-transparent text-neutral-500 hover:text-neutral-900"
+                    } whitespace-nowrap`}
+                  >
+                    {ft(`subs.${sub}`)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div
-            className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out sm:block sm:opacity-100 ${
+            className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${
               filtersOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
             }`}
           >
