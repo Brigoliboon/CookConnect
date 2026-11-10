@@ -135,7 +135,7 @@ function MenuCardsSkeleton() {
     <div className="flex flex-col gap-3" aria-hidden="true">
       {Array.from({ length: 6 }).map((_, index) => (
         <div key={index} className="flex overflow-hidden rounded-2xl border border-neutral-100 bg-white">
-          <div className="flex flex-1 flex-col gap-2.5 p-4">
+          <div className="flex min-w-0 flex-1 flex-col gap-2.5 p-3 sm:p-4">
             <div className="h-4 w-2/3 animate-pulse rounded bg-neutral-100" />
             <div className="h-2.5 w-full animate-pulse rounded bg-neutral-100" />
             <div className="h-2.5 w-4/5 animate-pulse rounded bg-neutral-100" />
@@ -148,7 +148,7 @@ function MenuCardsSkeleton() {
               <div className="h-8 w-24 animate-pulse rounded bg-neutral-100" />
             </div>
           </div>
-          <div className="w-32 h-32 shrink-0 animate-pulse bg-neutral-100 sm:w-44 sm:h-44 lg:w-52 lg:h-52 mx-4 sm:mx-6 rounded-xl self-center" />
+          <div className="m-3 h-24 w-24 shrink-0 animate-pulse self-center rounded-xl bg-neutral-100 sm:m-4 sm:h-44 sm:w-44 lg:h-52 lg:w-52" />
         </div>
       ))}
     </div>
@@ -208,7 +208,7 @@ function MenuMealCard({
       onClick={onClick}
       className="group flex cursor-pointer overflow-hidden rounded-2xl border border-neutral-200 bg-white transition-colors hover:border-neutral-300 hover:shadow-sm"
     >
-      <div className="flex min-w-0 flex-1 flex-col p-4">
+      <div className="flex min-w-0 flex-1 flex-col p-3 sm:p-4">
         <div className="min-w-0">
           <h3 className="font-nunito truncate text-base font-bold leading-tight text-neutral-900" title={name}>
             {name}
@@ -297,11 +297,11 @@ function MenuMealCard({
         </div>
       </div>
 
-      <div className="relative w-32 h-32 shrink-0 overflow-hidden bg-neutral-100 sm:w-44 sm:h-44 lg:w-52 lg:h-52 mx-4 sm:mx-6 rounded-xl self-center">
+      <div className="relative m-3 h-24 w-24 shrink-0 self-center overflow-hidden rounded-xl bg-neutral-100 sm:m-4 sm:h-44 sm:w-44 lg:h-52 lg:w-52">
         <img
           src={imageVariant(imgSrc, 600)}
-          srcSet={imageSrcSet(imgSrc, [128, 600])}
-          sizes="(max-width: 640px) 128px, (max-width: 1024px) 176px, 208px"
+          srcSet={imageSrcSet(imgSrc, [96, 600])}
+          sizes="(max-width: 640px) 96px, (max-width: 1024px) 176px, 208px"
           alt={name}
           loading="lazy"
           decoding="async"
