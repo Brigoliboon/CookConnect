@@ -144,7 +144,7 @@ export default async function CategoryPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
       <Nav />
-      <main className="min-h-screen bg-white px-4 pb-16 sm:px-6">
+      <main className="min-h-screen bg-white px-4 pb-16 pt-20 sm:px-6">
         <CategoryClient
           items={items}
           emptyLabel={locale === "ar" ? "لا توجد وجبات هنا بعد — قريباً." : "Nothing here yet — coming soon."}

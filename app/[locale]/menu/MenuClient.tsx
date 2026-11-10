@@ -7,7 +7,6 @@ import useSWRInfinite from "swr/infinite"
 import { motion } from "framer-motion"
 import { Search, X, ArrowUp, ArrowUpDown } from "lucide-react"
 import { useTranslations, useLocale } from "next-intl"
-import { Link } from "@/i18n/navigation"
 import { translateContent } from "@/constants/translations"
 import { Nav } from "@/components/landing/Nav"
 import { Footer } from "@/components/landing/Footer"
@@ -18,6 +17,13 @@ import { decodeRecipeIds } from "@/utils/catalogShare"
 import { fetchRecipeList, recipeListUrl, type RecipeListResponse } from "@/hooks/useRecipes"
 import { getCart, setCart } from "@/utils/cart"
 import type { MealServingOption } from "@/constants"
+import {
+  categories,
+  catValues,
+  subValues,
+  DEFAULT_CATEGORY,
+  DEFAULT_SUBCATEGORY,
+} from "./menu-categories"
 
 const MealDetailDialog = dynamic(
   () => import("@/components/ui/MealDetailDialog").then((mod) => mod.MealDetailDialog),
@@ -101,45 +107,6 @@ function mapRecipe(r: Record<string, unknown>): MenuItem {
   }
 }
 
-const categories = [
-  { id: "meals", label: "Meals", image: "/menu-icons/meals.webp", subs: ["beef", "chicken", "seafood", "soup", "biryani", "risotto", "vegetable", "breakfast"] },
-  { id: "salad", label: "Salad", image: "/menu-icons/salad.webp" },
-  { id: "rice-sides", label: "Rice & Sides", image: "/menu-icons/rice-sides.webp" },
-  { id: "platters", label: "Platters", image: "/menu-icons/platters.webp" },
-  { id: "pasta", label: "Pasta", image: "/menu-icons/pasta.webp" },
-  { id: "wraps", label: "Wraps", image: "/menu-icons/wraps.webp" },
-  { id: "pizza", label: "Pizza", image: "/menu-icons/pizza.webp" },
-  { id: "burgers", label: "Burgers", image: "/menu-icons/burgers.webp" },
-  { id: "desserts", label: "Desserts", image: "/menu-icons/desserts.webp" },
-  { id: "drinks", label: "Drinks", image: "/menu-icons/drinks.webp", subs: ["smoothie", "juice", "beverages"] },
-]
-
-const subValues: Record<string, string> = {
-  beef: "beef",
-  chicken: "chicken",
-  seafood: "seafood",
-  soup: "soup",
-  breakfast: "breakfast",
-  biryani: "biryani",
-  risotto: "risotto",
-  vegetable: "vegetable",
-  smoothie: "smoothie",
-  juice: "juice",
-  beverages: "beverages",
-}
-
-const catValues: Record<string, string> = {
-  salad: "salad",
-  "rice-sides": "rice-sides",
-  platters: "platters",
-  pasta: "pasta",
-  wraps: "wrap",
-  pizza: "pizza",
-  burgers: "burgers",
-  desserts: "desserts",
-  drinks: "drinks",
-}
-
 const sortOptions = [
   { id: "default", labelKey: "default" },
   { id: "name", labelKey: "sortName" },
@@ -150,25 +117,19 @@ const sortOptions = [
   { id: "price_desc", labelKey: "sortPriceDesc" },
 ]
 
-interface RangeInputsProps {
-  label: string
-  minValue: string
-  maxValue: string
-  minPlaceholder: string
-  maxPlaceholder: string
-  onMinChange: (value: string) => void
-  onMaxChange: (value: string) => void
-}
-
-function RangeInputs({ label, minValue, maxValue, minPlaceholder, maxPlaceholder, onMinChange, onMaxChange }: RangeInputsProps) {
+function MenuGridSkeleton() {
   return (
-    <div>
-      <p className="font-nunito text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">{label}</p>
-      <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-        <input type="number" min="0" value={minValue} onChange={(event) => onMinChange(event.target.value)} placeholder={minPlaceholder} aria-label={minPlaceholder} className="min-w-0 border border-neutral-200 bg-white px-2.5 py-2 rounded-xl text-sm text-neutral-900 placeholder-neutral-400 outline-none transition-colors focus:border-brand-900 focus:ring-1 focus:ring-brand-900/20" />
-        <span className="text-xs text-neutral-400">–</span>
-        <input type="number" min="0" value={maxValue} onChange={(event) => onMaxChange(event.target.value)} placeholder={maxPlaceholder} aria-label={maxPlaceholder} className="min-w-0 border border-neutral-200 bg-white px-2.5 py-2 rounded-xl text-sm text-neutral-900 placeholder-neutral-400 outline-none transition-colors focus:border-brand-900 focus:ring-1 focus:ring-brand-900/20" />
-      </div>
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" aria-hidden="true">
+      {Array.from({ length: 10 }).map((_, index) => (
+        <div key={index} className="overflow-hidden border border-neutral-100 bg-white">
+          <div className="h-28 w-full animate-pulse bg-neutral-100 sm:h-32" />
+          <div className="space-y-2 p-3 pt-2.5 sm:p-4">
+            <div className="h-3.5 w-3/4 animate-pulse rounded bg-neutral-100" />
+            <div className="h-2.5 w-1/2 animate-pulse rounded bg-neutral-100" />
+            <div className="mt-3 h-6 w-full animate-pulse rounded bg-neutral-100" />
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -209,42 +170,37 @@ function CatalogContent({
   const sharedIdsKey = useMemo(() => [...sharedIds].sort().join(","), [sharedIds])
   const [showTop, setShowTop] = useState(false)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
-  const [activeCategory, setActiveCategory] = useState("meals")
-  const [activeSub, setActiveSub] = useState<string | null>(null)
+  const [activeCategory, setActiveCategory] = useState(DEFAULT_CATEGORY)
+  const [activeSub, setActiveSub] = useState<string | null>(DEFAULT_SUBCATEGORY)
   const [search, setSearch] = useState("")
   const [searchInput, setSearchInput] = useState("")
-  const [filtersOpen] = useState(false)
   const [sort, setSort] = useState("default")
-  const [minCal, setMinCal] = useState("")
-  const [maxCal, setMaxCal] = useState("")
-  const [minPrice, setMinPrice] = useState("")
-  const [maxPrice, setMaxPrice] = useState("")
   const [selected, setSelected] = useState<DialogMeal | null>(null)
+  const [isSwitching, setIsSwitching] = useState(false)
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false)
   const sortDropdownRef = useRef<HTMLDivElement | null>(null)
   const subCategoryRef = useRef<HTMLDivElement | null>(null)
   const checkoutHandledRef = useRef<string | null>(null)
 
   const activeCat = categories.find((c) => c.id === activeCategory)
-  const hasActiveFilters = search !== "" || activeCategory !== "meals" || sort !== "default" || minCal !== "" || maxCal !== "" || minPrice !== "" || maxPrice !== ""
 
   const buildUrl = useCallback((offset: number) => {
-    const targetValue = activeCat?.subs ? (subValues[activeSub ?? ""] ?? activeCat.subs[0]) : catValues[activeCategory]
+    const targetValue = sharedIds.length > 0
+      ? undefined
+      : activeCat?.subs
+        ? (subValues[activeSub ?? ""] ?? activeCat.subs[0])
+        : catValues[activeCategory]
 
     return recipeListUrl({
       ids: sharedIds.length > 0 ? sharedIdsKey : undefined,
       category: targetValue,
       search: search || undefined,
       sort: sort !== "default" ? sort : undefined,
-      minCalories: minCal || undefined,
-      maxCalories: maxCal || undefined,
-      minPrice: minPrice || undefined,
-      maxPrice: maxPrice || undefined,
       isActive: true,
       offset,
       limit: PAGE_SIZE,
     })
-  }, [activeCategory, activeSub, search, sort, minCal, maxCal, minPrice, maxPrice, activeCat, sharedIdsKey, sharedIds.length])
+  }, [activeCategory, activeSub, search, sort, activeCat, sharedIdsKey, sharedIds.length])
 
   const getKey = useCallback((index: number, previousPage: RecipeListResponse | null) => {
     if (idsParam && sharedIds.length === 0) return null
@@ -313,6 +269,12 @@ function CatalogContent({
   }, [sortDropdownOpen])
 
   useEffect(() => {
+    if (!isSwitching || isValidating) return
+    const timer = setTimeout(() => setIsSwitching(false), 0)
+    return () => clearTimeout(timer)
+  }, [isSwitching, isValidating])
+
+  useEffect(() => {
     if (!checkoutRequested || !hasMore || loading || loadingMore) return
     setSize((current) => current + 1)
   }, [checkoutRequested, hasMore, loading, loadingMore, setSize])
@@ -335,106 +297,23 @@ function CatalogContent({
   function handleSearchSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (searchInput === search) return
+    setIsSwitching(true)
     setSearch(searchInput)
   }
 
   function handleCategoryClick(catId: string) {
     if (catId === activeCategory) return
     const category = categories.find((item) => item.id === catId)
+    setIsSwitching(true)
     setActiveCategory(catId)
     setActiveSub(category?.subs?.[0] ?? null)
   }
 
   function handleSubClick(sub: string) {
     if (sub === activeSub) return
+    setIsSwitching(true)
     setActiveSub(sub)
   }
-
-  function handleClearFilters() {
-    if (!hasActiveFilters) return
-    setActiveCategory("meals")
-    setActiveSub(null)
-    setSort("default")
-    setMinCal("")
-    setMaxCal("")
-    setMinPrice("")
-    setMaxPrice("")
-    setSearch("")
-    setSearchInput("")
-  }
-
-  const filterPanel = (
-    <div className="border border-neutral-200 bg-white p-4 sm:p-5 rounded-2xl">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="font-nunito text-sm font-semibold text-neutral-900">{t("filters")}</p>
-          <p className="font-nunito mt-0.5 text-xs text-neutral-500">{t("filterHint")}</p>
-        </div>
-        <button
-          type="button"
-          onClick={handleClearFilters}
-          disabled={!hasActiveFilters}
-          className="border border-neutral-200 px-3 py-1.5 rounded-xl text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-35"
-        >
-          {t("clearAll")}
-        </button>
-      </div>
-
-      <div className="mt-5 border-t border-neutral-100 pt-4">
-        <p className="font-nunito text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">{t("categories")}</p>
-        <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-          {categories.map((cat) => (
-            <Link
-              key={cat.id}
-              href={cat.id === "all" ? "/menu" : `/menu/${cat.id}`}
-              onClick={(e) => { e.preventDefault(); handleCategoryClick(cat.id) }}
-              className={`shrink-0 rounded-xl border px-3 py-1.5 text-xs font-medium transition-colors ${
-                activeCategory === cat.id
-                  ? "border-neutral-900 bg-neutral-900 text-white"
-                  : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300 hover:text-neutral-900"
-              }`}
-            >
-              {ft(`cats.${cat.id}`)}
-            </Link>
-          ))}
-        </div>
-        {activeCat?.subs && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {activeCat.subs.map((sub) => (
-              <button
-                key={sub}
-                type="button"
-                onClick={() => handleSubClick(sub)}
-                className={`rounded-xl border px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                  activeSub === sub
-                    ? "border-neutral-900 bg-neutral-900 text-white"
-                    : "border-neutral-200 bg-transparent text-neutral-500 hover:border-neutral-300 hover:text-neutral-900"
-                }`}
-              >
-                {ft(`subs.${sub}`)}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="mt-5 grid gap-4 border-t border-neutral-100 pt-4 md:grid-cols-3">
-        <label className="block">
-          <span className="block font-nunito text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">{t("sortBy")}</span>
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-            className="mt-2 w-full border border-neutral-200 bg-white px-3 py-2 rounded-xl text-sm text-neutral-900 outline-none transition-colors focus:border-brand-900 focus:ring-1 focus:ring-brand-900/20"
-          >
-            {sortOptions.map((option) => <option key={option.id} value={option.id}>{t(option.labelKey)}</option>)}
-          </select>
-        </label>
-
-        <RangeInputs label={t("calories")} minValue={minCal} maxValue={maxCal} minPlaceholder={t("minCal")} maxPlaceholder={t("maxCal")} onMinChange={setMinCal} onMaxChange={setMaxCal} />
-        <RangeInputs label={t("price")} minValue={minPrice} maxValue={maxPrice} minPlaceholder={t("minPrice")} maxPlaceholder={t("maxPrice")} onMinChange={setMinPrice} onMaxChange={setMaxPrice} />
-      </div>
-    </div>
-  )
 
   return (
     <>
@@ -449,81 +328,93 @@ function CatalogContent({
             custom={1}
             className="pb-4"
           >
-            <div className="flex items-center gap-3 flex-row sm:flex-row">
-              <form onSubmit={handleSearchSubmit} className="flex-1 relative mt-3 sm:mt-0">
-                <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
-                <input
-                  type="text"
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder={t("searchPlaceholder")}
-                  className="w-full border border-neutral-200 bg-white pl-10 pr-10 py-2.5 rounded-full text-sm text-neutral-900 placeholder-neutral-400 outline-none transition-colors focus:border-brand-900 focus:ring-1 focus:ring-brand-900/20"
-                />
-                {searchInput && (
-                  <button
-                    type="button"
-                    onClick={() => { setSearchInput(""); setSearch("") }}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
-                  >
-                    <X size={15} />
-                  </button>
-                )}
-              </form>
-            </div>
+            <form onSubmit={handleSearchSubmit} className="relative">
+              <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
+              <input
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder={t("searchPlaceholder")}
+                aria-label={t("searchPlaceholder")}
+                className="w-full rounded-full border border-neutral-200 bg-white py-2.5 pl-10 pr-10 text-sm text-neutral-900 placeholder-neutral-400 outline-none transition-colors focus:border-brand-900 focus:ring-1 focus:ring-brand-900/20"
+              />
+              {searchInput && (
+                <button
+                  type="button"
+                  onClick={() => { setSearchInput(""); setSearch("") }}
+                  aria-label={t("clearAll")}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                >
+                  <X size={15} />
+                </button>
+              )}
+            </form>
           </motion.div>
 
-          <div className="mt-4 mb-4 overflow-x-auto pb-2 min-w-0">
+          <div className="mb-4 mt-4 min-w-0 overflow-x-auto pb-2">
             <div className="flex gap-4">
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => handleCategoryClick(cat.id)}
-                  className={`flex flex-col items-center gap-1.5 shrink-0 transition-all duration-200 ${
-                    activeCategory === cat.id
-                      ? "text-brand-900 font-semibold"
-                      : "text-neutral-500 hover:text-neutral-900"
-                  }`}
-                >
-                  <Image
-                    src={cat.image}
-                    alt={cat.label}
-                    width={48}
-                    height={48}
-                    unoptimized
-                    loading="lazy"
-                    className={`size-12 rounded-xl object-cover transition-transform duration-200 ${
-                      activeCategory === cat.id ? "scale-110" : "hover:scale-110"
+              {categories.map((cat) => {
+                const label = ft(`cats.${cat.id}`)
+                const active = activeCategory === cat.id
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => handleCategoryClick(cat.id)}
+                    aria-label={label}
+                    aria-pressed={active}
+                    className={`flex shrink-0 flex-col items-center gap-1.5 transition-all duration-200 ${
+                      active
+                        ? "font-semibold text-brand-900"
+                        : "text-neutral-500 hover:text-neutral-900"
                     }`}
-                  />
-                  <span className="font-nunito text-xs font-medium leading-none">{cat.label}</span>
-                </button>
-              ))}
+                  >
+                    <Image
+                      src={cat.image}
+                      alt={label}
+                      width={48}
+                      height={48}
+                      unoptimized
+                      loading="lazy"
+                      className={`size-12 rounded-xl object-cover transition-transform duration-200 ${
+                        active ? "scale-110" : "hover:scale-110"
+                      }`}
+                    />
+                    <span className="font-nunito text-xs font-medium leading-none">{label}</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
 
-          <div className="mt-1 mb-8 flex flex-col items-end gap-1">
-            <div className="relative inline-block">
+          <div className="mb-8 mt-1 flex flex-col items-end gap-1">
+            <div ref={sortDropdownRef} className="relative inline-block">
               <button
                 type="button"
-                onClick={() => setSortDropdownOpen((o) => !o)}
-                className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl text-xs font-medium text-neutral-900 outline-none transition-colors hover:border-brand-900 focus:border-brand-900"
+                onClick={() => setSortDropdownOpen((open) => !open)}
+                aria-haspopup="listbox"
+                aria-expanded={sortDropdownOpen}
+                className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-neutral-900 outline-none transition-colors hover:border-brand-900 focus:border-brand-900 focus:ring-1 focus:ring-brand-900/20"
               >
-                <p className=" flex font-nunito text-[14px] font-sm text-neutral-500">sort by
-                <ArrowUpDown size={15} className="ml-1 text-neutral-400 transition-transform duration-200" />
-                </p>
-                <span className="flex items-center gap-2">
-                  {t(sortOptions.find((o) => o.id === sort)?.labelKey ?? sort)}
+                <span className="font-nunito text-neutral-500">{t("sortBy")}</span>
+                <span className="font-nunito text-sm font-semibold text-neutral-900">
+                  {t(sortOptions.find((option) => option.id === sort)?.labelKey ?? sort)}
                 </span>
+                <ArrowUpDown
+                  size={15}
+                  className={`text-neutral-400 transition-transform duration-200 ${sortDropdownOpen ? "rotate-180" : ""}`}
+                />
               </button>
               {sortDropdownOpen && (
-                <div ref={sortDropdownRef} className="absolute right-0 mt-1.5 w-32 border border-neutral-200 bg-white rounded-xl shadow-lg py-1.5 z-20">
+                <div role="listbox" aria-label={t("sortBy")} className="absolute end-0 z-20 mt-1.5 w-40 rounded-xl border border-neutral-200 bg-white py-1.5 shadow-lg">
                   {sortOptions.map((option) => (
                     <button
                       key={option.id}
                       type="button"
-                      onClick={() => { setSort(option.id); setSortDropdownOpen(false) }}
-                      className={`flex w-full items-center gap-2 px-3 py-1.5 text-xs font-medium transition-colors ${
+                      role="option"
+                      aria-selected={option.id === sort}
+                      onClick={() => { setIsSwitching(true); setSort(option.id); setSortDropdownOpen(false) }}
+                      className={`flex w-full items-center px-3 py-1.5 text-start text-xs font-medium transition-colors ${
                         option.id === sort
                           ? "bg-brand-900/5 text-brand-900"
                           : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
@@ -540,10 +431,9 @@ function CatalogContent({
           {activeCat?.subs && activeCat.subs.length > 0 && (
             <div
               ref={subCategoryRef}
-              className="relative w-[100vw] mx-[calc(50%-50vw)] overflow-x-auto snap-x snap-mandatory mb-2 min-w-0 no-scrollbar"
+              className="no-scrollbar relative mb-2 -mx-4 min-w-0 snap-x snap-mandatory overflow-x-auto sm:-mx-6"
             >
-              <div className="absolute bottom-[-10px] left-0 right-0 h-[10px] bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
-              <div className="flex gap-4 min-w-fit px-4">
+              <div className="flex min-w-fit gap-4 px-4 sm:px-6">
                 {activeCat.subs.map((sub) => (
                   <button
                     key={sub}
@@ -577,33 +467,15 @@ function CatalogContent({
             </div>
           )}
 
-          <div
-            className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${
-              filtersOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-            }`}
-          >
-            <div className="min-h-0 overflow-hidden sm:overflow-visible">
-              <motion.div
-                initial="hidden"
-                animate="visible"
-                variants={fadeUp}
-                custom={2}
-                className={`pb-4 transition-transform duration-300 ease-out ${filtersOpen ? "translate-y-0" : "-translate-y-2"} sm:translate-y-0`}
-              >
-                {filterPanel}
-              </motion.div>
-            </div>
-          </div>
-
           <motion.div
             initial="hidden"
             animate="visible"
             variants={fadeUp}
-            custom={3}
+            custom={2}
           >
-            {loading ? (
-              <div className="flex h-64 items-center justify-center">
-                <div className="size-7 animate-spin border-2 border-neutral-200 border-t-neutral-900" />
+            {loading || isSwitching ? (
+              <div aria-busy="true">
+                <MenuGridSkeleton />
               </div>
             ) : menuItems.length > 0 ? (
               <>
