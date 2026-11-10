@@ -113,6 +113,13 @@ const RECIPE_ADDON_COLUMNS = "recipe_addons!meal_recipe_id(id, is_active)"
 const SERVING_COLUMNS = "name, price, calories, nutrition, is_active"
 const SERVING_INGREDIENT_COLUMNS = "serving_ingredients(quantity_g, unit, ingredient:ingredients(name, nutrition, fatsecret_id))"
 
+function isMissingRecipeAddonsRelation(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false
+  const code = (error as { code?: string }).code
+  const message = String((error as { message?: string }).message ?? "")
+  return code === "PGRST200" || /recipe_addons/i.test(message)
+}
+
 export async function listRecipes(
   supabase: import("@supabase/supabase-js").SupabaseClient,
   filters: ListRecipesFilters = {},
@@ -133,39 +140,52 @@ export async function listRecipes(
     filters.maxPrice === undefined &&
     (filters.sort === "name" || filters.sort === "name_desc")
 
-  let query = supabase
-    .from("recipes")
-    .select(`${RECIPE_COLUMNS}, ${RECIPE_ADDON_COLUMNS}, ${servings}`, {
-      count: canPaginateInSql ? "exact" : undefined,
-    })
+  const buildQuery = (includeAddons: boolean) => {
+    let query = supabase
+      .from("recipes")
+      .select(
+        includeAddons
+          ? `${RECIPE_COLUMNS}, ${RECIPE_ADDON_COLUMNS}, ${servings}`
+          : `${RECIPE_COLUMNS}, ${servings}`,
+        { count: canPaginateInSql ? "exact" : undefined },
+      )
 
-  if (filters.search) {
-    for (const tok of filters.search.split(/\s+/).filter(Boolean)) {
-      const p = `%${escapeLike(tok)}%`
-      query = query.or(`name.ilike.${p},description.ilike.${p},category.ilike.${p}`)
+    if (filters.search) {
+      for (const tok of filters.search.split(/\s+/).filter(Boolean)) {
+        const p = `%${escapeLike(tok)}%`
+        query = query.or(`name.ilike.${p},description.ilike.${p},category.ilike.${p}`)
+      }
     }
-  }
-  if (filters.category) {
-    query = query.eq("category", filters.category)
-  }
-  if (filters.isActive !== undefined) {
-    query = query.eq("is_active", filters.isActive)
-  }
-  if (filters.ids && filters.ids.length > 0) {
-    query = query.in("id", filters.ids)
+    if (filters.category) {
+      query = query.eq("category", filters.category)
+    }
+    if (filters.isActive !== undefined) {
+      query = query.eq("is_active", filters.isActive)
+    }
+    if (filters.ids && filters.ids.length > 0) {
+      query = query.in("id", filters.ids)
+    }
+
+    if (canPaginateInSql) {
+      query = query
+        .order("name", { ascending: filters.sort !== "name_desc" })
+        .range(offset, offset + limit - 1)
+    }
+
+    return query
   }
 
-  if (canPaginateInSql) {
-    query = query
-      .order("name", { ascending: filters.sort !== "name_desc" })
-      .range(offset, offset + limit - 1)
+  let result = (await buildQuery(true)) as { data: unknown[] | null; error: unknown; count: number | null }
+
+  if (result.error && isMissingRecipeAddonsRelation(result.error)) {
+    result = (await buildQuery(false)) as { data: unknown[] | null; error: unknown; count: number | null }
   }
 
-  const { data: recipes, error, count } = await query
+  const { data: recipes, error, count } = result
 
   if (error) throw error
 
-  let data = (recipes as Record<string, unknown>[]).map(mapRecipeWithServings)
+  let data = ((recipes ?? []) as Record<string, unknown>[]).map(mapRecipeWithServings)
 
   if (canPaginateInSql) {
     return { data, total: count ?? data.length }
@@ -211,11 +231,21 @@ export async function getTopSellersByCategory(
   }
   if (wanted.length === 0) return []
 
-  const { data: recipes, error } = await supabase
+  let result = (await supabase
     .from("recipes")
     .select(`${RECIPE_COLUMNS}, ${RECIPE_ADDON_COLUMNS}, servings(${SERVING_COLUMNS})`)
     .in("category", wanted)
-    .eq("is_active", true)
+    .eq("is_active", true)) as { data: unknown[] | null; error: unknown }
+
+  if (result.error && isMissingRecipeAddonsRelation(result.error)) {
+    result = (await supabase
+      .from("recipes")
+      .select(`${RECIPE_COLUMNS}, servings(${SERVING_COLUMNS})`)
+      .in("category", wanted)
+      .eq("is_active", true)) as { data: unknown[] | null; error: unknown }
+  }
+
+  const { data: recipes, error } = result
 
   if (error) throw error
 
@@ -316,13 +346,24 @@ export async function getRecipe(
   supabase: import("@supabase/supabase-js").SupabaseClient,
   id: string,
 ): Promise<RecipeWithServings | null> {
-  const { data, error } = await supabase
-    .from("recipes")
-    .select(
-      "*, recipe_addons!meal_recipe_id(id, is_active), servings(name, price, calories, nutrition, is_active, serving_ingredients(quantity_g, unit, ingredient:ingredients(name, nutrition, fatsecret_id)))",
-    )
-    .eq("id", id)
-    .single()
+  const fullSelect =
+    "*, recipe_addons!meal_recipe_id(id, is_active), servings(name, price, calories, nutrition, is_active, serving_ingredients(quantity_g, unit, ingredient:ingredients(name, nutrition, fatsecret_id)))"
+  const baseSelect =
+    "*, servings(name, price, calories, nutrition, is_active, serving_ingredients(quantity_g, unit, ingredient:ingredients(name, nutrition, fatsecret_id)))"
+
+  let result = (await supabase.from("recipes").select(fullSelect).eq("id", id).single()) as {
+    data: unknown | null
+    error: { code?: string; message?: string } | null
+  }
+
+  if (result.error && isMissingRecipeAddonsRelation(result.error)) {
+    result = (await supabase.from("recipes").select(baseSelect).eq("id", id).single()) as {
+      data: unknown | null
+      error: { code?: string; message?: string } | null
+    }
+  }
+
+  const { data, error } = result
 
   if (error) {
     if (error.code === "PGRST116") return null
