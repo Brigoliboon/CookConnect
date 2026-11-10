@@ -387,11 +387,17 @@ function CatalogContent({
     return buildUrl(index * PAGE_SIZE)
   }, [buildUrl, idsParam, sharedIds.length])
 
+  const fallbackMatchesQuery =
+    search === "" &&
+    sort === "default" &&
+    (sharedIds.length > 0 ||
+      (activeCategory === DEFAULT_CATEGORY && activeSub === DEFAULT_SUBCATEGORY))
+
   const { data: pages, size, setSize, isLoading, isValidating } = useSWRInfinite<RecipeListResponse>(
     getKey,
     fetchRecipeList,
     {
-      fallbackData: initialData ? [initialData] : undefined,
+      fallbackData: fallbackMatchesQuery && initialData ? [initialData] : undefined,
       dedupingInterval: 30_000,
       revalidateFirstPage: false,
       revalidateOnFocus: false,
@@ -449,9 +455,11 @@ function CatalogContent({
 
   useEffect(() => {
     if (!isSwitching || isValidating) return
+    // Keep the skeleton through the key-change render until the new page is loading or settled.
+    if (isLoading) return
     const timer = setTimeout(() => setIsSwitching(false), 0)
     return () => clearTimeout(timer)
-  }, [isSwitching, isValidating])
+  }, [isSwitching, isValidating, isLoading])
 
   useEffect(() => {
     if (!checkoutRequested || !hasMore || loading || loadingMore) return
@@ -549,7 +557,11 @@ function CatalogContent({
               {searchInput && (
                 <button
                   type="button"
-                  onClick={() => { setSearchInput(""); setSearch("") }}
+                  onClick={() => {
+                    if (searchInput || search) setIsSwitching(true)
+                    setSearchInput("")
+                    setSearch("")
+                  }}
                   aria-label={t("clearAll")}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
                 >
