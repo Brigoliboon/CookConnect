@@ -168,7 +168,7 @@ export async function POST(request: Request) {
       createdServings.push(created)
     }
 
-    return Response.json({ ...recipe, servings: createdServings }, { status: 201 })
+    return Response.json({ ...recipe, has_addons: false, servings: createdServings }, { status: 201 })
   } catch (err) {
     const message = err instanceof Error ? err.message : "Internal server error"
     return Response.json({ error: message }, { status: 500 })

@@ -21,6 +21,8 @@ export interface RecipeServing {
 }
 
 export interface RecipeWithServings extends Recipe {
+  /** True when the recipe has at least one active addon (side) linked as the meal. */
+  has_addons: boolean
   servings: RecipeServing[]
 }
 
@@ -103,7 +105,7 @@ export async function listRecipes(
   let query = supabase
     .from("recipes")
     .select(
-      "*, servings(name, price, calories, nutrition, is_active, serving_ingredients(quantity_g, unit, ingredient:ingredients(name, nutrition, fatsecret_id)))",
+      "*, recipe_addons!meal_recipe_id(id, is_active), servings(name, price, calories, nutrition, is_active, serving_ingredients(quantity_g, unit, ingredient:ingredients(name, nutrition, fatsecret_id)))",
     )
 
   if (filters.search) {
@@ -163,6 +165,7 @@ function mapRecipeWithServings(r: Record<string, unknown>): RecipeWithServings {
     is_active: r.is_active as boolean,
     image_path: (r.image_path as string | null) ?? null,
     primary_protein_ingredient_id: (r.primary_protein_ingredient_id as string | null) ?? null,
+    has_addons: hasActiveAddons(r),
     servings: ((r.servings as Record<string, unknown>[]) ?? [])
       .filter((s) => (s.is_active as boolean) !== false)
       .map((s) => ({
@@ -175,6 +178,10 @@ function mapRecipeWithServings(r: Record<string, unknown>): RecipeWithServings {
         ingredients: mapServingIngredients(s.serving_ingredients),
       })),
   }
+}
+
+function hasActiveAddons(r: Record<string, unknown>): boolean {
+  return ((r.recipe_addons as Record<string, unknown>[]) ?? []).some((a) => a.is_active !== false)
 }
 
 function sortRecipes(recipes: RecipeWithServings[], sort: RecipeSort | undefined) {
@@ -202,7 +209,7 @@ export async function getRecipe(
   const { data, error } = await supabase
     .from("recipes")
     .select(
-      "*, servings(name, price, calories, nutrition, is_active, serving_ingredients(quantity_g, unit, ingredient:ingredients(name, nutrition, fatsecret_id)))",
+      "*, recipe_addons!meal_recipe_id(id, is_active), servings(name, price, calories, nutrition, is_active, serving_ingredients(quantity_g, unit, ingredient:ingredients(name, nutrition, fatsecret_id)))",
     )
     .eq("id", id)
     .single()
@@ -221,6 +228,7 @@ export async function getRecipe(
     is_active: r.is_active as boolean,
     image_path: (r.image_path as string | null) ?? null,
     primary_protein_ingredient_id: (r.primary_protein_ingredient_id as string | null) ?? null,
+    has_addons: hasActiveAddons(r),
     servings: ((r.servings as Record<string, unknown>[]) ?? [])
       .filter((s) => (s.is_active as boolean) !== false)
       .map((s) => ({

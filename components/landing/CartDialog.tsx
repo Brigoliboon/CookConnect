@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Trash2, Minus, Plus, X, CheckCircle2, User, Mail, Phone, MapPin, Check, MessageCircle } from "lucide-react"
 import { useTranslations } from "next-intl"
-import { getCart, setCart, type CartItem } from "@/utils/cart"
+import { cartLineKey, getCart, setCart, type CartItem } from "@/utils/cart"
 import { LocationPicker, type Coordinates } from "@/components/ui/LocationPicker"
 import { FloatingInput } from "@/components/ui/FloatingInput"
 import { CartSidePicker } from "@/components/landing/CartSidePicker"
@@ -77,26 +77,26 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
     window.dispatchEvent(new Event("cart-changed"))
   }
 
-  function removeItem(name: string) {
-    commit(cart.filter((i) => i.name !== name))
+  function removeItem(key: string) {
+    commit(cart.filter((i) => cartLineKey(i) !== key))
   }
 
-  function changeQty(name: string, delta: number) {
+  function changeQty(key: string, delta: number) {
     commit(
       cart
-        .map((i) => (i.name === name ? { ...i, qty: Math.max(0, i.qty + delta) } : i))
+        .map((i) => (cartLineKey(i) === key ? { ...i, qty: Math.max(0, i.qty + delta) } : i))
         .filter((i) => i.qty > 0),
     )
   }
 
-  function setItemNote(name: string, note: string) {
-    commit(cart.map((i) => (i.name === name ? { ...i, note: note || undefined } : i)))
+  function setItemNote(key: string, note: string) {
+    commit(cart.map((i) => (cartLineKey(i) === key ? { ...i, note: note || undefined } : i)))
   }
 
-  function setItemSide(name: string, opt: { addon_recipe_id: string; addon_name: string; extra_cents: number } | null) {
+  function setItemSide(key: string, opt: { addon_recipe_id: string; addon_name: string; extra_cents: number } | null) {
     commit(
       cart.map((i) => {
-        if (i.name !== name) return i
+        if (cartLineKey(i) !== key) return i
         const base = i.basePrice ?? i.price
         const extra = opt ? opt.extra_cents / 100 : 0
         return {
@@ -237,7 +237,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                 <AnimatePresence initial={false} mode="popLayout">
                 {cart.map((item) => (
                   <motion.div
-                    key={item.name}
+                    key={cartLineKey(item)}
                     layout
                     initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -257,7 +257,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                       </div>
                       <div className="flex items-center gap-2 border-t border-neutral-100 pt-2 sm:border-0 sm:pt-0">
                         <button
-                          onClick={() => changeQty(item.name, -1)}
+                          onClick={() => changeQty(cartLineKey(item), -1)}
                           className="flex size-7 items-center justify-center rounded-lg border border-neutral-200 text-neutral-600 transition-colors hover:bg-neutral-100"
                           aria-label={t("decrease")}
                         >
@@ -265,14 +265,14 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                         </button>
                         <span className="w-6 text-center text-sm font-semibold">{item.qty}</span>
                         <button
-                          onClick={() => changeQty(item.name, 1)}
+                          onClick={() => changeQty(cartLineKey(item), 1)}
                           className="flex size-7 items-center justify-center rounded-lg border border-neutral-200 text-neutral-600 transition-colors hover:bg-neutral-100"
                           aria-label={t("increase")}
                         >
                           <Plus size={12} />
                         </button>
                         <button
-                          onClick={() => removeItem(item.name)}
+                          onClick={() => removeItem(cartLineKey(item))}
                           className="ml-auto text-red-500 transition-colors hover:text-red-600 sm:ml-0"
                           aria-label={t("remove")}
                         >
@@ -288,7 +288,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                         <CartSidePicker
                           mealRecipeId={item.recipeId}
                           selectedId={item.addonRecipeId}
-                          onSelect={(opt) => setItemSide(item.name, opt)}
+                          onSelect={(opt) => setItemSide(cartLineKey(item), opt)}
                         />
                         {item.addonName && (
                           <p className="mt-1 text-xs text-neutral-500">
@@ -307,7 +307,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                         </div>
                         <input
                           value={item.note ?? ""}
-                          onChange={(e) => setItemNote(item.name, e.target.value)}
+                          onChange={(e) => setItemNote(cartLineKey(item), e.target.value)}
                           placeholder={t("notePlaceholder")}
                           className="mt-1 w-full rounded-lg border border-neutral-200 px-3 py-2 text-xs text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900"
                         />

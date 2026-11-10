@@ -9,11 +9,12 @@ import { Link } from "@/i18n/navigation"
 import { translateContent } from "@/constants/translations"
 import { Nav } from "@/components/landing/Nav"
 import { Footer } from "@/components/landing/Footer"
-import { CatalogMealCard } from "@/components/landing/CatalogMealCard"
+import { CatalogMealCard, type CatalogAddPayload } from "@/components/landing/CatalogMealCard"
+import { MobileAddonSheet, type AddonOption } from "@/components/landing/MobileAddonSheet"
 import { toDialogMeal } from "@/lib/meal-detail"
 import type { MenuItem as DialogMeal } from "@/constants"
 import { decodeRecipeIds } from "@/utils/catalogShare"
-import { getCart, setCart } from "@/utils/cart"
+import { addCartItem, getCart, setCart } from "@/utils/cart"
 import type { MealServingOption } from "@/constants"
 
 const MealDetailDialog = dynamic(
@@ -46,6 +47,7 @@ export interface MenuItem {
   protein: number
   carbs: number
   fats: number
+  has_addons: boolean
   servings: MealServingOption[]
 }
 
@@ -96,6 +98,7 @@ function mapRecipe(r: Record<string, unknown>): MenuItem {
     protein: first?.nutrition?.protein_g ?? 0,
     carbs: first?.nutrition?.carbs_g ?? 0,
     fats: first?.nutrition?.fats_g ?? 0,
+    has_addons: (r.has_addons as boolean) ?? false,
     servings,
   }
 }
@@ -214,6 +217,7 @@ function CatalogContent({
 }) {
   const t = useTranslations("catalog")
   const ft = useTranslations("featured")
+  const mt = useTranslations("meals")
   const locale = useLocale()
   const sharedIds = useMemo(() => decodeRecipeIds(idsParam), [idsParam])
   const sharedIdsKey = useMemo(() => [...sharedIds].sort().join(","), [sharedIds])
@@ -235,6 +239,7 @@ function CatalogContent({
   const [minPrice, setMinPrice] = useState("")
   const [maxPrice, setMaxPrice] = useState("")
   const [selected, setSelected] = useState<DialogMeal | null>(null)
+  const [addonTarget, setAddonTarget] = useState<CatalogAddPayload | null>(null)
 
   const activeCat = categories.find((c) => c.id === activeCategory)
   const hasActiveFilters = search !== "" || activeCategory !== "all" || sort !== "default" || minCal !== "" || maxCal !== "" || minPrice !== "" || maxPrice !== ""
@@ -376,6 +381,39 @@ function CatalogContent({
     setMaxPrice("")
     setSearch("")
     setSearchInput("")
+  }
+
+  /**
+   * On mobile, meals with addons open a bottom sheet so a side can be chosen
+   * before the item is added. Returning `true` tells the card to skip its own
+   * add. Desktop keeps the direct add for now.
+   */
+  function handleCardAdd(payload: CatalogAddPayload): boolean {
+    const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches
+    if (isMobile && payload.hasAddons) {
+      setAddonTarget(payload)
+      return true
+    }
+    return false
+  }
+
+  function handleAddonConfirm(addon: AddonOption | null) {
+    if (!addonTarget) return
+    const servingLabel = addonTarget.serving
+      ? addonTarget.serving.name ?? mt("servingFallback", { index: addonTarget.servingIndex + 1 })
+      : null
+    const name = servingLabel ? `${addonTarget.name} (${servingLabel})` : addonTarget.name
+
+    addCartItem({
+      name,
+      price: addonTarget.price,
+      image: addonTarget.image,
+      recipeId: addonTarget.recipeId,
+      addonRecipeId: addon?.addon_recipe_id ?? null,
+      addonName: addon?.addon_name ?? null,
+      addonExtra: addon?.extra_cents ?? 0,
+    })
+    setAddonTarget(null)
   }
 
   const filterPanel = (
@@ -556,6 +594,8 @@ function CatalogContent({
                       {...item}
                       name={translateContent(item.name, locale)}
                       description={translateContent(item.description, locale)}
+                      hasAddons={item.has_addons}
+                      onAdd={handleCardAdd}
                       onClick={() =>
                         setSelected(
                           toDialogMeal({
@@ -600,6 +640,12 @@ function CatalogContent({
       )}
 
       {selected && <MealDetailDialog item={selected} onClose={() => setSelected(null)} />}
+
+      <MobileAddonSheet
+        target={addonTarget}
+        onClose={() => setAddonTarget(null)}
+        onConfirm={handleAddonConfirm}
+      />
 
       <Footer />
     </>

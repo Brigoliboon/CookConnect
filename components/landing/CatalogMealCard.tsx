@@ -4,7 +4,7 @@ import { useState } from "react"
 import Image from "next/image"
 import { ShoppingCart, Check, Flame, Beef, Wheat, Bubbles, ChevronDown } from "lucide-react"
 import { useTranslations } from "next-intl"
-import { getCart, setCart } from "@/utils/cart"
+import { addCartItem } from "@/utils/cart"
 import type { MealServingOption } from "@/constants"
 
 const fallbackImages: Record<string, string> = {
@@ -47,6 +47,16 @@ const catBgs: Record<string, string> = {
 
 const defaultBg = "/meal-backgrounds/meal.jpg"
 
+export interface CatalogAddPayload {
+  recipeId: string
+  name: string
+  image: string
+  price: number
+  serving: MealServingOption | null
+  servingIndex: number
+  hasAddons: boolean
+}
+
 interface CatalogMealCardProps {
   id: string
   name: string
@@ -59,6 +69,12 @@ interface CatalogMealCardProps {
   carbs?: number
   fats?: number
   servings?: MealServingOption[]
+  hasAddons?: boolean
+  /**
+   * Called when "Add" is pressed. Return `true` to signal the parent handled
+   * the add (e.g. it opened an addon picker); otherwise the card adds directly.
+   */
+  onAdd?: (payload: CatalogAddPayload) => boolean | void
   onClick?: () => void
 }
 
@@ -74,6 +90,8 @@ export function CatalogMealCard({
   carbs = 0,
   fats = 0,
   servings,
+  hasAddons = false,
+  onAdd,
   onClick,
 }: CatalogMealCardProps) {
   const t = useTranslations("meals")
@@ -90,16 +108,23 @@ export function CatalogMealCard({
   const imgSrc = image || fallbackImages[category] || "/drink_sample.svg"
 
   function handleAdd() {
-    const cart = getCart()
-    const key = activeServing ? `${name} (${activeServing.name ?? t("servingFallback", { index: servingIndex + 1 })})` : name
-    const existing = cart.find((item) => item.name === key)
-    if (existing) {
-      existing.qty += 1
-    } else {
-      cart.push({ name: key, price: displayPrice, qty: 1, image: imgSrc, recipeId: id, basePrice: displayPrice })
-    }
-    setCart(cart)
-    window.dispatchEvent(new Event("cart-changed"))
+    const servingLabel = activeServing
+      ? activeServing.name ?? t("servingFallback", { index: servingIndex + 1 })
+      : null
+    const key = servingLabel ? `${name} (${servingLabel})` : name
+
+    const handled = onAdd?.({
+      recipeId: id,
+      name,
+      image: imgSrc,
+      price: displayPrice,
+      serving: activeServing,
+      servingIndex,
+      hasAddons,
+    })
+    if (handled === true) return
+
+    addCartItem({ name: key, price: displayPrice, image: imgSrc, recipeId: id })
     setAdded(true)
     setTimeout(() => setAdded(false), 1500)
   }

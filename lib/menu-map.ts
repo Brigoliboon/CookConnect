@@ -50,6 +50,7 @@ export function toMenuItem(r: RecipeWithServings, locale: string): MenuItem {
     protein: nutrition?.protein_g ?? 0,
     carbs: nutrition?.carbs_g ?? 0,
     fats: nutrition?.fats_g ?? 0,
+    has_addons: r.has_addons ?? false,
     servings,
   };
 }

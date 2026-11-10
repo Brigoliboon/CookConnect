@@ -164,6 +164,7 @@
     "addNote": "Add note",
     "noteTitle": "Note for this item",
     "sidesTitle": "Choose rice / sides",
+    "sidesEmpty": "No sides available for this meal.",
     "notePlaceholder": "e.g. no onions, extra spicy",
     "remove": "Remove item",
     "subtotal": "Subtotal",
