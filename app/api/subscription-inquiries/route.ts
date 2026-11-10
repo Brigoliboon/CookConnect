@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
 import { createSubscriptionInquiry, listSubscriptionInquiries } from "@/lib/supabase/tables/subscription_inquiries"
+import { verifySubscriptionInviteToken } from "@/lib/subscription/invite-token"
 
 export async function GET() {
   const cookieStore = await cookies()
@@ -35,6 +36,7 @@ export async function POST(request: Request) {
     days?: string[]
     slots?: string[]
     onCall?: boolean
+    invite_token?: string
   }
   try {
     body = await request.json()
@@ -44,6 +46,23 @@ export async function POST(request: Request) {
 
   if (!body.plan_id || !body.name?.trim() || !body.mobile_number?.trim() || !body.address?.trim()) {
     return Response.json({ error: "plan_id, name, mobile_number and address are required" }, { status: 400 })
+  }
+
+  let verifiedInvite:
+    | {
+        expiresAt?: string
+        agreedPriceCents?: number
+        basePriceCents?: number
+        concession?: string
+        currency?: string
+      }
+    | undefined
+  if (body.invite_token) {
+    const invite = verifySubscriptionInviteToken(body.invite_token, body.plan_id)
+    if (!invite.valid) {
+      return Response.json({ error: invite.error ?? "Invalid invitation token" }, { status: 400 })
+    }
+    verifiedInvite = invite
   }
 
   try {
@@ -58,12 +77,28 @@ export async function POST(request: Request) {
         mode: body.mode ?? "normal",
         restrictions: body.restrictions ?? [],
         restrictionNames: body.restrictionNames ?? {},
-        mealsPerDay: Math.min(4, Math.max(1, Math.round(body.mealsPerDay ?? 1))),
+        mealsPerDay: Math.min(5, Math.max(1, Math.round(body.mealsPerDay ?? 1))),
         breakfast: body.breakfast ?? false,
         includedMeals: body.includedMeals ?? [],
         days: body.days ?? [],
         slots: (body.slots ?? ["morning"]).filter((s) => ["morning", "noon", "evening"].includes(s)),
         onCall: body.onCall ?? false,
+        ...(verifiedInvite
+          ? {
+              invite: {
+                verified: true,
+                expiresAt: verifiedInvite.expiresAt,
+                ...(verifiedInvite.agreedPriceCents !== undefined
+                  ? { agreedPriceCents: verifiedInvite.agreedPriceCents }
+                  : {}),
+                ...(verifiedInvite.basePriceCents !== undefined
+                  ? { basePriceCents: verifiedInvite.basePriceCents }
+                  : {}),
+                ...(verifiedInvite.concession ? { concession: verifiedInvite.concession } : {}),
+                ...(verifiedInvite.currency ? { currency: verifiedInvite.currency } : {}),
+              },
+            }
+          : {}),
       },
     })
     return Response.json(data, { status: 201 })

@@ -52,7 +52,7 @@ export function Contact() {
 
   const details = [
     { icon: MapPin, label: t("addressLabel"), value: "Sheikh Zayed Street, Al Hamidiya 1, Ajman, UAE" },
-    { icon: Phone, label: t("phoneLabel"), value: "+971556634050" },
+    { icon: Phone, label: t("phoneLabel"), value: "+971 56 335 6051" },
     { icon: Mail, label: t("emailLabel"), value: "cookconnectrestaurant@gmail.com" },
     { icon: Clock, label: t("hoursLabel"), value: "Sat–Thu, 8:00 AM – 10:00 PM" },
   ]

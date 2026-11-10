@@ -5,7 +5,9 @@ import { listRecipes } from "@/lib/supabase/tables/recipes";
 import { decodeRecipeIds } from "@/utils/catalogShare";
 import { SITE_URL, localeUrl } from "@/lib/seo";
 import { toMenuItem } from "@/lib/menu-map";
+import type { RecipeListResponse } from "@/hooks/useRecipes";
 import MenuClient, { type MenuItem } from "./MenuClient";
+import { DEFAULT_SUBCATEGORY } from "./menu-categories";
 
 const PAGE_SIZE = 24;
 
@@ -25,21 +27,22 @@ export default async function MenuPage({
   const sharedIds = decodeRecipeIds(idsParam);
 
   let initialItems: MenuItem[] = [];
-  let initialTotal = 0;
+  let initialData: RecipeListResponse | undefined;
   try {
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
     const res = await listRecipes(supabase, {
       ids: sharedIds.length > 0 ? sharedIds : undefined,
+      category: sharedIds.length > 0 ? undefined : DEFAULT_SUBCATEGORY,
       isActive: true,
       offset: 0,
       limit: PAGE_SIZE,
     });
-    initialTotal = res.total;
+    initialData = { data: res.data, total: res.total };
     initialItems = res.data.map((r) => toMenuItem(r, locale));
   } catch {
     initialItems = [];
-    initialTotal = 0;
+    initialData = undefined;
   }
 
   const menuUrl = localeUrl(locale, "/menu");
@@ -90,8 +93,7 @@ export default async function MenuPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
       <MenuClient
-        initialItems={initialItems}
-        initialTotal={initialTotal}
+        initialData={initialData}
         idsParam={idsParam}
         checkoutRequested={checkoutRequested}
       />

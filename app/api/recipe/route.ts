@@ -1,5 +1,7 @@
 import { createRecipe, listRecipes, type CreateRecipeInput, type ListRecipesFilters, type RecipeSort } from "@/lib/supabase/tables/recipes"
 import { createServing, linkServingIngredients, type ServingIngredientInput } from "@/lib/supabase/tables/servings"
+import { etaggedJson, NO_STORE_HEADERS } from "@/utils/httpCache"
+import { createPublicClient } from "@/utils/supabase/public"
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
 
@@ -20,28 +22,39 @@ interface CreateMealBody extends CreateRecipeInput {
   servings?: ServingInput[]
 }
 
-const SORTS = new Set<RecipeSort>(["name", "name_desc", "calories", "calories_desc", "price", "price_desc"])
+const SORTS = new Set<RecipeSort>([
+  "name",
+  "name_desc",
+  "calories",
+  "calories_desc",
+  "price",
+  "price_desc",
+  "sales",
+  "sales_desc",
+])
 const MAX_LIMIT = 100
 
 export async function GET(request: Request) {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
+  const supabase = createPublicClient()
 
   let filters: ListRecipesFilters
   try {
     filters = parseRecipeFilters(new URL(request.url).searchParams)
   } catch (err) {
     const message = err instanceof Error ? err.message : "Invalid filter parameters"
-    return Response.json({ error: message }, { status: 400 })
+    return Response.json({ error: message }, { status: 400, headers: NO_STORE_HEADERS })
   }
 
   try {
     const recipes = await listRecipes(supabase, filters)
-    return Response.json(recipes)
+    return etaggedJson(request, recipes)
   } catch (err) {
     console.error("[API] GET /api/recipe error:", err)
     const message = err instanceof Error ? err.message : "Internal server error"
-    return Response.json({ error: message, detail: err instanceof Error ? err.stack : null }, { status: 500 })
+    return Response.json(
+      { error: message, detail: err instanceof Error ? err.stack : null },
+      { status: 500, headers: NO_STORE_HEADERS },
+    )
   }
 }
 
@@ -66,6 +79,14 @@ function parseRecipeFilters(params: URLSearchParams): ListRecipesFilters {
   const active = params.get("is_active")
   if (active !== null && active !== "true" && active !== "false") {
     throw new Error("is_active must be true or false")
+  }
+
+  const include = params.get("include")
+  if (include !== null) {
+    const fields = include.split(",").map((value) => value.trim()).filter(Boolean)
+    if (fields.some((value) => value !== "ingredients")) {
+      throw new Error("include must be ingredients")
+    }
   }
 
   const minCalories = parseNumber("min_cal")
@@ -103,6 +124,7 @@ function parseRecipeFilters(params: URLSearchParams): ListRecipesFilters {
     sort: sort as RecipeSort | undefined,
     offset: parseNonNegativeInteger("offset"),
     limit,
+    includeIngredients: include?.split(",").map((value) => value.trim()).includes("ingredients"),
   }
 }
 
@@ -112,18 +134,18 @@ export async function POST(request: Request) {
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 })
+    return Response.json({ error: "Unauthorized" }, { status: 401, headers: NO_STORE_HEADERS })
   }
 
   let body: CreateMealBody
   try {
     body = await request.json()
   } catch {
-    return Response.json({ error: "Invalid JSON body" }, { status: 400 })
+    return Response.json({ error: "Invalid JSON body" }, { status: 400, headers: NO_STORE_HEADERS })
   }
 
   if (!body.name || typeof body.name !== "string" || !body.name.trim()) {
-    return Response.json({ error: "name is required" }, { status: 400 })
+    return Response.json({ error: "name is required" }, { status: 400, headers: NO_STORE_HEADERS })
   }
 
   try {
@@ -168,9 +190,12 @@ export async function POST(request: Request) {
       createdServings.push(created)
     }
 
-    return Response.json({ ...recipe, has_addons: false, servings: createdServings }, { status: 201 })
+    return Response.json(
+      { ...recipe, has_addons: false, servings: createdServings },
+      { status: 201, headers: NO_STORE_HEADERS },
+    )
   } catch (err) {
     const message = err instanceof Error ? err.message : "Internal server error"
-    return Response.json({ error: message }, { status: 500 })
+    return Response.json({ error: message }, { status: 500, headers: NO_STORE_HEADERS })
   }
 }

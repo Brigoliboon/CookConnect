@@ -6,6 +6,7 @@ import { motion } from "framer-motion"
 import { ShoppingCart, Check, Flame, ChevronDown, Beef, Wheat, Bubbles } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { getCart, setCart } from "@/utils/cart"
+import { imageVariant } from "@/lib/images"
 import type { MealServingOption } from "@/constants"
 
 const MotionImage = motion(Image)
@@ -111,13 +112,13 @@ export function MealCard({
           onMouseLeave={() => setImageHovered(false)}
         >
           <MotionImage
-            src={image}
+            src={imageVariant(image, 600)}
             alt={name}
             fill
+            unoptimized
             sizes="(max-width: 640px) 192px, 288px"
             loading={eager ? "eager" : "lazy"}
             fetchPriority={eager ? "high" : "low"}
-            quality={75}
             decoding="async"
             className="object-cover"
             animate={{ scale: shrunk ? 0.85 : 1 }}

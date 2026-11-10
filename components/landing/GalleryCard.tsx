@@ -5,6 +5,7 @@ import Image from "next/image"
 import { ShoppingCart, Check, Flame, Sun, Moon } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { getCart, setCart } from "@/utils/cart"
+import { imageVariant } from "@/lib/images"
 
 interface GalleryCardProps {
   id?: string
@@ -49,12 +50,12 @@ export function GalleryCard({ id, name, price, calories, protein, carbs, fats, d
     >
       <div className="relative h-40 overflow-hidden">
         <Image
-          src={image}
+          src={imageVariant(image, 600)}
           alt={name}
           fill
+          unoptimized
           sizes="(max-width: 640px) 50vw, 241px"
           loading="lazy"
-          quality={70}
           decoding="async"
           className="object-cover transition-all duration-500 hover:scale-105"
         />

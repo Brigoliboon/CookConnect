@@ -112,7 +112,6 @@ export default async function CategoryPage({
     items = [];
   }
 
-  const menuUrl = localeUrl(locale, "/menu");
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -145,20 +144,7 @@ export default async function CategoryPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
       <Nav />
-      <main className="min-h-screen bg-white px-4 pt-24 pb-16 sm:px-6">
-        <p className="font-nunito text-[11px] font-semibold uppercase tracking-[0.3em] text-neutral-400">
-          {locale === "ar" ? "قائمتنا" : "Our Menu"}
-        </p>
-        <h1 className="font-playfair mt-3 text-3xl font-medium text-neutral-900 sm:text-4xl">
-          {titleFor(category, locale)}
-        </h1>
-        <p className="font-nunito mt-2 text-sm text-neutral-500">{descFor(category, locale)}</p>
-        <a
-          href={menuUrl}
-          className="font-nunito mt-4 inline-block border border-neutral-900 bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white"
-        >
-          {locale === "ar" ? "عرض القائمة الكاملة" : "View Full Menu"}
-        </a>
+      <main className="min-h-screen bg-white px-4 pb-16 pt-20 sm:px-6">
         <CategoryClient
           items={items}
           emptyLabel={locale === "ar" ? "لا توجد وجبات هنا بعد — قريباً." : "Nothing here yet — coming soon."}

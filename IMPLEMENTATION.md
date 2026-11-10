@@ -139,7 +139,7 @@ app/
 
 ### Module 4: Employee Module — ✅ UI Complete (no API)
 
-- `/employee` dashboard with stats, map, StatusGallery — done
+- `/employee` dashboard — live dashboard with collapsible sections (Needs attention, Performance, Quick actions, Operations, Sales performance). Needs attention uses `GET /api/nav-counts`; Performance uses `GET /api/sales` (current + previous range) and `GET /api/subscriptions`; pipeline uses `GET /api/dashboard/pipeline`; delivery map uses `GET /api/dashboard/map`; revenue trend, origin split, top meals, top plans come from the current sales summary; subscriber overview comes from `GET /api/subscriptions`. Today/7D/30D range applies to sales panels.
 - `/employee/customers` table with search, icons — done
 - `/employee/customers/[id]` detail/edit page — done
 - `/employee/subscriptions` gallery + create form — done
@@ -173,7 +173,7 @@ Schema already deployed (`lib/supabase/models.ts` is the source of truth). Verif
 - `subscription_plans`: name, validity_days, price_cents, currency, details, is_active
 - `subscriptions.customer_id` → `accounts.id` (user link), `subscriptions.subscription_plan_id` → `subscription_plans.id`
 - status `active`/`cancelled`, `started_at`/`expires_at`/`cancelled_at`
-- Flow: customer views plans → inquiry (table not created yet) → sales creates subscription
+- Flow: customer views plans → `/subscription-onboarding` inquiry → sales reviews/approves → subscription created
 
 Checkpoint (all must pass before marking complete):
 - [x] `lib/supabase/tables/subscription_plans.ts` — `listActivePlans`
@@ -181,9 +181,13 @@ Checkpoint (all must pass before marking complete):
 - [x] `app/api/subscription-plans/route.ts` — GET active plans
 - [x] `app/api/subscriptions/route.ts` — GET list, POST create (maps exclusion/unique violations → 409)
 - [x] `app/api/subscriptions/[id]/route.ts` — PATCH cancel (DELETE removed; no hard-delete)
-- [x] Testcase file: `tests/SUBSCRIPTIONS_BACKEND_TESTCASE.md` (+ Postman collection)
-- [x] Lint + typecheck pass
+- [x] `/subscription-onboarding` progressive form (Plan → Details → Preferences → Meals → Delivery → Review); legacy `/subscription` redirects preserving `plan` + `token`
+- [x] Signed invite token (`lib/subscription/invite-token.ts`) with expiry + plan binding; validated by `GET /api/subscription-invites/validate` and enforced again on inquiry submit
+- [x] `POST /api/subscription-invites` (employee/admin) + invite-link modal on `/employee/subscriptions`
+- [x] Testcases: `tests/SUBSCRIPTIONS_BACKEND_TESTCASE.md`, `tests/SUBSCRIPTION_ONBOARDING_TESTCASE.md`
+- [x] Lint + typecheck + build pass
 - [ ] **Pending:** Postman verification of `tests/SUBSCRIPTIONS_BACKEND_TESTCASE.md` (P1–P2, S1–S7) + RLS checks across customer/employee/anonymous sessions
+- [ ] **Pending:** Run `tests/SUBSCRIPTION_ONBOARDING_TESTCASE.md` authenticated API + manual UI checks
 
 ### Module 9: Public Landing — Arabic (i18n) — ✅ Complete
 
@@ -194,6 +198,7 @@ Checkpoint (all must pass before marking complete):
 - `lib/fonts.ts` + `globals.css`: Cairo font for Arabic; RTL font-variable swap via `html[dir="rtl"]`
 - `constants/translations.ts`: `AR_CONTENT` dictionary + `translateContent(text, locale)` for menu/category/plan data (English fallback; DB bilingual columns deferred)
 - Landing components converted to `useTranslations`: Nav (+language toggle), CartButton, Hero, Footer, Contact, AboutUs, Subscription, MealCard, CartDialog, HealthyCampaign, FeaturedMeals, FeaturedSection, MealsDisplay, DrinkCard, GalleryCard, PremiumGallery
+- Hero copy (`messages/*/hero` + `Hero.tsx`) covers dine-in, delivery/pickup and meal plans — not subscription-only; primary CTA → `#meals`, secondary → `#subscription`
 - Pages converted: `[locale]/page`, `[locale]/login`, `[locale]/terms`, `[locale]/privacy` (legal content message-driven)
 - English canonical at `/`; Arabic at `/ar/*` — no `/en` prefix in URLs
 - Checkpoints: `npx tsc --noEmit` clean; `eslint` no errors on converted files; `npm run build` SSG for `/`, `/en/*`, `/ar/*`; auth dashboards unchanged
@@ -224,7 +229,7 @@ Domain `https://cookconnectae.com/` — en canonical at `/`, ar at `/ar`. GSC ve
 - `app/robots.ts` — allow `/`, disallow `/api/`, `/customer`, `/employee/`, `/rider`, `/sticker-preview`; sitemap + host
 - `app/sitemap.ts` — `/`, `/menu`, `/terms`, `/privacy` + `/ar` variants with hreflang alternates; excludes login/tracking/auth
 - `app/manifest.ts` — CookConnect PWA manifest, theme `#118B50`
-- `app/[locale]/layout.tsx` — `generateMetadata`: metadataBase, title template, OG, Twitter, canonical + hreflang en/ar/x-default, geo (`AE-AJ`, Ajman, ICBM), viewport themeColor
+- `app/[locale]/layout.tsx` — `generateMetadata`: metadataBase, title template, OG, Twitter (locale-specific image via `ogImage(locale)`: `/ogg-banner_en.png` / `/ogg-banner_ar.png`), canonical + hreflang en/ar/x-default, geo (`AE-AJ`, Ajman, ICBM), viewport themeColor
 - `app/[locale]/page.tsx` — `Restaurant` + `WebSite` JSON-LD via `components/seo/RestaurantJsonLd.tsx`
 - `app/[locale]/menu/` (renamed from `catalog/`; 308 redirects `/catalog*`, `/en/catalog*`, `/ar/catalog*` → `/menu*` + `/menu.php` → `/menu` in `next.config.ts`; SSR: server `page.tsx` fetches first 24 via `listRecipes()` + passes to `MenuClient.tsx`, `ItemList` + `OrderAction` JSON-LD; route now dynamic)
 - `app/[locale]/menu/[category]/` — 10 SSR category pages (meals/salad/rice-sides/platters/pasta/wraps/pizza/burgers/desserts/drinks) with H1, canonical + hreflang, `ItemList`; empty → noindex; in sitemap (0.7); linked from `/menu` pills (locale-aware `Link`, client filter preserved); shared mapper `lib/menu-map.ts`
@@ -232,6 +237,166 @@ Domain `https://cookconnectae.com/` — en canonical at `/`, ar at `/ar`. GSC ve
 - `components/landing/Footer.tsx` — NAP unified to Ajman address, tel/mailto links, social links, `<address>` tag (fixed Dubai mismatch)
 - `proxy.ts` — matcher bypasses `robots.txt`, `sitemap.xml`, `manifest.webmanifest`, `sw.js`
 - Checkpoint: `tests/SEO_TESTCASE.md` (T1–T8)
+
+---
+
+### Module 11: Sales Tracking & Order Origin — ⏳ In Progress
+
+Orders are tagged with their channel and sales are reportable without a ledger table.
+
+- `orders.origin` — `web` | `pos` | `whatsapp`, set by the server (bot `x-bot-secret` header → whatsapp, `/employee/` referer → pos, admin/employee session without referer → pos, otherwise web). Never taken from the request body. Historical rows: `address = 'Dine-in'` → `pos`, all others → `web`
+- `orders.delivered_at` — set by a DB trigger when status reaches `delivered`, cleared if the order moves away from it. Needed because `order_deliveries.delivered_at` is rider-only RLS and staff cannot read it
+- Sales rules: orders count only at `delivered`, per order-item (`unit_price_cents × qty`) with delivery fees reported separately; subscriptions count per `subscription_payments` row (partial payments included)
+- Dates are UAE (`Asia/Dubai`) days; totals are grouped by currency so AED orders never mix with another plan currency
+- Reporting is derived from existing tables at read time — no `sales` table, no backfill ledger
+- `GET /api/recipe` accepts `sort=sales` / `sort=sales_desc` (units sold, delivered orders only) and composes with `category`, `limit`, `offset`. Units are loaded only when a sales sort is requested; ordering happens in memory with a `name` tie-break. The response is sort-only — no sales figure is exposed on the publicly cached menu endpoint
+- `GET /api/orders` accepts `?status=`, `?origin=`, `?location_only=true`, `?phone=` (partial, case-insensitive match on `mobile_number`), `?limit=` (positive integer) — all composable; response is the order list, newest first
+- `POST /api/orders` is server-authoritative: `items[]` carries only `recipe_id` (required), `addon_recipe_id`, `qty` (int 1–100), `note`. Name/image snapshot from `recipes`, price from `servings`/`recipe_addons` (`resolveMealPrice`), subtotal/VAT recomputed server-side. Unknown/inactive recipe, invalid side, or bad qty → `400` (`OrderInputError`); client-sent price/name/image fields are ignored. Null-recipe items are rejected. Legacy rows keep their stored snapshots
+
+Checkpoint (all must pass before marking complete):
+- [x] Superseded draft migrations deleted (`20261022000001_recipe_sales_stats.sql`, `20261022000002_sales_rpc.sql`)
+- [x] Testcase file: `tests/SALES_TRACKING_TESTCASE.md` (M1–M4, O1–O6, S1–S10)
+- [x] Migration: `20261023000000_order_origin_delivered_at.sql` — `orders.origin`, `orders.delivered_at`, trigger, index, backfill, draft cleanup
+- [x] `lib/supabase/models.ts` — `OrderOrigin`, `Order.origin`, `Order.delivered_at`
+- [x] `lib/orders/origin.ts` — `inferOrderOrigin`
+- [x] `lib/supabase/tables/orders.ts` — `CreateOrderInput.origin`, `createOrder` stores it, `listOrders` filters by it
+- [x] `app/api/orders/route.ts` — POST infers origin, GET accepts `?origin=`
+- [x] GET `?phone=` + `?limit=` filters (`lib/supabase/tables/orders.ts` `listOrders`, route validation)
+- [x] Trimmed POST payload — `CreateOrderItemInput` = `recipe_id`/`addon_recipe_id`/`qty`/`note`; `createOrder` validates recipe + qty and snapshots name/image/price from DB; `OrderInputError` → 400; callers trimmed (`components/landing/CartDialog.tsx`, `app/(authenticated)/employee/orders/page.tsx`)
+- [x] Verified live: spoofed `name`/`unit_price_cents`/`image_path` ignored (DB values stored), 400s for unknown recipe / missing recipe_id / qty 0 / bad addon / empty items, GET `phone`+`limit` filters work; `npx tsc --noEmit` clean, eslint 0 errors
+- [x] `lib/supabase/tables/sales.ts` — `getSalesSummary`
+- [x] `app/api/sales/route.ts` — staff-only `GET` (401 unauthenticated, 403 non-staff)
+- [x] `chatbot/whatsapp-system-context.xml` — bot instructed to send `x-bot-secret`
+- [x] `npx tsc --noEmit` clean; `eslint` unchanged at 16 pre-existing errors (0 new)
+- [x] `RecipeSort` + route `SORTS` gained `sales` / `sales_desc` (`lib/supabase/tables/recipes.ts`, `app/api/recipe/route.ts`)
+- [x] `sortRecipes` handles sales explicitly with a name tie-break (not the price fallthrough); `loadUnitsSold` queries delivered ⋈ `order_items` only for sales sorts
+- [x] Testcase file: `tests/RECIPE_SORT_TESTCASE.md` (U1–U19, V1–V8, D1–D3)
+- [ ] **Pending:** D3 — re-verify live ordering once a delivered order carries `recipe_id` (all 4 delivered items today predate recipe linking → every recipe ties at 0)
+- [x] Showcase top sellers — server-side function (no RPC; sales stay a single read-time definition) returning **1 recipe per category** in one response for `beef, seafood, wrap, pizza`
+- [x] Testcase file: `tests/SHOWCASE_TOP_SELLERS_TESTCASE.md` (C1–C10, U1–U8, L1–L5, D1–D2)
+- [x] `getTopSellersByCategory` in `lib/supabase/tables/recipes.ts` — 2 queries total (recipes by category, units once), active-only, units desc + name tie-break via shared `sortRecipes`, `recipe: null` for empty categories
+- [x] `app/api/showcase/route.ts` — public `GET`, `?categories=` (defaults to the 4 above), 400 on empty / >20 entries / entry >64 chars, never guesses aliases (`wrap` ≠ `wraps`)
+- [x] `utils/httpCache.ts` — `etaggedJson` + cache headers shared by `/api/recipe` and `/api/showcase` (one definition, no drift); `/api/recipe` re-verified 200 → 304 after the extraction
+- [x] `npx tsc --noEmit` clean; `eslint` unchanged (0 new); 18 showcase + 19 recipe-sort unit assertions pass; live C/U/L checks pass
+- [ ] **Pending:** D1/D2 — showcase winner is name-ordered until a delivered order carries `recipe_id` (same root cause as D3 above)
+- [x] `hooks/useShowcase.ts` + `components/landing/Hero.tsx` — hero row renders the 4 winners via shared `toMenuItem`; hardcoded `featured` fallback removed so no stale/fake dish is ever shown (row is empty until the fetch resolves)
+- [ ] **Pending:** H5 — manual browser check of the hero swap (no browser automation in this environment)
+- [x] Pure-logic checks: `inferOrderOrigin` (10 cases) + `validateSalesRange` (6 cases) + UAE day boundaries
+- [ ] **Pending:** apply `20261023000000_order_origin_delivered_at.sql` to Supabase, then run `tests/SALES_TRACKING_TESTCASE.md` (M1–M4, O1–O6, S1–S10)
+
+---
+
+### Module 12: In-App Notification Badge — ⏳ In Progress
+
+Unread notifications generated by order events surface on the employee Navbar.
+
+- `GET /api/notifications?limit=` — authenticated feed for `auth.uid()` + exact unread count (default 20, max 50)
+- `PATCH /api/notifications` — mark selected ids or `{ all: true }` read; scoped to the caller
+- `lib/supabase/tables/notifications.ts` — `listNotifications`, `markNotificationsRead`
+- `hooks/useNotifications.ts` — SWR feed, 30s refresh, focus revalidation, optimistic read actions with rollback
+- `GET /api/nav-counts` — staff-only pending counts: inquiry orders + unapproved subscription inquiries
+- `hooks/useNavCounts.ts` — SWR pending counts with 30s/focus refresh
+- `components/layout/Navbar.tsx` — bell with red unread bubble (`99+` cap), dropdown feed, mark-all-read, empty state, notification navigation, push toggle moved into the panel footer; pending badges on Orders and Subscriptions in desktop and mobile nav
+- `supabase/migrations/20261025000000_notifications_mark_read.sql` — user-scoped update policy
+
+Checkpoint (all must pass before marking complete):
+- [x] Test order rows, order children, order reminders, and order notifications cleared from the live database
+- [x] Testcase file: `tests/NAVBAR_NOTIFICATIONS_TESTCASE.md`
+- [x] `npx tsc --noEmit` clean
+- [x] eslint clean on changed files
+- [ ] **Pending:** apply `20261025000000_notifications_mark_read.sql` (API currently uses the service client for the scoped update)
+- [ ] **Pending:** run `tests/NAVBAR_NOTIFICATIONS_TESTCASE.md` with two authenticated employees
+
+---
+
+### Module 13: Negotiated Subscription Price in Invite Links — ⏳ In Progress
+
+Bot-quoted subscription prices must survive the hand-off to the web onboarding form
+and the staff approval step. The WhatsApp bot remains the pricing authority (option A);
+the restaurant binds the bot-signed price and never re-derives it.
+
+**Decisions (finalized):**
+- Pricing bounds/list/floor/counter-offers stay in the bot's `config/subscriptions.json`.
+- The bot authenticates to the invite API with `x-bot-secret` (`WHATSAPP_BOT_SECRET`),
+  matching the existing reminder/delivery bot endpoints.
+- The agreed amount is stored **inside the HMAC-signed invite token** as integer fils
+  (`agreed_price_cents`), plus `base_price_cents`, `concession`, `currency` (forced AED).
+- Legacy tokens without price fields remain valid (inquiry has no agreed price).
+- Onboarding only displays the agreed price; it never submits or lets the customer edit it.
+- `POST /api/subscription-inquiries` re-verifies the token and persists the price under
+  `details.invite`.
+- Approval defaults `total_cents` to the agreed price and rejects a mismatched amount
+  when an agreed price exists; inquiries without an agreed price keep today's behaviour.
+- Employee UI shows the agreed price and prefills the total field.
+
+**Modules:**
+1. `lib/subscription/invite-token.ts` — optional price fields in payload/result, validated.
+2. `app/api/subscription-invites/route.ts` — bot secret branch, price input, AED only.
+3. `app/api/subscription-invites/validate/route.ts` — already returns the result object.
+4. `components/subscription/SubscriptionForm.tsx` — agreed-price display in invite state.
+5. `app/api/subscription-inquiries/route.ts` — persist verified price in `details.invite`.
+6. `app/api/subscription-inquiries/[id]/approve/route.ts` — agreed-price default/enforcement.
+7. `app/(authenticated)/employee/subscriptions/page.tsx` — show agreed price, prefill total.
+
+**Checkpoint (all must pass before marking complete):**
+- [x] Testcase file: `tests/SUBSCRIPTION_INVITE_PRICE_TESTCASE.md`
+- [x] `npx tsc --noEmit` clean
+- [x] `npm run lint` — no new errors (2 pre-existing `<img>` warnings)
+- [ ] Token unit T1–T7 — T1–T4, T6, T7 pass; T5 (expired) pending
+- [ ] Live/route check: bot-authed invite returns price in token + validate response
+- [ ] Legacy token without price still validates and submits
+- [ ] Tampered price/token rejected; no inquiry row written
+
+---
+
+### Module 14: Backend-Owned Subscription Rates — ⏳ In Progress
+
+The bot must look up `plan slug + meals/day` and receive the price from the
+restaurant backend instead of reading `config/subscriptions.json`.
+
+**Decisions:**
+- `subscription_plan_rates` is the price source of truth: one row per
+  `(subscription_plan_id, meals_per_day)` with list/floor/counter offers in cents.
+- `GET /api/subscription-rates?plan=<slug>&meals_per_day=<1-5>` is public read
+  (RLS select policy for active rates).
+- Bot `get_subscription_offer` and `subscription_signup_link` call that endpoint;
+  `get_subscription_plans` no longer exposes `list_price`.
+- Bot-created invites are validated against the backend rate before a token is
+  issued; staff-created invites keep arbitrary positive pricing.
+- `standard-6` and `standard-30` are seeded as duration plans.
+
+**Checkpoint:**
+- [x] Testcase file: `tests/SUBSCRIPTION_RATES_TESTCASE.md`
+- [x] Migration/seed SQL supplied and applied (31 rate rows; anon SELECT verified)
+- [x] `lib/supabase/tables/subscription_plan_rates.ts`
+- [x] `app/api/subscription-rates/route.ts`
+- [x] Bot `get_subscription_offer` / `subscription_signup_link` use the endpoint
+- [x] Bot payload still maps to `plan_slug` + `meals_per_day`
+- [x] `npx tsc --noEmit` clean; eslint clean on changed files; `node --check` clean
+- [ ] Live bot → `/api/subscription-rates` round-trip after deploy
+
+---
+
+### Module 15: Subscription Delivery Areas — ✅ Complete
+
+Subscription onboarding has its own delivery-area constraint, separate from the
+Ajman-only landing cart. Supported areas: Ajman (free), Sharjah (100.00 AED),
+Dubai (200.00 AED); all other areas are rejected on the Details step.
+
+**Implementation:**
+- `utils/mapbox/geo.ts` — `resolveDeliveryAddress` accepts an optional fee map; new
+  `SUBSCRIPTION_DELIVERY_FEES` (Ajman 0, Sharjah 10000, Dubai 20000 cents). The cart
+  keeps its existing Ajman-only fee map.
+- `utils/mapbox/index.ts` — exports `SUBSCRIPTION_DELIVERY_FEES`.
+- `components/subscription/SubscriptionForm.tsx` — resolves the picked location against
+  the subscription fee map, blocks unsupported areas, and indicates that additional
+  delivery charges apply for Sharjah/Dubai in Details and the Review summary (no amount shown).
+
+**Checkpoint:**
+- [x] Testcase entries added: `tests/SUBSCRIPTION_ONBOARDING_TESTCASE.md` F11–F13
+- [x] `npx tsc --noEmit` clean
+- [x] focused `eslint` — 0 errors (pre-existing `<img>` warnings only)
+- [ ] Manual UI check of Ajman / Sharjah / Dubai / unsupported flows
 
 ---
 

@@ -1,19 +1,12 @@
 "use client"
 
 import { useTranslations } from "next-intl"
-import Image from "next/image"
 import { Link } from "@/i18n/navigation"
 import { motion } from "framer-motion"
-import { translateContent } from "@/constants/translations"
 import { useLocale } from "next-intl"
 import { MealCard } from "@/components/landing/MealCard"
-
-const featured = [
-  { name: "Beef Steak", price: 48, image: "/menus/beef-steak.png", calories: 420, protein: 30, carbs: 25, fats: 22, description: "Thinly sliced ribeye stir-fried with bell peppers, broccoli, and snap peas in a savory garlic-soy glaze." },
-  { name: "Garden Salad", price: 26, image: "/menus/salad.png", calories: 280, protein: 8, carbs: 12, fats: 22, description: "Fresh tomatoes, cucumbers, red onions, Kalamata olives, and bell peppers tossed with oregano vinaigrette." },
-  { name: "Salmon Salad", price: 42, image: "/menus/salmon-salad.png", calories: 420, protein: 40, carbs: 8, fats: 26, description: "Fresh Atlantic salmon fillet grilled to perfection, drizzled with a creamy lemon dill sauce." },
-  { name: "Shrimp Salad", price: 38, image: "/menus/shrimp-salad.png", calories: 310, protein: 28, carbs: 6, fats: 20, description: "Plump shrimp sautéed in a luscious garlic butter sauce with white wine, lemon juice, and fresh parsley." },
-]
+import { useShowcase } from "@/hooks/useShowcase"
+import { toMenuItem } from "@/lib/menu-map"
 
 const container = {
   hidden: {},
@@ -28,22 +21,25 @@ const fadeUp = {
 export function Hero() {
   const t = useTranslations("hero")
   const locale = useLocale()
-  const translated = featured.map((item) => ({
-    ...item,
-    name: translateContent(item.name, locale),
-    description: translateContent(item.description, locale),
-  }))
+  const { data } = useShowcase()
+
+  const translated = (data?.data ?? []).flatMap((entry) => (entry.recipe ? [toMenuItem(entry.recipe, locale)] : []))
 
   return (
     <section className="relative min-h-[122vh] overflow-hidden max-h-[122vh] bg-black max-sm:min-h-screen">
-      <Image
-        src="/bg.jpg"
+      {/* Static WebP (see tools/optimize-hero-images.mjs): avoids the metered
+          /_next/image pipeline. React SSR emits an eager <link rel="preload">
+          for both images below, which now resolves to immutable static files. */}
+      <img
+        src="/hero/bg-1000.webp"
+        srcSet="/hero/bg-640.webp 640w, /hero/bg-1000.webp 1000w"
+        sizes="100vw"
         alt=""
         aria-hidden
-        fill
-        preload
-        sizes="100vw"
-        quality={75}
+        width={1000}
+        height={576}
+        loading="eager"
+        decoding="async"
         className="absolute inset-0 h-[122vh] w-full object-cover opacity-40 max-sm:h-screen"
       />
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/90" />
@@ -68,13 +64,13 @@ export function Hero() {
             </p>
             <motion.div variants={fadeUp} className="mt-10 flex items-center gap-4 max-sm:flex-col max-sm:items-start">
               <Link
-                href="#subscription"
+                href="#meals"
                 className="rounded-xl bg-white px-7 py-3 text-sm font-semibold text-black transition-all hover:bg-white/90 max-sm:w-full max-sm:text-center"
               >
                 {t("cta")}
               </Link>
               <Link
-                href="#meals"
+                href="#subscription"
                 className="rounded-xl border border-white/20 px-7 py-3 text-sm font-semibold text-white transition-all hover:bg-white/10 max-sm:w-full max-sm:text-center"
               >
                 {t("ctaSecondary")}
@@ -83,15 +79,16 @@ export function Hero() {
           </motion.div>
 
           <motion.div variants={fadeUp} className="flex items-end justify-end max-sm:justify-center">
-            <Image
-              src="/hero-menu.png"
+            <img
+              src="/hero/hero-menu-560.webp"
+              srcSet="/hero/hero-menu-64.webp 64w, /hero/hero-menu-560.webp 560w, /hero/hero-menu-1120.webp 1120w"
+              sizes="(max-width: 640px) 0vw, 560px"
               alt={t("imageAlt")}
               width={560}
               height={562}
               loading="eager"
               fetchPriority="high"
-              sizes="(max-width: 640px) 0vw, 560px"
-              quality={75}
+              decoding="async"
               className="w-full hidden sm:flex max-w-lg object-contain"
             />
           </motion.div>

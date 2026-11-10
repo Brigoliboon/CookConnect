@@ -239,9 +239,9 @@ export default function EmployeeAccountsPage() {
         </AnimatePresence>
 
         {loading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="flex flex-col gap-3">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="h-44 animate-pulse rounded-2xl bg-neutral-200" />
+              <div key={i} className="h-24 animate-pulse rounded-2xl bg-neutral-200" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
@@ -251,60 +251,60 @@ export default function EmployeeAccountsPage() {
             <p className="mt-1 text-sm text-neutral-400">Try adjusting your search or filters</p>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="flex flex-col gap-3">
             {filtered.map((account, i) => (
               <motion.div
                 key={account.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: i * 0.04 }}
+                transition={{ duration: 0.25, delay: i * 0.03 }}
                 className="group relative overflow-hidden rounded-2xl border border-neutral-200/60 bg-white/80 backdrop-blur-sm transition-all hover:border-neutral-300 hover:shadow-lg hover:shadow-neutral-200/50"
               >
-                <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-gradient-to-br from-neutral-100 to-transparent opacity-50" />
-                <div className="p-5">
-                    <div className="flex items-start justify-between">
-                      <Avatar name={account.name} role={account.role} />
-                      <button
-                        onClick={(e) => { e.stopPropagation(); toggleStatus(account.id) }}
-                        disabled={toggling === account.id}
-                        className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                          account.isActive
-                            ? "bg-green-600 text-white shadow-sm hover:bg-green-700"
-                            : "bg-red-600 text-white shadow-sm hover:bg-red-700"
-                        }`}
-                      >
-                        {toggling === account.id ? (
-                          <span className="size-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                        ) : account.isActive ? (
-                          <Check size={13} />
-                        ) : (
-                          <X size={13} />
-                        )}
-                        {toggling === account.id ? "Updating..." : account.isActive ? "Active" : "Disabled"}
-                      </button>
-                    </div>
-                  <div className="mt-4">
-                    <h3 className="font-semibold text-neutral-900">{account.name}</h3>
-                    <p className="mt-0.5 flex items-center gap-1.5 text-sm text-neutral-500">
-                      <Mail size={12} />
-                      {account.email}
-                    </p>
-                    {account.mobileNumber && (
+                <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Avatar name={account.name} role={account.role} />
+                    <div className="min-w-0">
+                      <h3 className="truncate font-semibold text-neutral-900">{account.name}</h3>
                       <p className="mt-0.5 flex items-center gap-1.5 text-sm text-neutral-500">
-                        <Phone size={12} />
-                        {account.mobileNumber}
+                        <Mail size={12} className="shrink-0" />
+                        <span className="truncate">{account.email}</span>
                       </p>
-                    )}
+                      {account.mobileNumber && (
+                        <p className="mt-0.5 flex items-center gap-1.5 text-sm text-neutral-500">
+                          <Phone size={12} className="shrink-0" />
+                          <span className="truncate">{account.mobileNumber}</span>
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div className="mt-4 flex items-center justify-between border-t border-neutral-100 pt-4">
-                    <span className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold ${roleBadge[account.role] ?? "bg-neutral-100 text-neutral-600"}`}>
+
+                  <div className="flex flex-wrap items-center gap-2 pl-[60px] sm:shrink-0 sm:justify-end sm:pl-0">
+                    <span className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold capitalize ${roleBadge[account.role] ?? "bg-neutral-100 text-neutral-600"}`}>
                       <Shield size={10} />
                       {account.role}
                     </span>
-                    <span className="flex items-center gap-1 text-xs text-neutral-400">
+                    <span className="flex items-center gap-1 rounded-lg bg-neutral-100 px-2.5 py-1 text-xs text-neutral-500">
                       <Calendar size={11} />
                       {account.createdAt}
                     </span>
+                    <button
+                      onClick={() => toggleStatus(account.id)}
+                      disabled={toggling === account.id}
+                      className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                        account.isActive
+                          ? "bg-green-600 text-white shadow-sm hover:bg-green-700"
+                          : "bg-red-600 text-white shadow-sm hover:bg-red-700"
+                      }`}
+                    >
+                      {toggling === account.id ? (
+                        <span className="size-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      ) : account.isActive ? (
+                        <Check size={13} />
+                      ) : (
+                        <X size={13} />
+                      )}
+                      {toggling === account.id ? "Updating..." : account.isActive ? "Active" : "Disabled"}
+                    </button>
                   </div>
                 </div>
                 <div className={`h-1 w-full transition-all ${

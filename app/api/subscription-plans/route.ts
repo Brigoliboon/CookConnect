@@ -2,9 +2,7 @@ import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
 import { listActivePlans } from "@/lib/supabase/tables/subscription_plans"
 
-export async function GET(request: Request) {
-  console.log("[TEMP] subscription-plans headers:", Object.fromEntries(request.headers.entries()))
-
+export async function GET() {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
 

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { X, Download } from "lucide-react"
 import { toPng } from "html-to-image"
 import type { MenuItem } from "@/constants"
+import { imageVariant } from "@/lib/images"
 import { useAuth } from "@/hooks/AuthProvider"
 import { slugify } from "@/utils/slugify"
 import JsBarcode from "react-barcode"
@@ -78,7 +79,16 @@ export function MealDetailDialog({ item, onClose, onEdit }: MealDetailDialogProp
             className="flex w-full max-w-lg max-h-[85vh] flex-col rounded-2xl bg-white shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="relative h-56 shrink-0 bg-cover bg-center" style={{ backgroundImage: `url(${imageUrl})` }}>
+            <div className="relative h-56 shrink-0 overflow-hidden bg-neutral-100">
+              {imageUrl && (
+                <img
+                  src={imageVariant(imageUrl, 1200)}
+                  alt=""
+                  loading="eager"
+                  decoding="async"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               <button
                 onClick={onClose}

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Brigoliboon/devsuite/main/schema/devsuite.schema.json",
+  "name": "CookConnect",
+  "github": {
+    "repo": "Brigoliboon/CookConnect"
+  },
+  "vercel": {
+    "projectId": "prj_JUF6eTddcgAsVoCmWy1XzNiLh6Uk",
+    "teamId": "team_XarmqBfaHwDmYv8u3kgiTl9D"
+  },
+  "dev": {
+    "ports": [
+      3000
+    ],
+    "scripts": {
+      "web": {
+        "cmd": "npm run dev"
+      }
+    }
+  },
+  "terminals": [
+    {
+      "name": "opencode",
+      "command": "opencode",
+      "pane": "left"
+    },
+    {
+      "name": "shell",
+      "pane": "left"
+    },
+    {
+      "name": "dashboard",
+      "command": "devsuite",
+      "pane": "right"
+    },
+    {
+      "name": "web",
+      "command": "npm run dev",
+      "pane": "right"
+    }
+  ],
+  "refresh": {
+    "deployments": "20s",
+    "git": "5s",
+    "processes": "5s"
+  },
+  "notifications": true,
+  "launcher": "tmux"
+}

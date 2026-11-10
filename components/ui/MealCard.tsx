@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
+import { imageVariant } from "@/lib/images"
 import type { MenuItem } from "@/constants"
 
 const cardVariants = {
@@ -29,10 +30,18 @@ export function MealCard({ item, onClick }: MealCardProps) {
   return (
     <motion.div
       variants={cardVariants}
-      className="relative aspect-[4/3] cursor-pointer overflow-hidden rounded-xl bg-cover bg-center"
-      style={imageUrl ? { backgroundImage: `url(${imageUrl})` } : undefined}
+      className="relative aspect-[4/3] cursor-pointer overflow-hidden rounded-xl bg-neutral-100"
       onClick={onClick}
     >
+      {imageUrl && (
+        <img
+          src={imageVariant(imageUrl, 600)}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
       <div className="absolute bottom-0 left-0 right-0 flex flex-col gap-1 p-4">
         <div className="flex items-end justify-between gap-2">

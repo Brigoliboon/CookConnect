@@ -5,6 +5,7 @@ import Image from "next/image"
 import { Flame, ShoppingCart, Check } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { getCart, setCart } from "@/utils/cart"
+import { imageVariant } from "@/lib/images"
 
 interface CategoryMealCardProps {
   id: string
@@ -38,7 +39,7 @@ export function CategoryMealCard({ id, name, image, price = 0, calories = 0, onC
       onClick={onClick}
       className={`flex flex-col border border-neutral-200 bg-white p-3 ${onClick ? "cursor-pointer transition-shadow hover:shadow-md" : ""}`}
     >
-      <Image src={image} alt={name} width={600} height={600} loading="lazy" className="aspect-square w-full object-cover" />
+      <Image src={imageVariant(image, 600)} alt={name} width={600} height={600} unoptimized loading="lazy" className="aspect-square w-full object-cover" />
       <p className="font-nunito mt-2 text-sm font-semibold text-neutral-900 line-clamp-1" title={name}>
         {name}
       </p>
