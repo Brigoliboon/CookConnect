@@ -5,13 +5,14 @@ import dynamic from "next/dynamic"
 import Image from "next/image"
 import useSWRInfinite from "swr/infinite"
 import { motion } from "framer-motion"
-import { Search, X, ArrowUp, ArrowUpDown } from "lucide-react"
+import { Search, X, ArrowUp, ArrowUpDown, Flame, Beef, Wheat, ChevronDown, ShoppingCart, Check } from "lucide-react"
 import { useTranslations, useLocale } from "next-intl"
 import { translateContent } from "@/constants/translations"
 import { Nav } from "@/components/landing/Nav"
 import { Footer } from "@/components/landing/Footer"
-import { CatalogMealCard } from "@/components/landing/CatalogMealCard"
 import { toDialogMeal } from "@/lib/meal-detail"
+import { imageSrcSet, imageVariant } from "@/lib/images"
+import { DirhamSign } from "@/components/ui/DirhamSign"
 import type { MenuItem as DialogMeal } from "@/constants"
 import { decodeRecipeIds } from "@/utils/catalogShare"
 import { fetchRecipeList, recipeListUrl, type RecipeListResponse } from "@/hooks/useRecipes"
@@ -117,20 +118,176 @@ const sortOptions = [
   { id: "price_desc", labelKey: "sortPriceDesc" },
 ]
 
-function MenuGridSkeleton() {
+function MenuCardsSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" aria-hidden="true">
-      {Array.from({ length: 10 }).map((_, index) => (
-        <div key={index} className="overflow-hidden border border-neutral-100 bg-white">
-          <div className="h-28 w-full animate-pulse bg-neutral-100 sm:h-32" />
-          <div className="space-y-2 p-3 pt-2.5 sm:p-4">
-            <div className="h-3.5 w-3/4 animate-pulse rounded bg-neutral-100" />
-            <div className="h-2.5 w-1/2 animate-pulse rounded bg-neutral-100" />
-            <div className="mt-3 h-6 w-full animate-pulse rounded bg-neutral-100" />
+    <div className="flex flex-col gap-3" aria-hidden="true">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div key={index} className="flex overflow-hidden rounded-2xl border border-neutral-100 bg-white">
+          <div className="flex flex-1 flex-col gap-2.5 p-4">
+            <div className="h-4 w-2/3 animate-pulse rounded bg-neutral-100" />
+            <div className="h-2.5 w-full animate-pulse rounded bg-neutral-100" />
+            <div className="h-2.5 w-4/5 animate-pulse rounded bg-neutral-100" />
+            <div className="flex gap-2 pt-3">
+              <div className="h-3 w-12 animate-pulse rounded bg-neutral-100" />
+              <div className="h-3 w-12 animate-pulse rounded bg-neutral-100" />
+            </div>
+            <div className="mt-auto flex items-center justify-between pt-3">
+              <div className="h-4 w-16 animate-pulse rounded bg-neutral-100" />
+              <div className="h-8 w-24 animate-pulse rounded bg-neutral-100" />
+            </div>
           </div>
+          <div className="w-32 h-32 shrink-0 animate-pulse bg-neutral-100 sm:w-44 sm:h-44 lg:w-52 lg:h-52 mx-4 sm:mx-6 rounded-xl self-center" />
         </div>
       ))}
     </div>
+  )
+}
+
+function MenuMealCard({
+  item,
+  name,
+  description,
+  onClick,
+}: {
+  item: MenuItem
+  name: string
+  description: string
+  onClick: () => void
+}) {
+  const mt = useTranslations("meals")
+  const [servingIndex, setServingIndex] = useState(0)
+  const [servingOpen, setServingOpen] = useState(false)
+  const [added, setAdded] = useState(false)
+
+  const { servings, category } = item
+  const activeServing = servings.length > 0 ? servings[Math.min(servingIndex, servings.length - 1)] : null
+  const displayPrice = activeServing?.price ?? item.price
+  const displayCalories = activeServing?.calories ?? item.calories
+  const displayProtein = activeServing?.nutrition?.protein_g ?? item.protein
+  const displayCarbs = activeServing?.nutrition?.carbs_g ?? item.carbs
+  const imgSrc = item.image || fallbackImages[category] || "/drink_sample.svg"
+
+  function handleAdd() {
+    const cart = getCart()
+    const key = activeServing ? `${name} (${activeServing.name ?? mt("servingFallback", { index: servingIndex + 1 })})` : name
+    const existing = cart.find((entry) => entry.name === key)
+    if (existing) {
+      existing.qty += 1
+    } else {
+      cart.push({ name: key, price: displayPrice, qty: 1, image: imgSrc, recipeId: item.id, basePrice: displayPrice })
+    }
+    setCart(cart)
+    window.dispatchEvent(new Event("cart-changed"))
+    setAdded(true)
+    setTimeout(() => setAdded(false), 1500)
+  }
+
+  return (
+    <article
+      onClick={onClick}
+      className="group flex cursor-pointer overflow-hidden rounded-2xl border border-neutral-200 bg-white transition-colors hover:border-neutral-300 hover:shadow-sm"
+    >
+      <div className="flex min-w-0 flex-1 flex-col p-4">
+        <div className="min-w-0">
+          <h3 className="font-nunito truncate text-base font-bold leading-tight text-neutral-900" title={name}>
+            {name}
+          </h3>
+          {description && (
+            <p className="font-nunito mt-1 line-clamp-2 text-xs text-neutral-500">{description}</p>
+          )}
+        </div>
+
+        <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-neutral-500">
+          <span className="flex items-center gap-1 text-sm font-bold text-neutral-900">
+            <Flame size={15} strokeWidth={2.5} className="text-orange-500" />
+            {displayCalories}
+          </span>
+          <span className="flex items-center gap-0.5">
+            <Beef size={11} className="text-macro-protein" />
+            {displayProtein.toFixed(0)}g
+          </span>
+          <span className="flex items-center gap-0.5">
+            <Wheat size={11} className="text-macro-carbs" />
+            {displayCarbs.toFixed(0)}g
+          </span>
+        </div>
+
+        {servings.length > 1 && (
+          <div className="relative mt-2">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setServingOpen(!servingOpen) }}
+              className="flex w-full items-center justify-between rounded-lg border border-neutral-200 px-2.5 py-1.5 text-xs text-neutral-600 transition-colors hover:border-neutral-300"
+            >
+              <span className="truncate">{activeServing?.name ?? mt("servingFallback", { index: servingIndex + 1 })}</span>
+              <ChevronDown size={12} className={`shrink-0 transition-transform ${servingOpen ? "rotate-180" : ""}`} />
+            </button>
+            {servingOpen && (
+              <div className="absolute inset-x-0 top-full z-20 mt-1 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-md">
+                {servings.map((serving, index) => (
+                  <button
+                    key={serving.id ?? index}
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setServingIndex(index); setServingOpen(false) }}
+                    className={`flex w-full items-center justify-between px-2.5 py-2 text-xs transition-colors hover:bg-neutral-50 ${
+                      index === servingIndex ? "bg-neutral-50 font-semibold text-brand-900" : "text-neutral-600"
+                    }`}
+                  >
+                    <span className="truncate">{serving.name ?? mt("servingFallback", { index: index + 1 })}</span>
+                    {serving.price != null && (
+                      <span className="ml-2 flex shrink-0 items-center gap-1">
+                        <DirhamSign className="size-3" />
+                        {serving.price}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="mt-auto flex items-center justify-between gap-3 pt-3">
+          <span className="flex shrink-0 items-center gap-1 text-sm font-bold text-brand-900">
+            <DirhamSign className="size-3.5" />
+            {displayPrice}
+          </span>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); handleAdd() }}
+            className={`flex shrink-0 items-center justify-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-all ${
+              added
+                ? "bg-emerald-50 text-emerald-600"
+                : "border border-neutral-900/15 text-neutral-800 hover:bg-neutral-900 hover:text-white"
+            }`}
+          >
+            {added ? (
+              <>
+                <Check size={13} />
+                {mt("added")}
+              </>
+            ) : (
+              <>
+                <ShoppingCart size={13} />
+                {mt("add")}
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      <div className="relative w-32 h-32 shrink-0 overflow-hidden bg-neutral-100 sm:w-44 sm:h-44 lg:w-52 lg:h-52 mx-4 sm:mx-6 rounded-xl self-center">
+        <img
+          src={imageVariant(imgSrc, 600)}
+          srcSet={imageSrcSet(imgSrc, [128, 600])}
+          sizes="(max-width: 640px) 128px, (max-width: 1024px) 176px, 208px"
+          alt={name}
+          loading="lazy"
+          decoding="async"
+          className="absolute inset-0 h-full w-full object-contain object-center transition-transform duration-300 group-hover:scale-105"
+        />
+      </div>
+    </article>
   )
 }
 
@@ -475,15 +632,15 @@ function CatalogContent({
           >
             {loading || isSwitching ? (
               <div aria-busy="true">
-                <MenuGridSkeleton />
+                <MenuCardsSkeleton />
               </div>
             ) : menuItems.length > 0 ? (
               <>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                <div className="flex flex-col gap-3">
                   {menuItems.map((item) => (
-                    <CatalogMealCard
+                    <MenuMealCard
                       key={item.id}
-                      {...item}
+                      item={item}
                       name={translateContent(item.name, locale)}
                       description={translateContent(item.description, locale)}
                       onClick={() =>
