@@ -19,6 +19,7 @@ import {
   User,
   X,
 } from "lucide-react"
+import { MENU_CATEGORIES } from "@/constants"
 import { SUBSCRIPTION_PLANS, DELIVERY_DAYS } from "@/constants/subscriptions"
 import { FloatingInput } from "@/components/ui/FloatingInput"
 import { LocationPicker, type Coordinates } from "@/components/ui/LocationPicker"
@@ -85,7 +86,24 @@ const STEP_DEFS: { id: StepId; label: string }[] = [
   { id: "review", label: "Review" },
 ]
 
-const CATS = ["beef", "chicken", "seafood", "salad", "wrap", "breakfast", "pasta", "soup", "pizza", "burgers", "desserts", "drinks", "biryani", "risotto", "smoothie", "juice", "beverages", "rice-sides", "platters", "vegetable"]
+const CATS = [
+  "breakfast",
+  "chicken",
+  "beef",
+  "seafood",
+  "biryani",
+  "risotto",
+  "pasta",
+  "pizza",
+  "burgers",
+  "wrap",
+  "rice-sides",
+  "salad",
+] as const
+
+function categoryLabel(value: string) {
+  return MENU_CATEGORIES.find((c) => c.value === value)?.label ?? value
+}
 
 function sanitizeUaLocal(value: string) {
   let d = value.replace(/\D/g, "")
@@ -286,7 +304,7 @@ export function SubscriptionForm({
   useEffect(() => {
     if (mode !== "flexible") return
     const t = setTimeout(() => {
-      const q = new URLSearchParams({ limit: "24" })
+      const q = new URLSearchParams({ limit: "24", is_subscription_included: "true", is_active: "true" })
       if (mealSearch.trim()) q.set("search", mealSearch.trim())
       if (category) q.set("category", category)
       q.set("include", "ingredients")
@@ -876,9 +894,9 @@ export function SubscriptionForm({
                       type="button"
                       key={c}
                       onClick={() => setCategory(category === c ? "" : c)}
-                      className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium capitalize transition-all ${category === c ? "border-brand-900 bg-brand-900 text-white shadow-sm" : "border-brand-700/40 text-neutral-600 hover:border-brand-400 hover:bg-brand-700/20"}`}
+                      className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${category === c ? "border-brand-900 bg-brand-900 text-white shadow-sm" : "border-brand-700/40 text-neutral-600 hover:border-brand-400 hover:bg-brand-700/20"}`}
                     >
-                      {c}
+                      {categoryLabel(c)}
                     </button>
                   ))}
                 </div>

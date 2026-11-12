@@ -19,6 +19,7 @@ export interface Recipe {
   category: string | null;
   description: string | null;
   is_active: boolean;
+  is_subscription_included: boolean; // default false — eligible for subscription meal picks
   image_path: string | null;
   primary_protein_ingredient_id: UUID | null; // -> public.ingredients.id, protein bucket for credit counting
 }

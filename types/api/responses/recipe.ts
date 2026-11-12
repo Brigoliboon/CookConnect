@@ -39,6 +39,7 @@ export interface RecipeResponse {
   category: string | null
   description: string | null
   is_active: boolean
+  is_subscription_included: boolean
   image_path: string | null
   servings: RecipeServingResponse[]
 }

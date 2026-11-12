@@ -81,6 +81,11 @@ function parseRecipeFilters(params: URLSearchParams): ListRecipesFilters {
     throw new Error("is_active must be true or false")
   }
 
+  const subscriptionIncluded = params.get("is_subscription_included")
+  if (subscriptionIncluded !== null && subscriptionIncluded !== "true" && subscriptionIncluded !== "false") {
+    throw new Error("is_subscription_included must be true or false")
+  }
+
   const include = params.get("include")
   if (include !== null) {
     const fields = include.split(",").map((value) => value.trim()).filter(Boolean)
@@ -117,6 +122,7 @@ function parseRecipeFilters(params: URLSearchParams): ListRecipesFilters {
     search: params.get("search")?.trim() || undefined,
     category: params.get("category")?.trim() || undefined,
     isActive: active === null ? undefined : active === "true",
+    isSubscriptionIncluded: subscriptionIncluded === null ? undefined : subscriptionIncluded === "true",
     minCalories,
     maxCalories,
     minPrice,

@@ -42,6 +42,7 @@ export interface ListRecipesFilters {
   search?: string
   category?: string
   isActive?: boolean
+  isSubscriptionIncluded?: boolean
   minCalories?: number
   maxCalories?: number
   minPrice?: number
@@ -69,6 +70,7 @@ export async function createRecipe(
       category: input.category ?? null,
       description: input.description ?? null,
       is_active: input.is_active ?? true,
+      is_subscription_included: input.is_subscription_included ?? false,
       image_path: input.image_path ?? null,
     })
     .select()
@@ -108,7 +110,7 @@ export async function deleteRecipe(
   if (error) throw error
 }
 
-const RECIPE_COLUMNS = "id, name, category, description, is_active, image_path, primary_protein_ingredient_id"
+const RECIPE_COLUMNS = "id, name, category, description, is_active, is_subscription_included, image_path, primary_protein_ingredient_id"
 const RECIPE_ADDON_COLUMNS = "recipe_addons!meal_recipe_id(id, is_active)"
 const SERVING_COLUMNS = "name, price, calories, nutrition, is_active"
 const SERVING_INGREDIENT_COLUMNS = "serving_ingredients(quantity_g, unit, ingredient:ingredients(name, nutrition, fatsecret_id))"
@@ -161,6 +163,9 @@ export async function listRecipes(
     }
     if (filters.isActive !== undefined) {
       query = query.eq("is_active", filters.isActive)
+    }
+    if (filters.isSubscriptionIncluded !== undefined) {
+      query = query.eq("is_subscription_included", filters.isSubscriptionIncluded)
     }
     if (filters.ids && filters.ids.length > 0) {
       query = query.in("id", filters.ids)
@@ -269,6 +274,7 @@ function mapRecipeWithServings(r: Record<string, unknown>): RecipeWithServings {
     category: (r.category as string | null) ?? null,
     description: (r.description as string | null) ?? null,
     is_active: r.is_active as boolean,
+    is_subscription_included: (r.is_subscription_included as boolean) ?? false,
     image_path: (r.image_path as string | null) ?? null,
     primary_protein_ingredient_id: (r.primary_protein_ingredient_id as string | null) ?? null,
     has_addons: hasActiveAddons(r),
@@ -377,6 +383,7 @@ export async function getRecipe(
     category: (r.category as string | null) ?? null,
     description: (r.description as string | null) ?? null,
     is_active: r.is_active as boolean,
+    is_subscription_included: (r.is_subscription_included as boolean) ?? false,
     image_path: (r.image_path as string | null) ?? null,
     primary_protein_ingredient_id: (r.primary_protein_ingredient_id as string | null) ?? null,
     has_addons: hasActiveAddons(r),

@@ -18,6 +18,7 @@ export interface RecipeListParams {
   minPrice?: string | number
   maxPrice?: string | number
   isActive?: boolean
+  isSubscriptionIncluded?: boolean
   offset?: number
   limit?: number
 }
@@ -33,6 +34,7 @@ export function recipeListUrl(params: RecipeListParams): string {
   if (params.minPrice !== undefined && params.minPrice !== "") search.set("min_price", String(params.minPrice))
   if (params.maxPrice !== undefined && params.maxPrice !== "") search.set("max_price", String(params.maxPrice))
   if (params.isActive !== undefined) search.set("is_active", String(params.isActive))
+  if (params.isSubscriptionIncluded !== undefined) search.set("is_subscription_included", String(params.isSubscriptionIncluded))
   if (params.offset !== undefined) search.set("offset", String(params.offset))
   if (params.limit !== undefined) search.set("limit", String(params.limit))
   return `/api/recipe?${search.toString()}`
