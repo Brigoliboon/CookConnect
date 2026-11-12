@@ -39,7 +39,12 @@ export async function POST(request: Request) {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
 
-  let body: { scheduled_date?: string; subscription_id?: string; recipe_ids?: string[] }
+  let body: {
+    scheduled_date?: string
+    subscription_id?: string
+    recipe_ids?: string[]
+    breakfast_recipe_ids?: string[]
+  }
   try {
     body = await request.json()
   } catch {
@@ -59,6 +64,7 @@ export async function POST(request: Request) {
       body.scheduled_date,
       body.subscription_id,
       body.recipe_ids ?? [],
+      body.breakfast_recipe_ids ?? [],
     )
     return Response.json(data, { status: 201 })
   } catch (err) {

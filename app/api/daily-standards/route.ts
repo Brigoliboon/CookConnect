@@ -1,3 +1,4 @@
+import { clampMealsPerDay } from "@/lib/chef/day"
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
 import { listDailyStandards, setDailyStandard } from "@/lib/supabase/tables/daily_standards"
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
   if (!body.standard_date || !body.subscription_plan_id) {
     return Response.json({ error: "standard_date and subscription_plan_id are required" }, { status: 400 })
   }
-  const mealsPerDay = Math.min(4, Math.max(1, Math.round(body.meals_per_day ?? 1)))
+  const mealsPerDay = clampMealsPerDay(body.meals_per_day ?? 1)
 
   try {
     const data = await setDailyStandard(

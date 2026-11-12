@@ -12,7 +12,7 @@ export async function POST(request: Request) {
 
   let body: {
     scheduled_date?: string
-    assignments?: { subscription_id?: string; recipe_ids?: string[] }[]
+    assignments?: { subscription_id?: string; recipe_ids?: string[]; breakfast_recipe_ids?: string[] }[]
   }
   try {
     body = await request.json()
@@ -34,7 +34,13 @@ export async function POST(request: Request) {
         return Response.json({ error: "Each assignment needs a subscription_id" }, { status: 400 })
       }
       results.push(
-        await setChefSchedule(supabase, body.scheduled_date, a.subscription_id, a.recipe_ids ?? []),
+        await setChefSchedule(
+          supabase,
+          body.scheduled_date,
+          a.subscription_id,
+          a.recipe_ids ?? [],
+          a.breakfast_recipe_ids ?? [],
+        ),
       )
     }
     return Response.json(results.flat(), { status: 201 })

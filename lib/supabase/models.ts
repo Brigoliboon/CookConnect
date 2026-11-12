@@ -84,7 +84,7 @@ export type Subscription = {
   expires_at: string; // timestamptz (ISO)
   cancelled_at: string | null; // timestamptz, nullable
   paused_at: string | null; // timestamptz, nullable — pause stops scheduling without eroding count-based entitlement
-  remaining_meal_count: number; // int, auto-maintained by DB triggers (baseline days x meals/day minus picks)
+  remaining_meal_count: number; // int, auto-maintained by DB triggers (baseline days x meals/day minus entitlement picks)
   details: any; //jsonb // default {}
   created_at: string; // ISO timestamptz
 }
@@ -101,7 +101,7 @@ export interface DailyStandard {
   id: UUID;
   standard_date: string; // date (YYYY-MM-DD)
   subscription_plan_id: UUID; // -> public.subscription_plans.id
-  meals_per_day: number; // int 1-4
+  meals_per_day: number; // int 1-5
   position: number; // ordering within the standard set
   recipe_id: UUID; // -> public.recipes.id
   created_at: string; // ISO timestamp
@@ -165,6 +165,7 @@ export interface ChefSchedule {
   subscription_id: UUID; // -> public.subscriptions.id
   recipe_id: UUID; // -> public.recipes.id
   done_at: string | null; // ISO timestamp, null = still to cook
+  counts_toward_entitlement: boolean; // false for breakfast extras — does not decrement remaining_meal_count
   created_at: string; // ISO timestamp
 }
 

@@ -6,7 +6,19 @@ import { motion } from "framer-motion"
 import { Button } from "@/components/ui"
 import { imageThumb } from "@/lib/images"
 import { proteinBuckets, type ProteinAllowance } from "@/lib/chef/credits"
-import { autoFillDay, type AutoFillResult } from "@/lib/chef/autoFill"
+import { autoFillDay, type AutoFillResult, type SuggestedStandard } from "@/lib/chef/autoFill"
+import {
+  activeOn,
+  addCalendarDays,
+  assignmentNeed,
+  BREAKFAST_CATEGORY,
+  deliverySlots,
+  isDoubleThursday,
+  isFridayDelivery,
+  preferredRecipeIds,
+  toISODate,
+  weekdayOf,
+} from "@/lib/chef/day"
 import type { DailyStandard } from "@/lib/supabase/models"
 import { CalendarDays, Check, CheckCircle2, ChefHat, ChevronDown, ChevronLeft, ChevronRight, Clock, Flame, Search, Sun, Sunrise, Sunset, X } from "lucide-react"
 
@@ -23,7 +35,8 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 }
 
-const RECIPE_LIMIT = 60
+const RECIPE_PAGE = 100
+const SUB_RECIPE_QS = "is_active=true&is_subscription_included=true"
 
 interface SubRow {
   id: string
@@ -54,60 +67,36 @@ interface PickRow {
   subscription_id: string
   recipe_id: string
   done_at: string | null
+  counts_toward_entitlement?: boolean
 }
 
-function toISODate(d: Date): string {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, "0")
-  const day = String(d.getDate()).padStart(2, "0")
-  return `${y}-${m}-${day}`
+async function fetchAllSubRecipes(): Promise<RecipeRow[]> {
+  const all: RecipeRow[] = []
+  let offset = 0
+  let total = Infinity
+  while (all.length < total) {
+    const res = await fetch(
+      `/api/recipe?sort=name&include=ingredients&limit=${RECIPE_PAGE}&offset=${offset}&${SUB_RECIPE_QS}`,
+    )
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error ?? "Failed to fetch recipes")
+    const rows = (data.data ?? []) as RecipeRow[]
+    total = typeof data.total === "number" ? data.total : offset + rows.length
+    all.push(...rows)
+    if (rows.length < RECIPE_PAGE) break
+    offset += RECIPE_PAGE
+  }
+  return all
 }
 
-const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
-
-function weekdayOf(iso: string): string {
-  const [y, m, d] = iso.slice(0, 10).split("-").map(Number)
-  return WEEKDAYS[new Date(y, m - 1, d).getDay()]
-}
-
-function shortDay(name: string): string {
-  return name.slice(0, 3).replace(/^\w/, (c) => c.toUpperCase())
-}
-
-function deliveryDays(details: Record<string, unknown> | null): string[] {
-  const d = details ?? {}
-  const days = d.days as string[] | undefined
-  return Array.isArray(days) ? days.map((v) => String(v).toLowerCase()) : []
-}
-
-function deliverySlots(details: Record<string, unknown> | null): string[] {
-  const d = details ?? {}
-  if (Array.isArray(d.slots)) return (d.slots as unknown[]).map((s) => String(s).toLowerCase())
-  if (typeof d.slot === "string" && d.slot) return [d.slot.toLowerCase()]
-  return []
-}
-
-function activeOn(sub: SubRow, date: string): boolean {
-  if (sub.status !== "active") return false
-  if (sub.paused_at) return false
-  const day = date.slice(0, 10)
-  const details = (sub.details ?? {}) as Record<string, unknown>
-  if (details.onCall) return false
-  const days = deliveryDays(sub.details)
-  if (days.length === 0) return true
-  const wd = weekdayOf(day)
-  if (days.includes(wd)) return true
-  // Closed on Fridays: Friday deliveries are cooked (doubled) on Thursday
-  if (wd === "friday") return false
-  if (wd === "thursday" && days.includes("friday")) return true
-  return false
-}
-
-/** True when this sub shows on Thursday only because its Friday delivery moved (closed Fridays). */
-function isFridayDelivery(sub: SubRow, date: string): boolean {
-  if (weekdayOf(date.slice(0, 10)) !== "thursday") return false
-  const days = deliveryDays(sub.details)
-  return days.length > 0 && !days.includes("thursday") && days.includes("friday")
+function toStandardsMap(rows: DailyStandard[]): Map<string, string[]> {
+  const map = new Map<string, string[]>()
+  for (const st of [...rows].sort((a, b) => a.position - b.position)) {
+    const key = `${st.subscription_plan_id}::${st.meals_per_day}`
+    if (!map.has(key)) map.set(key, [])
+    map.get(key)!.push(st.recipe_id)
+  }
+  return map
 }
 
 function restrictionSet(details: Record<string, unknown> | null): Set<string> {
@@ -126,6 +115,80 @@ function restrictionNames(details: Record<string, unknown> | null): string[] {
 function customerName(sub: SubRow): string {
   const d = sub.details ?? {}
   return (d.name as string) || sub.customer?.name || "Customer"
+}
+
+interface CookDish {
+  recipeId: string
+  name: string
+  image_path: string | null
+  count: number
+  breakfast: boolean
+}
+
+function aggregateCookList(
+  items: { recipeId: string; breakfast?: boolean }[],
+  recipeById: Map<string, RecipeRow>,
+): CookDish[] {
+  const map = new Map<string, CookDish>()
+  for (const item of items) {
+    const key = `${item.breakfast ? "bf:" : ""}${item.recipeId}`
+    const existing = map.get(key)
+    if (existing) {
+      existing.count += 1
+      continue
+    }
+    const recipe = recipeById.get(item.recipeId)
+    map.set(key, {
+      recipeId: item.recipeId,
+      name: recipe?.name ?? item.recipeId.slice(0, 8),
+      image_path: recipe?.image_path ?? null,
+      count: 1,
+      breakfast: Boolean(item.breakfast),
+    })
+  }
+  return [...map.values()].sort((a, b) => {
+    if (a.breakfast !== b.breakfast) return a.breakfast ? 1 : -1
+    return b.count - a.count
+  })
+}
+
+function weekdayLabel(iso: string): string {
+  const w = weekdayOf(iso)
+  return w.charAt(0).toUpperCase() + w.slice(1)
+}
+
+function CookListGrid({ dishes }: { dishes: CookDish[] }) {
+  if (dishes.length === 0) return null
+  return (
+    <div className="grid grid-cols-1 divide-y divide-neutral-100 sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-3">
+      {dishes.map((d) => (
+        <div
+          key={`${d.breakfast ? "bf:" : ""}${d.recipeId}`}
+          className="flex items-center gap-3 bg-white py-3 sm:pr-6"
+        >
+          <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-neutral-200">
+            {d.image_path ? (
+              <Image src={imageThumb(d.image_path)} alt={d.name} fill unoptimized sizes="56px" className="object-cover" loading="lazy" />
+            ) : (
+              <div className="flex size-full items-center justify-center text-neutral-400"><ChefHat size={20} /></div>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            {d.breakfast && (
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-700">Breakfast</p>
+            )}
+            <p className="truncate text-base font-semibold text-neutral-900">{d.name}</p>
+            <p className="mt-0.5 text-xs text-neutral-400">
+              {d.count} portion{d.count !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <span className={`shrink-0 text-xl font-bold tabular-nums ${d.breakfast ? "text-amber-800" : "text-neutral-900"}`}>
+            {d.count}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export default function EmployeeChefPage() {
@@ -149,38 +212,27 @@ export default function EmployeeChefPage() {
   const [categories, setCategories] = useState<string[]>([""])
   const [mealsLoading, setMealsLoading] = useState(false)
   const [showHidden, setShowHidden] = useState(false)
-  const [picksOpen, setPicksOpen] = useState<Set<string>>(new Set())
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [todayPicks, setTodayPicks] = useState<PickRow[]>([])
   const [creditAllowances, setCreditAllowances] = useState<ProteinAllowance[]>([])
   const [subAllPicks, setSubAllPicks] = useState<PickRow[]>([])
-  const [dayStandards, setDayStandards] = useState<DailyStandard[]>([])
-  const [standardTarget, setStandardTarget] = useState<{ planId: string; planName: string; meals: number } | null>(null)
-  const [standardDraft, setStandardDraft] = useState<string[]>([])
-  const [savingStandard, setSavingStandard] = useState(false)
   const [review, setReview] = useState<AutoFillResult[] | null>(null)
+  const [reviewStandards, setReviewStandards] = useState<SuggestedStandard[]>([])
+  const [reviewFridayStandards, setReviewFridayStandards] = useState<SuggestedStandard[]>([])
   const [autofilling, setAutofilling] = useState(false)
   const [applying, setApplying] = useState(false)
   const [doneBusy, setDoneBusy] = useState<Set<string>>(new Set())
 
-  function fetchRecipes(cat: string) {
+  function fetchRecipes() {
     setMealsLoading(true)
-    const q = cat ? `&category=${encodeURIComponent(cat)}` : ""
-    fetch(`/api/recipe?sort=name&limit=${RECIPE_LIMIT}${q}&include=ingredients`)
-      .then(async (res) => {
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error ?? "Failed to fetch recipes")
-        return (data.data ?? []) as RecipeRow[]
-      })
+    fetchAllSubRecipes()
       .then((rows) => {
         setRecipes(rows)
-        if (!cat) {
-          const set = new Set(rows.map((r) => r.category).filter(Boolean) as string[])
-          setCategories(["", ...[...set].sort()])
-        }
+        const set = new Set(rows.map((r) => r.category).filter(Boolean) as string[])
+        setCategories(["", ...[...set].sort()])
       })
-      .catch((e) => setError(e.message || "Failed to load meals"))
+      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load meals"))
       .finally(() => setMealsLoading(false))
   }
 
@@ -197,7 +249,7 @@ export default function EmployeeChefPage() {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchRecipes("")
+    fetchRecipes()
   }, [])
 
   useEffect(() => {
@@ -223,35 +275,7 @@ export default function EmployeeChefPage() {
       .catch((e) => setError(e.message || "Failed to load today's picks"))
   }, [tab, today])
 
-  useEffect(() => {
-    fetch(`/api/daily-standards?date=${selected}`)
-      .then((r) => r.json())
-      .then((d) => setDayStandards(Array.isArray(d) ? d : []))
-      .catch(() => {})
-  }, [selected])
-
   const daySubs = useMemo(() => subs.filter((s) => activeOn(s, selected)), [subs, selected])
-
-  const setupGroups = useMemo(() => {
-    const map = new Map<string, { planId: string; planName: string; meals: number; customers: number }>()
-    for (const s of daySubs) {
-      const d = (s.details ?? {}) as Record<string, unknown>
-      const meals = Math.min(4, Math.max(1, (d.mealsPerDay as number) ?? 1))
-      const key = `${s.subscription_plan_id}::${meals}`
-      const entry = map.get(key) ?? {
-        planId: s.subscription_plan_id,
-        planName: (d.planName as string) ?? "Plan",
-        meals,
-        customers: 0,
-      }
-      entry.customers += 1
-      map.set(key, entry)
-    }
-    return [...map.values()]
-  }, [daySubs])
-
-  const standardCount = (planId: string, meals: number) =>
-    dayStandards.filter((s) => s.subscription_plan_id === planId && s.meals_per_day === meals).length
 
   const picksBySub = useMemo(() => {
     const map = new Map<string, Set<string>>()
@@ -263,6 +287,39 @@ export default function EmployeeChefPage() {
   }, [picks])
 
   const recipeById = useMemo(() => new Map(recipes.map((r) => [r.id, r])), [recipes])
+
+  const dayBatch = useMemo(
+    () =>
+      aggregateCookList(
+        picks.map((p) => ({ recipeId: p.recipe_id, breakfast: p.counts_toward_entitlement === false })),
+        recipeById,
+      ),
+    [picks, recipeById],
+  )
+
+  const assignedCount = useMemo(
+    () => daySubs.filter((s) => (picksBySub.get(s.id)?.size ?? 0) > 0).length,
+    [daySubs, picksBySub],
+  )
+
+  const reviewBatch = useMemo(() => {
+    if (!review) return []
+    return aggregateCookList(
+      review.flatMap((r) =>
+        r.skipped
+          ? []
+          : [
+              ...r.recipeIds.map((recipeId) => ({ recipeId, breakfast: false })),
+              ...r.breakfastRecipeIds.map((recipeId) => ({ recipeId, breakfast: true })),
+            ],
+      ),
+      recipeById,
+    )
+  }, [review, recipeById])
+
+  const reviewReadyCount = review
+    ? review.filter((r) => !r.skipped && (r.recipeIds.length > 0 || r.breakfastRecipeIds.length > 0)).length
+    : 0
 
   const recipeProtein = useMemo(
     () => new Map(recipes.map((r) => [r.id, r.primary_protein_ingredient_id])),
@@ -311,15 +368,26 @@ export default function EmployeeChefPage() {
 
   const activeSub = expanded ? (daySubs.find((s) => s.id === expanded) ?? null) : null
   const activeDetails = (activeSub?.details ?? {}) as Record<string, unknown>
-  const activeTarget = (activeDetails.mealsPerDay as number) ?? 0
-  const activeBreakfast = (activeDetails.breakfast as boolean) === true
+  const activeNeed = activeSub ? assignmentNeed(activeSub, selected) : null
+  const activeTarget = activeNeed?.totalCount ?? 0
+  const activeMainTarget = activeNeed?.mainCount ?? 0
+  const activeBreakfastCount = activeNeed?.breakfastCount ?? 0
+  const activeBreakfast = activeBreakfastCount > 0
   const activeBuckets = activeSub ? proteinBuckets(creditAllowances, recipeProtein, subAllPicks) : []
   const activeUsedTotal = activeBuckets.reduce((s, b) => s + b.used, 0)
   const activeAllowanceTotal = activeBuckets.reduce((s, b) => s + b.allowance, 0)
   const activeRestricted = activeSub ? restrictionNames(activeSub.details) : []
+  const activePreferred = activeSub ? new Set(preferredRecipeIds(activeSub.details)) : new Set<string>()
   const activeRemaining = activeSub?.remaining_meal_count ?? null
-  const activePickedCount = activeSub ? (picksBySub.get(activeSub.id)?.size ?? 0) : 0
-  const projectedRemaining = activeRemaining !== null ? activeRemaining - (draft.length - activePickedCount) : null
+  const draftBreakfastCount = draft.filter(
+    (id) => (recipeById.get(id)?.category ?? "").toLowerCase() === BREAKFAST_CATEGORY,
+  ).slice(0, activeBreakfastCount).length
+  const draftMainCount = draft.length - draftBreakfastCount
+  const activeEntitlementPicked = activeSub
+    ? picks.filter((p) => p.subscription_id === activeSub.id && p.counts_toward_entitlement !== false).length
+    : 0
+  const projectedRemaining =
+    activeRemaining !== null ? activeRemaining + activeEntitlementPicked - draftMainCount : null
 
   function openPicker(subId: string, preset?: string[]) {
     setExpanded(subId)
@@ -329,10 +397,9 @@ export default function EmployeeChefPage() {
     setCategoryQuery("")
     setCategoryOpen(false)
     setShowHidden(false)
-    setStandardTarget(null)
     setCreditAllowances([])
     setSubAllPicks([])
-    fetchRecipes("")
+    fetchRecipes()
     const sub = subs.find((s) => s.id === subId)
     if (sub?.subscription_plan_id) {
       fetch(`/api/plan-protein-credits?plan_id=${sub.subscription_plan_id}`)
@@ -352,7 +419,6 @@ export default function EmployeeChefPage() {
 
   function selectCategory(c: string) {
     setCategory(c)
-    fetchRecipes(c)
   }
 
   function chooseCategory(c: string) {
@@ -376,6 +442,7 @@ export default function EmployeeChefPage() {
   function mealsFor(sub: SubRow): RecipeRow[] {
     const restricted = restrictionSet(sub.details)
     let list = recipes
+    if (category) list = list.filter((m) => m.category === category)
     if (restricted.size > 0) {
       list = list.filter(
         (m) => !(m.servings ?? []).some((s) => (s.ingredients ?? []).some((ing) => restricted.has(ing.name.toLowerCase()))),
@@ -386,26 +453,47 @@ export default function EmployeeChefPage() {
     return list
   }
 
+  function splitDraft(ids: string[], breakfastCount: number): { recipeIds: string[]; breakfastRecipeIds: string[] } {
+    const breakfastRecipeIds: string[] = []
+    const recipeIds: string[] = []
+    for (const id of ids) {
+      const isBf = (recipeById.get(id)?.category ?? "").toLowerCase() === BREAKFAST_CATEGORY
+      if (isBf && breakfastRecipeIds.length < breakfastCount) breakfastRecipeIds.push(id)
+      else recipeIds.push(id)
+    }
+    return { recipeIds, breakfastRecipeIds }
+  }
+
   async function save(subId: string) {
     setSaving(true)
     setError("")
     try {
+      const sub = subs.find((s) => s.id === subId)
+      const breakfastCount = sub ? assignmentNeed(sub, selected).breakfastCount : 0
+      const { recipeIds, breakfastRecipeIds } = splitDraft(draft, breakfastCount)
       const res = await fetch("/api/chef-schedules", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scheduled_date: selected, subscription_id: subId, recipe_ids: draft }),
+        body: JSON.stringify({
+          scheduled_date: selected,
+          subscription_id: subId,
+          recipe_ids: recipeIds,
+          breakfast_recipe_ids: breakfastRecipeIds,
+        }),
       })
       if (!res.ok) {
         const err = await res.json()
         throw new Error(err.error ?? "Failed to save")
       }
       const data = (await res.json()) as PickRow[]
-      const prevCount = picksBySub.get(subId)?.size ?? 0
+      const entitlementOf = (rows: PickRow[]) =>
+        rows.filter((p) => p.subscription_id === subId && p.counts_toward_entitlement !== false).length
+      const prevCount = entitlementOf(picks)
       setPicks((prev) => [...prev.filter((p) => p.subscription_id !== subId), ...data])
       setSubs((prev) =>
         prev.map((s) =>
           s.id === subId && s.remaining_meal_count !== null
-            ? { ...s, remaining_meal_count: s.remaining_meal_count + (prevCount - data.length) }
+            ? { ...s, remaining_meal_count: s.remaining_meal_count + (prevCount - entitlementOf(data)) }
             : s,
         ),
       )
@@ -417,78 +505,24 @@ export default function EmployeeChefPage() {
     }
   }
 
-  function openStandard(planId: string, planName: string, meals: number) {
-    setExpanded(null)
-    setReview(null)
-    setStandardTarget({ planId, planName, meals })
-    setStandardDraft(
-      dayStandards
-        .filter((s) => s.subscription_plan_id === planId && s.meals_per_day === meals)
-        .sort((a, b) => a.position - b.position)
-        .map((s) => s.recipe_id),
-    )
-    setSearch("")
-    setCategory("")
-    setCategoryQuery("")
-    setCategoryOpen(false)
-    fetchRecipes("")
-  }
-
-  async function saveStandard() {
-    if (!standardTarget) return
-    setSavingStandard(true)
-    setError("")
-    try {
-      const res = await fetch("/api/daily-standards", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          standard_date: selected,
-          subscription_plan_id: standardTarget.planId,
-          meals_per_day: standardTarget.meals,
-          recipe_ids: standardDraft,
-        }),
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error ?? "Failed to save standard")
-      }
-      const data = (await res.json()) as DailyStandard[]
-      setDayStandards((prev) => [
-        ...prev.filter((s) => !(s.subscription_plan_id === standardTarget.planId && s.meals_per_day === standardTarget.meals)),
-        ...data,
-      ])
-      setStandardTarget(null)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to save standard")
-    } finally {
-      setSavingStandard(false)
-    }
-  }
-
   async function runAutoFill() {
     if (daySubs.length === 0) return
     setAutofilling(true)
     setError("")
     try {
-      const [recipesRes, standardsRes, picksRes, creditsRes] = await Promise.all([
-        fetch("/api/recipe?sort=name&include=ingredients").then((r) => r.json()),
+      const fridayIso = weekdayOf(selected) === "thursday" ? addCalendarDays(selected, 1) : null
+      const [pool, standardsRes, fridayRes, picksRes, creditsRes] = await Promise.all([
+        fetchAllSubRecipes(),
         fetch(`/api/daily-standards?date=${selected}`).then((r) => r.json()),
+        fridayIso ? fetch(`/api/daily-standards?date=${fridayIso}`).then((r) => r.json()) : Promise.resolve([]),
         fetch(`/api/chef-schedules?subscription_ids=${daySubs.map((s) => s.id).join(",")}`).then((r) => r.json()),
         fetch("/api/plan-protein-credits").then((r) => r.json()),
       ])
-      const pool = ((recipesRes.data ?? recipesRes) as RecipeRow[])
       if (!Array.isArray(pool)) throw new Error("Failed to load meals")
       setRecipes(pool)
       setCategories(["", ...[...new Set(pool.map((r) => r.category).filter(Boolean) as string[])].sort()])
       const standards: DailyStandard[] = Array.isArray(standardsRes) ? standardsRes : []
-      setDayStandards(standards)
-      const standardsMap = new Map<string, string[]>()
-      for (const st of [...standards].sort((a, b) => a.position - b.position)) {
-        const key = `${st.subscription_plan_id}::${st.meals_per_day}`
-        if (!standardsMap.has(key)) standardsMap.set(key, [])
-        standardsMap.get(key)!.push(st.recipe_id)
-      }
+      const fridayRows: DailyStandard[] = Array.isArray(fridayRes) ? fridayRes : []
       const allPicks = (Array.isArray(picksRes) ? picksRes : []) as PickRow[]
       const allPicksBySub = new Map<string, PickRow[]>()
       for (const p of allPicks) {
@@ -501,27 +535,34 @@ export default function EmployeeChefPage() {
         allowancesByPlan.get(c.subscription_plan_id)!.push(c)
       }
       const poolProtein = new Map(pool.map((r) => [r.id, r.primary_protein_ingredient_id]))
-      const results = autoFillDay({
+      const output = autoFillDay({
+        date: selected,
         subs: daySubs.map((s) => {
-          const d = (s.details ?? {}) as Record<string, unknown>
-          const meals = Math.min(4, Math.max(1, (d.mealsPerDay as number) ?? 1))
+          const need = assignmentNeed(s, selected)
           return {
             id: s.id,
             customerName: customerName(s),
             subscription_plan_id: s.subscription_plan_id,
-            mealsPerDay: meals,
+            mealsPerDay: need.mealsPerDay,
+            dayMultiplier: need.dayMultiplier,
+            breakfastCount: need.breakfastCount,
+            isFridayMoved: need.isFridayMoved,
             restrictedNames: [...restrictionSet(s.details)],
+            preferredRecipeIds: preferredRecipeIds(s.details),
             remainingMeals: s.remaining_meal_count,
           }
         }),
-        standards: standardsMap,
+        standards: toStandardsMap(standards),
+        fridayStandards: toStandardsMap(fridayRows),
         recipes: pool,
         existingBySub: picksBySub,
         allowancesByPlan,
         allPicksBySub,
         recipeProtein: poolProtein,
       })
-      setReview(results)
+      setReview(output.results)
+      setReviewStandards(output.suggestedStandards)
+      setReviewFridayStandards(output.suggestedFridayStandards)
     } catch (e) {
       setError(e instanceof Error ? e.message : "Auto-fill failed")
     } finally {
@@ -567,10 +608,15 @@ export default function EmployeeChefPage() {
     }
   }
 
-  async function confirmApply() {    if (!review) return
+  async function confirmApply() {
+    if (!review) return
     const assignments = review
-      .filter((r) => !r.skipped && r.recipeIds.length > 0)
-      .map((r) => ({ subscription_id: r.subscriptionId, recipe_ids: r.recipeIds }))
+      .filter((r) => !r.skipped && (r.recipeIds.length > 0 || r.breakfastRecipeIds.length > 0))
+      .map((r) => ({
+        subscription_id: r.subscriptionId,
+        recipe_ids: r.recipeIds,
+        breakfast_recipe_ids: r.breakfastRecipeIds,
+      }))
     if (assignments.length === 0) {
       setReview(null)
       return
@@ -578,6 +624,37 @@ export default function EmployeeChefPage() {
     setApplying(true)
     setError("")
     try {
+      const fridayIso = weekdayOf(selected) === "thursday" ? addCalendarDays(selected, 1) : null
+      await Promise.all(
+        reviewStandards.map((st) =>
+          fetch("/api/daily-standards", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              standard_date: selected,
+              subscription_plan_id: st.planId,
+              meals_per_day: st.mealsPerDay,
+              recipe_ids: st.recipeIds,
+            }),
+          }),
+        ),
+      )
+      if (fridayIso) {
+        await Promise.all(
+          reviewFridayStandards.map((st) =>
+            fetch("/api/daily-standards", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                standard_date: fridayIso,
+                subscription_plan_id: st.planId,
+                meals_per_day: st.mealsPerDay,
+                recipe_ids: st.recipeIds,
+              }),
+            }),
+          ),
+        )
+      }
       const res = await fetch("/api/chef-schedules/batch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -589,19 +666,19 @@ export default function EmployeeChefPage() {
       }
       const data = (await res.json()) as PickRow[]
       const ids = new Set(assignments.map((a) => a.subscription_id))
-      const prevCounts = new Map<string, number>()
-      for (const p of picks) prevCounts.set(p.subscription_id, (prevCounts.get(p.subscription_id) ?? 0) + 1)
-      const newCounts = new Map<string, number>()
-      for (const r of data) newCounts.set(r.subscription_id, (newCounts.get(r.subscription_id) ?? 0) + 1)
+      const countEntitlement = (rows: PickRow[], subId: string) =>
+        rows.filter((p) => p.subscription_id === subId && p.counts_toward_entitlement !== false).length
       setPicks((prev) => [...prev.filter((p) => !ids.has(p.subscription_id)), ...data])
       setSubs((prev) =>
         prev.map((s) => {
           if (!ids.has(s.id) || s.remaining_meal_count === null) return s
-          const delta = (prevCounts.get(s.id) ?? 0) - (newCounts.get(s.id) ?? 0)
+          const delta = countEntitlement(picks, s.id) - countEntitlement(data, s.id)
           return { ...s, remaining_meal_count: s.remaining_meal_count + delta }
         }),
       )
       setReview(null)
+      setReviewStandards([])
+      setReviewFridayStandards([])
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to apply")
     } finally {
@@ -633,7 +710,7 @@ export default function EmployeeChefPage() {
                 {tab === "today" ? "To Cook Today" : "Chef Schedule"}
               </h1>
               <p className="text-sm text-neutral-500">
-                {tab === "today" ? "Everything the kitchen must cook today" : "Pick a day, then set meals for each customer"}
+                {tab === "today" ? "Everything the kitchen must cook today" : "Pick a day, suggest meals, review, then apply"}
               </p>
             </div>
           </div>
@@ -711,184 +788,121 @@ export default function EmployeeChefPage() {
 
       {error && <p className="text-sm text-red-500">{error}</p>}
 
-      <motion.div variants={itemVariants}>
-        <div className="rounded-2xl border border-neutral-200/60 bg-white/80 p-6 backdrop-blur-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-neutral-900">Today&apos;s standards — {selected}</h2>
-            <Button onClick={runAutoFill} disabled={autofilling || daySubs.length === 0}>
-              {autofilling ? "Checking..." : "Auto-fill day"}
-            </Button>
+      <motion.div variants={itemVariants} className="-mx-6 -mb-6 bg-white">
+        <div className="flex flex-wrap items-end justify-between gap-3 px-6 py-4">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">Kitchen batch</p>
+            <h2 className="mt-0.5 text-2xl font-bold tracking-tight text-neutral-900">{weekdayLabel(selected)}</h2>
+            {dayBatch.length > 0 && (
+              <p className="mt-1 text-sm text-neutral-500">
+                <span className="font-semibold text-neutral-900">{dayBatch.length}</span> dish{dayBatch.length !== 1 ? "es" : ""}
+                <span className="mx-1.5 text-neutral-300">·</span>
+                <span className="font-semibold text-neutral-900">{picks.length}</span> portion{picks.length !== 1 ? "s" : ""}
+                <span className="mx-1.5 text-neutral-300">·</span>
+                <span className="font-semibold text-neutral-900">{assignedCount}</span>/{daySubs.length} assigned
+              </p>
+            )}
           </div>
-          {setupGroups.length === 0 ? (
-            <p className="mt-3 text-sm text-neutral-500">No customers scheduled — standards unlock once subscriptions appear.</p>
-          ) : (
-            <div className="mt-4 space-y-2">
-              {setupGroups.map((g) => {
-                const count = standardCount(g.planId, g.meals)
-                return (
-                  <div key={`${g.planId}::${g.meals}`} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-neutral-50 p-3 ring-1 ring-neutral-100">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-neutral-900">{g.planName} · {g.meals}/day</p>
-                      <p className="mt-0.5 text-xs text-neutral-500">
-                        {g.customers} customer{g.customers !== 1 ? "s" : ""} · {count > 0 ? `${count} standard meal${count !== 1 ? "s" : ""} set` : "no standard set"}
-                      </p>
-                    </div>
-                    <Button variant="outline" onClick={() => openStandard(g.planId, g.planName, g.meals)}>
-                      {count > 0 ? "Edit standard" : "Set standard"}
-                    </Button>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+          <Button onClick={runAutoFill} disabled={autofilling || daySubs.length === 0}>
+            {autofilling ? "Suggesting..." : dayBatch.length > 0 ? "Resuggest" : "Suggest meals"}
+          </Button>
         </div>
-      </motion.div>
-
-      <motion.div variants={itemVariants}>
-        <h2 className="mb-4 text-lg font-semibold text-neutral-900">Customers — {selected}</h2>
-        {daySubs.length > 0 ? (
-          <div className="space-y-4">
-            {daySubs.map((sub) => {
-              const picked = picksBySub.get(sub.id) ?? new Set<string>()
-              const details = (sub.details ?? {}) as Record<string, unknown>
-              const mealsPerDay = (details.mealsPerDay as number) ?? 0
-              const target = mealsPerDay > 0 ? mealsPerDay : 0
-              const done = picked.size
-              const complete = target > 0 ? done >= target : done > 0
-              const partial = done > 0 && !complete
-              const restrictions = restrictionNames(sub.details)
-              const slotLabels = deliverySlots(sub.details).map(shortDay).join(", ")
-              const legacyTime = !Array.isArray(details.slots) && typeof details.time === "string" ? ` ${details.time}` : ""
-              const hasBreakfast = (details.breakfast as boolean) === true
-              const remaining = sub.remaining_meal_count ?? null
-              const depleted = remaining !== null && remaining <= 0
-              const pickedRecipes = [...picked].map((rid) => recipeById.get(rid)).filter((r): r is RecipeRow => !!r)
-              return (
-                <div key={sub.id} className={`overflow-hidden rounded-2xl border backdrop-blur-sm transition-colors ${depleted ? "border-neutral-200 bg-neutral-100/70" : "border-neutral-200/60 bg-white/80"}`}>
-                  <div className={`h-1 w-full ${complete ? "bg-emerald-500" : partial ? "bg-amber-400" : "bg-neutral-200"}`} />
-                  <div className="p-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-sm font-bold text-white">
-                          {customerName(sub).slice(0, 1).toUpperCase()}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="truncate font-semibold text-neutral-900">{customerName(sub)}</p>
-                          <p className="mt-0.5 truncate text-xs text-neutral-500">
-                            {(details.planName as string) ?? "Subscription"}
-                            {target > 0 ? ` · ${target}/day` : ""}
-                            {remaining !== null ? ` · ${remaining} left` : ""}
-                            {restrictions.length > 0 ? ` · avoids ${restrictions.slice(0, 2).join(", ")}${restrictions.length > 2 ? ` +${restrictions.length - 2}` : ""}` : ""}
-                          </p>
-                          <p className="mt-0.5 truncate text-xs text-neutral-400">
-                            {(details.onCall as boolean)
-                              ? "On-call delivery"
-                              : `${deliveryDays(sub.details).map(shortDay).join(", ") || "Every day"}${slotLabels ? ` · ${slotLabels}${legacyTime}` : ""}`}
-                          </p>
-                          {hasBreakfast && (
-                            <span className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-700">
-                              + Breakfast (extra)
-                            </span>
-                          )}
-                          {isFridayDelivery(sub, selected) && (
-                            <span className="ml-1 mt-1 inline-block rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-orange-700">
-                              Friday order — cooked Thu
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
-                        depleted ? "bg-neutral-200 text-neutral-500 ring-1 ring-neutral-300"
-                        : complete ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
-                        : partial ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200"
-                        : "bg-neutral-100 text-neutral-500 ring-1 ring-neutral-200"
-                      }`}>
-                        {depleted ? "Depleted" : complete ? <CheckCircle2 size={14} /> : <Clock size={14} />}
-                        {!depleted && (target > 0 ? `${Math.min(done, target)}/${target}` : done > 0 ? `${done} set` : "To pick")}
-                      </span>
-                    </div>
-
-                    {target > 0 && (
-                      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-neutral-100">
-                        <div
-                          className={`h-full rounded-full transition-all ${complete ? "bg-emerald-500" : "bg-amber-400"}`}
-                          style={{ width: `${Math.min(100, (done / target) * 100)}%` }}
-                        />
-                      </div>
-                    )}
-
-                    {pickedRecipes.length > 0 && (
-                      <div className="mt-4">
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                          {pickedRecipes.slice(0, 2).map((r) => (
-                            <div key={r.id} className="flex items-center gap-2.5 rounded-xl bg-neutral-50 p-2 ring-1 ring-neutral-100">
-                              <div className="relative size-10 shrink-0 overflow-hidden rounded-lg bg-neutral-200">
-                                {r.image_path ? (
-                                  <Image src={imageThumb(r.image_path)} alt={r.name} fill unoptimized sizes="40px" className="object-cover" loading="lazy" />
-                                ) : (
-                                  <div className="flex size-full items-center justify-center text-neutral-400"><ChefHat size={16} /></div>
-                                )}
-                              </div>
-                              <p className="truncate text-xs font-medium text-neutral-700">{r.name}</p>
-                            </div>
-                          ))}
-                        </div>
-                        {pickedRecipes.length > 2 && (
-                          <>
-                            <div className={`grid transition-all duration-300 ease-in-out ${picksOpen.has(sub.id) ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
-                              <div className="overflow-hidden">
-                                <div className="grid grid-cols-1 gap-2 pt-2 sm:grid-cols-2">
-                                  {pickedRecipes.slice(2).map((r) => (
-                                    <div key={r.id} className="flex items-center gap-2.5 rounded-xl bg-neutral-50 p-2 ring-1 ring-neutral-100">
-                                      <div className="relative size-10 shrink-0 overflow-hidden rounded-lg bg-neutral-200">
-                                        {r.image_path ? (
-                                          <Image src={imageThumb(r.image_path)} alt={r.name} fill unoptimized sizes="40px" className="object-cover" loading="lazy" />
-                                        ) : (
-                                          <div className="flex size-full items-center justify-center text-neutral-400"><ChefHat size={16} /></div>
-                                        )}
-                                      </div>
-                                      <p className="truncate text-xs font-medium text-neutral-700">{r.name}</p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => setPicksOpen((prev) => {
-                                const next = new Set(prev)
-                                if (next.has(sub.id)) next.delete(sub.id)
-                                else next.add(sub.id)
-                                return next
-                              })}
-                              className="mt-2 text-xs font-medium text-neutral-600 underline underline-offset-2 transition-colors hover:text-neutral-900"
-                            >
-                              {picksOpen.has(sub.id) ? "Show less" : `Show all ${pickedRecipes.length} meals`}
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="mt-4">
-                      <Button onClick={() => openPicker(sub.id)} disabled={depleted}>
-                        {depleted ? "No meals left" : done > 0 ? "Edit meals" : "Set meals"}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+        {daySubs.length === 0 ? (
+          <p className="px-6 pb-4 text-sm text-neutral-500">
+            {weekdayOf(selected) === "friday"
+              ? "Closed on Fridays — Friday deliveries are prepared Thursday."
+              : "No subscribed customers for this day."}
+          </p>
+        ) : dayBatch.length === 0 ? (
+          <p className="px-6 pb-4 text-sm text-neutral-500">
+            {daySubs.length} customer{daySubs.length !== 1 ? "s" : ""} scheduled. Suggest meals to fill one batch.
+          </p>
         ) : (
-          <div className="flex flex-col items-center gap-4 rounded-2xl border-2 border-dashed border-neutral-200 py-20">
-            <CalendarDays size={40} className="text-neutral-300" />
-            <p className="text-sm font-medium text-neutral-500">
-              {weekdayOf(selected) === "friday"
-                ? "Closed on Fridays — Friday deliveries are prepared Thursday."
-                : "No subscribed customers for this day."}
-            </p>
+          <div className="px-6 pb-4">
+            <CookListGrid dishes={dayBatch} />
           </div>
         )}
+
+      {daySubs.length > 0 && (
+        <>
+        <div className="px-6 pt-2">
+          <h2 className="text-lg font-semibold text-neutral-900">Plates</h2>
+          <p className="mt-0.5 text-xs text-neutral-500">Each customer gets a slice of the batch. Edit only when a plate needs a swap.</p>
+        </div>
+        <div className="mt-2 max-h-[min(22rem,50vh)] overflow-y-auto overscroll-contain px-6">
+          <div className="divide-y divide-neutral-100">
+          {daySubs.map((sub) => {
+            const picked = picksBySub.get(sub.id) ?? new Set<string>()
+            const details = (sub.details ?? {}) as Record<string, unknown>
+            const need = assignmentNeed(sub, selected)
+            const target = need.totalCount
+            const done = picked.size
+            const complete = target > 0 ? done >= target : done > 0
+            const partial = done > 0 && !complete
+            const restrictions = restrictionNames(sub.details)
+            const remaining = sub.remaining_meal_count ?? null
+            const depleted = remaining !== null && remaining <= 0
+            const pickedRecipes = [...picked].map((rid) => recipeById.get(rid)).filter((r): r is RecipeRow => !!r)
+            const extras = [
+              preferredRecipeIds(sub.details).length > 0 ? "flexible" : "",
+              need.breakfastCount > 0 ? "breakfast extra" : "",
+              isDoubleThursday(sub, selected) ? "Thu+Fri" : isFridayDelivery(sub, selected) ? "Fri on Thu" : "",
+            ].filter(Boolean)
+            return (
+              <div key={sub.id} className={`flex items-center gap-3 py-3 first:pt-0 last:pb-0 ${depleted ? "opacity-60" : ""}`}>
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-xs font-bold text-white">
+                  {customerName(sub).slice(0, 1).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-neutral-900">{customerName(sub)}</p>
+                  <p className="mt-0.5 truncate text-xs text-neutral-500">
+                    {(details.planName as string) ?? "Subscription"}
+                    {need.mealsPerDay > 0 ? ` · ${need.mealsPerDay}/day` : ""}
+                    {extras.length > 0 ? ` · ${extras.join(" · ")}` : ""}
+                    {remaining !== null ? ` · ${remaining} left` : ""}
+                    {restrictions.length > 0 ? ` · avoids ${restrictions.slice(0, 2).join(", ")}${restrictions.length > 2 ? ` +${restrictions.length - 2}` : ""}` : ""}
+                  </p>
+                </div>
+                {pickedRecipes.length > 0 && (
+                  <div className="hidden shrink-0 items-center sm:flex">
+                    {pickedRecipes.slice(0, 5).map((r, i) => (
+                      <div
+                        key={r.id}
+                        title={r.name}
+                        className="relative size-8 overflow-hidden rounded-full bg-neutral-200 ring-2 ring-white"
+                        style={{ marginLeft: i === 0 ? 0 : -8, zIndex: pickedRecipes.length - i }}
+                      >
+                        {r.image_path ? (
+                          <Image src={imageThumb(r.image_path)} alt={r.name} fill unoptimized sizes="32px" className="object-cover" loading="lazy" />
+                        ) : (
+                          <div className="flex size-full items-center justify-center text-neutral-400"><ChefHat size={12} /></div>
+                        )}
+                      </div>
+                    ))}
+                    {pickedRecipes.length > 5 && (
+                      <span className="ml-1 text-[11px] font-medium text-neutral-500">+{pickedRecipes.length - 5}</span>
+                    )}
+                  </div>
+                )}
+                <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                  depleted ? "bg-neutral-200 text-neutral-500"
+                  : complete ? "bg-emerald-50 text-emerald-700"
+                  : partial ? "bg-amber-50 text-amber-700"
+                  : "bg-neutral-100 text-neutral-500"
+                }`}>
+                  {depleted ? "Depleted" : complete ? <CheckCircle2 size={12} /> : <Clock size={12} />}
+                  {!depleted && (target > 0 ? `${Math.min(done, target)}/${target}` : done > 0 ? `${done}` : "—")}
+                </span>
+                <Button size="sm" variant="outline" onClick={() => openPicker(sub.id)} disabled={depleted}>
+                  {depleted ? "None" : done > 0 ? "Edit" : "Set"}
+                </Button>
+              </div>
+            )
+          })}
+          </div>
+        </div>
+        </>
+      )}
       </motion.div>
       </>
       ) : (
@@ -1025,169 +1039,6 @@ export default function EmployeeChefPage() {
       </>
       )}
 
-      {standardTarget && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4" onClick={() => setStandardTarget(null)}>
-          <div
-            className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between gap-3 border-b border-neutral-100 p-5">
-              <div>
-                <h2 className="text-lg font-bold text-neutral-900">{standardTarget.planName} standard</h2>
-                <p className="mt-0.5 text-xs text-neutral-500">
-                  {selected} · pick {standardTarget.meals} — applies to every {standardTarget.meals}/day customer on this plan
-                </p>
-              </div>
-              <button
-                onClick={() => setStandardTarget(null)}
-                aria-label="Close standard setter"
-                className="flex size-8 shrink-0 items-center justify-center rounded-full text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <div className="flex-1 space-y-4 overflow-y-auto p-5">
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-                  <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search meals..."
-                    className="w-full rounded-xl border border-neutral-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-neutral-900"
-                  />
-                </div>
-                <div className="relative w-40 shrink-0">
-                  <input
-                    value={categoryOpen ? categoryQuery : category}
-                    onChange={(e) => {
-                      setCategoryQuery(e.target.value)
-                      setCategoryOpen(true)
-                    }}
-                    onFocus={() => {
-                      setCategoryQuery("")
-                      setCategoryOpen(true)
-                    }}
-                    onBlur={() => setCategoryOpen(false)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Escape") {
-                        setCategoryOpen(false)
-                        e.currentTarget.blur()
-                      } else if (e.key === "ArrowDown") {
-                        e.preventDefault()
-                        setCategoryOpen(true)
-                      } else if (e.key === "Enter") {
-                        e.preventDefault()
-                        if (categoryMatches.length > 0) chooseCategory(categoryMatches[0])
-                        else if (!categoryQuery.trim()) chooseCategory("")
-                        else setCategoryOpen(false)
-                      }
-                    }}
-                    placeholder={category || "All categories"}
-                    role="combobox"
-                    aria-expanded={categoryOpen}
-                    aria-controls="standard-category-options"
-                    aria-label="Filter by category"
-                    className="w-full rounded-xl border border-neutral-200 bg-white py-2.5 pl-3 pr-8 text-sm font-medium capitalize text-neutral-700 outline-none placeholder:text-neutral-400 focus:border-neutral-900"
-                  />
-                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-                  {categoryOpen && (
-                    <div className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white p-1 shadow-lg" id="standard-category-options">
-                      <button
-                        type="button"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => chooseCategory("")}
-                        className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm ${category === "" ? "bg-neutral-100 font-semibold text-neutral-900" : "text-neutral-600 hover:bg-neutral-50"}`}
-                      >
-                        All categories
-                        {category === "" && <Check size={12} />}
-                      </button>
-                      {categoryMatches.map((c) => (
-                        <button
-                          key={c}
-                          type="button"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => chooseCategory(c)}
-                          className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm ${category === c ? "bg-neutral-100 font-semibold text-neutral-900" : "text-neutral-600 hover:bg-neutral-50"}`}
-                        >
-                          <span className="truncate capitalize">{c}</span>
-                          {category === c && <Check size={12} />}
-                        </button>
-                      ))}
-                      {categoryMatches.length === 0 && (
-                        <p className="px-2.5 py-2 text-xs text-neutral-400">No categories found.</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-              {mealsLoading ? (
-                <div className="flex h-32 items-center justify-center">
-                  <div className="size-6 animate-spin rounded-full border-2 border-neutral-200 border-t-neutral-900" />
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {(search.trim()
-                    ? recipes.filter((m) => {
-                        const q = search.trim().toLowerCase()
-                        return m.name.toLowerCase().includes(q) || (m.description ?? "").toLowerCase().includes(q)
-                      })
-                    : recipes
-                  ).map((m) => {
-                    const active = standardDraft.includes(m.id)
-                    return (
-                      <button
-                        key={m.id}
-                        onClick={() => setStandardDraft((p) => (active ? p.filter((x) => x !== m.id) : [...p, m.id]))}
-                        className={`group flex w-full items-center gap-3 rounded-xl border p-2.5 text-left transition-all ${active ? "border-neutral-900 bg-neutral-50 ring-2 ring-neutral-900" : "border-neutral-200 hover:border-neutral-400 hover:bg-neutral-50"}`}
-                      >
-                        <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
-                          {m.image_path ? (
-                            <Image
-                              src={imageThumb(m.image_path)}
-                              alt={m.name}
-                              fill
-                              unoptimized
-                              sizes="56px"
-                              className="object-cover"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <div className="flex size-full items-center justify-center text-neutral-300"><ChefHat size={20} /></div>
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-neutral-900">{m.name}</p>
-                          {m.description && (
-                            <p className="mt-0.5 truncate text-xs text-neutral-500">{m.description}</p>
-                          )}
-                          {m.category && (
-                            <span className="mt-1 inline-block rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-600">
-                              {m.category}
-                            </span>
-                          )}
-                        </div>
-                        <span
-                          className={`flex size-6 shrink-0 items-center justify-center rounded-full border transition-all ${active ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-300 text-transparent group-hover:border-neutral-400"}`}
-                        >
-                          <Check size={13} />
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-            <div className="flex gap-2 border-t border-neutral-100 p-4">
-              <Button onClick={saveStandard} disabled={savingStandard}>
-                {savingStandard ? "Saving..." : `Save standard (${standardDraft.length}/${standardTarget.meals})`}
-              </Button>
-              <Button variant="outline" onClick={() => setStandardTarget(null)}>Cancel</Button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {review && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4" onClick={() => setReview(null)}>
           <div
@@ -1196,9 +1047,9 @@ export default function EmployeeChefPage() {
           >
             <div className="flex items-start justify-between gap-3 border-b border-neutral-100 p-5">
               <div>
-                <h2 className="text-lg font-bold text-neutral-900">Review auto-fill — {selected}</h2>
+                <h2 className="text-lg font-bold text-neutral-900">Review kitchen batch — {selected}</h2>
                 <p className="mt-0.5 text-xs text-neutral-500">
-                  {review.filter((r) => !r.skipped && r.recipeIds.length > 0).length} of {review.length} customers ready to apply
+                  {reviewBatch.length} dish{reviewBatch.length !== 1 ? "es" : ""} for {reviewReadyCount} of {review.length} customers. Apply, then edit a plate if needed.
                 </p>
               </div>
               <button
@@ -1209,48 +1060,66 @@ export default function EmployeeChefPage() {
                 <X size={16} />
               </button>
             </div>
-            <div className="flex-1 space-y-3 overflow-y-auto p-5">
-              {review.map((r) => (
-                <div key={r.subscriptionId} className="rounded-xl border border-neutral-200/70 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-semibold text-neutral-900">{r.customerName}</p>
-                    {r.skipped ? (
-                      <span className="shrink-0 rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-500">Already set — skipped</span>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setReview(null)
-                          openPicker(r.subscriptionId, r.recipeIds)
-                        }}
-                      >
-                        Edit
-                      </Button>
-                    )}
-                  </div>
-                  {!r.skipped && r.recipeIds.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {r.recipeIds.map((rid) => (
-                        <span key={rid} className="rounded-lg bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-700">
-                          {recipeById.get(rid)?.name ?? rid.slice(0, 8)}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  {r.issues.map((issue, i) => (
-                    <p
-                      key={i}
-                      className={`mt-1.5 text-xs font-medium ${issue.kind === "no-replacement" || issue.kind === "no-standard" || issue.kind === "depleted" ? "text-red-600" : "text-amber-700"}`}
-                    >
-                      {issue.message}
-                    </p>
-                  ))}
+            <div className="flex-1 space-y-5 overflow-y-auto p-5">
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">Cook these</p>
+                {reviewBatch.length > 0 ? (
+                  <CookListGrid dishes={reviewBatch} />
+                ) : (
+                  <p className="text-sm text-neutral-500">Nothing new to apply — plates are already set or skipped.</p>
+                )}
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">Plates</p>
+                <div className="divide-y divide-neutral-100">
+                  {review.map((r) => {
+                    const notable = r.issues.filter((i) => i.kind !== "suggested" && i.kind !== "skipped")
+                    const blocking = notable.filter((i) => i.kind === "no-replacement" || i.kind === "no-standard" || i.kind === "depleted")
+                    const dishIds = [...r.recipeIds, ...r.breakfastRecipeIds]
+                    return (
+                      <div key={r.subscriptionId} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-neutral-900">{r.customerName}</p>
+                          {r.skipped ? (
+                            <p className="mt-0.5 text-xs text-neutral-400">Already set — skipped</p>
+                          ) : dishIds.length > 0 ? (
+                            <p className="mt-0.5 truncate text-xs text-neutral-500">
+                              {r.recipeIds.map((rid) => recipeById.get(rid)?.name ?? rid.slice(0, 8)).join(" · ")}
+                              {r.breakfastRecipeIds.length > 0
+                                ? ` · BF ${r.breakfastRecipeIds.map((rid) => recipeById.get(rid)?.name ?? rid.slice(0, 8)).join(", ")}`
+                                : ""}
+                            </p>
+                          ) : (
+                            <p className="mt-0.5 text-xs text-neutral-400">No meals suggested</p>
+                          )}
+                          {notable.length > 0 && (
+                            <p className={`mt-0.5 text-xs font-medium ${blocking.length > 0 ? "text-red-600" : "text-amber-700"}`}>
+                              {notable[0].message}
+                              {notable.length > 1 ? ` · +${notable.length - 1}` : ""}
+                            </p>
+                          )}
+                        </div>
+                        {!r.skipped && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setReview(null)
+                              openPicker(r.subscriptionId, [...r.recipeIds, ...r.breakfastRecipeIds])
+                            }}
+                          >
+                            Edit
+                          </Button>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
-              ))}
+              </div>
             </div>
             <div className="flex gap-2 border-t border-neutral-100 p-4">
-              <Button onClick={confirmApply} disabled={applying}>
-                {applying ? "Applying..." : `Apply all (${review.filter((r) => !r.skipped && r.recipeIds.length > 0).length})`}
+              <Button onClick={confirmApply} disabled={applying || reviewReadyCount === 0}>
+                {applying ? "Applying..." : `Apply batch (${reviewReadyCount})`}
               </Button>
               <Button variant="outline" onClick={() => setReview(null)}>Close</Button>
             </div>
@@ -1286,7 +1155,9 @@ export default function EmployeeChefPage() {
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-white/60">Plan</p>
                   <p className="truncate text-sm font-bold">{(activeDetails.planName as string) ?? "Subscription"}</p>
                   <p className="mt-0.5 text-xs text-white/60">
-                    {activeTarget > 0 ? `${activeTarget} meal${activeTarget !== 1 ? "s" : ""} per day${activeBreakfast ? " + breakfast" : ""}` : `No daily limit set${activeBreakfast ? " · + breakfast" : ""}`}
+                    {activeMainTarget > 0
+                      ? `${activeMainTarget} meal${activeMainTarget !== 1 ? "s" : ""}${activeNeed?.dayMultiplier === 2 ? " (Thu+Fri)" : " per day"}${activeBreakfast ? ` + ${activeBreakfastCount} breakfast` : ""}`
+                      : `No daily limit set${activeBreakfast ? " · + breakfast" : ""}`}
                   </p>
                   {activeRemaining !== null && (
                     <p className={`mt-0.5 text-xs font-semibold ${projectedRemaining !== null && projectedRemaining <= 0 ? "text-red-300" : "text-white/60"}`}>
@@ -1307,7 +1178,7 @@ export default function EmployeeChefPage() {
               </div>
               {activeTarget > 0 && draft.length > activeTarget && (
                 <p className="rounded-xl bg-amber-50 px-4 py-2.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200">
-                  Over plan allowance by {draft.length - activeTarget} — plan covers {activeTarget} per day.
+                  Over plan allowance by {draft.length - activeTarget} — today covers {activeTarget} meals.
                 </p>
               )}
               {activeBuckets.length > 0 && (
@@ -1478,11 +1349,18 @@ export default function EmployeeChefPage() {
                           {m.description && (
                             <p className="mt-0.5 truncate text-xs text-neutral-500">{m.description}</p>
                           )}
-                          {m.category && (
-                            <span className="mt-1 inline-block rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-600">
-                              {m.category}
-                            </span>
-                          )}
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {activePreferred.has(m.id) && (
+                              <span className="inline-block rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                                Preferred
+                              </span>
+                            )}
+                            {m.category && (
+                              <span className="inline-block rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-600">
+                                {m.category}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <span
                           className={`flex size-6 shrink-0 items-center justify-center rounded-full border transition-all ${active ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-300 text-transparent group-hover:border-neutral-400"}`}

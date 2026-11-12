@@ -20,10 +20,11 @@ export interface ProteinBucketState {
 export function proteinBuckets(
   allowances: ProteinAllowance[],
   recipeProtein: Map<string, string | null>,
-  picks: { recipe_id: string }[],
+  picks: { recipe_id: string; counts_toward_entitlement?: boolean }[],
 ): ProteinBucketState[] {
   const usedBy = new Map<string, number>()
   for (const p of picks) {
+    if (p.counts_toward_entitlement === false) continue
     const protein = recipeProtein.get(p.recipe_id)
     if (!protein) continue
     usedBy.set(protein, (usedBy.get(protein) ?? 0) + 1)
