@@ -6,7 +6,7 @@ import { Button, Modal, Select, SubscriptionDialog, CsvImportDialog } from "@/co
 import type { CsvImportPreviewRow } from "@/components/ui/CsvImportDialog"
 import { PAYMENT_METHODS, SUBSCRIPTION_PLANS } from "@/constants"
 import { ChevronDown, Copy, FileDown, FileSpreadsheet, Link2, Plus, X } from "lucide-react"
-import { SubscriptionForm } from "@/components/subscription/SubscriptionForm"
+import { StaffSubscriptionForm } from "@/components/subscription/StaffSubscriptionForm"
 import { downloadCsv, parseCsv } from "@/lib/meals/csv"
 import {
   parseSubscriptionCsvRow,
@@ -755,20 +755,19 @@ export default function EmployeeSubscriptionsPage() {
               initial={{ scale: 0.96, opacity: 0, y: 12 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.96, opacity: 0, y: 12 }}
-              className="my-8 w-full max-w-3xl rounded-2xl bg-neutral-50 p-4 shadow-2xl sm:p-6"
+              className="my-8 w-full max-w-lg rounded-2xl bg-white p-4 shadow-2xl sm:p-6"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h2 className="font-playfair text-xl font-medium text-neutral-900">New Subscription</h2>
-                  <p className="font-nunito mt-0.5 text-xs text-neutral-500">Same form as the public page, created directly.</p>
+                  <p className="font-nunito mt-0.5 text-xs text-neutral-500">Create a subscription for a customer without the public onboarding flow.</p>
                 </div>
                 <button onClick={() => setShowForm(false)} className="rounded-lg p-2 text-neutral-400 transition-colors hover:bg-neutral-200 hover:text-neutral-700">
                   <X size={18} />
                 </button>
               </div>
-              <SubscriptionForm
-                staffMode
+              <StaffSubscriptionForm
                 onCreated={() => {
                   setShowForm(false)
                   fetchSubscriptions()

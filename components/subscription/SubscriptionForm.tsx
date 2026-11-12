@@ -118,13 +118,7 @@ function areaLabel(area: string | null) {
   return area.charAt(0).toUpperCase() + area.slice(1)
 }
 
-export function SubscriptionForm({
-  staffMode = false,
-  onCreated,
-}: {
-  staffMode?: boolean
-  onCreated?: () => void
-} = {}) {
+export function SubscriptionForm() {
   const t = useTranslations("subscriptionForm")
   const tt = useTranslations("terms")
   const router = useRouter()
@@ -132,14 +126,11 @@ export function SubscriptionForm({
   const planParam = params.get("plan")
   const tokenParam = params.get("token")
 
-  const [staffPlanId, setStaffPlanId] = useState(SUBSCRIPTION_PLANS[0].id)
   const [invite, setInvite] = useState<InviteState>(() =>
-    staffMode || !tokenParam ? { status: "none" } : { status: "checking" },
+    !tokenParam ? { status: "none" } : { status: "checking" },
   )
 
   const [stepId, setStepId] = useState<StepId>("plan")
-  const [customerId, setCustomerId] = useState("")
-  const [customers, setCustomers] = useState<{ id: string; name: string }[]>([])
 
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -188,24 +179,20 @@ export function SubscriptionForm({
   const currentIndex = Math.max(0, stepIds.indexOf(currentStepId))
   const currentStep = STEP_DEFS.find((step) => step.id === currentStepId) ?? STEP_DEFS[0]
 
-  const planId = staffMode
-    ? staffPlanId
-    : invite.status === "valid"
-      ? invite.plan
-      : planParam
+  const planId = invite.status === "valid" ? invite.plan : planParam
   const plan = SUBSCRIPTION_PLANS.find((p) => p.id === planId) ?? SUBSCRIPTION_PLANS[0]
   const agreedPriceLabel =
-    !staffMode && invite.status === "valid" && typeof invite.agreedPriceCents === "number"
+    invite.status === "valid" && typeof invite.agreedPriceCents === "number"
       ? `${invite.currency ?? "AED"} ${(invite.agreedPriceCents / 100).toFixed(2)}`
       : null
   const agreedMealsPerDay =
-    !staffMode && invite.status === "valid" && typeof invite.mealsPerDay === "number"
+    invite.status === "valid" && typeof invite.mealsPerDay === "number"
       ? invite.mealsPerDay
       : null
   const mealsLocked = agreedPriceLabel !== null && agreedMealsPerDay !== null
 
   useEffect(() => {
-    if (staffMode || !tokenParam) return
+    if (!tokenParam) return
     const controller = new AbortController()
     const query = new URLSearchParams({ token: tokenParam })
     if (planParam) query.set("plan", planParam)
@@ -268,7 +255,7 @@ export function SubscriptionForm({
       })
 
     return () => controller.abort()
-  }, [staffMode, tokenParam, planParam])
+  }, [tokenParam, planParam])
 
   useEffect(() => {
     const active = trackRef.current?.querySelector<HTMLElement>('[data-active="true"]')
@@ -279,14 +266,6 @@ export function SubscriptionForm({
     observer.observe(active)
     return () => observer.disconnect()
   }, [currentIndex, mode])
-
-  useEffect(() => {
-    if (!staffMode) return
-    fetch("/api/customers")
-      .then((r) => r.json())
-      .then((d) => setCustomers(((d ?? []) as { id: string; name: string }[]).map((c) => ({ id: c.id, name: c.name }))))
-      .catch(() => {})
-  }, [staffMode])
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -355,7 +334,6 @@ export function SubscriptionForm({
 
   function validateStep(id: StepId): string | null {
     if (id === "details") {
-      if (staffMode && !customerId) return "Please select a customer."
       if (!name.trim() || sanitizeUaLocal(mobile).length < 9 || !address) {
         return "Please complete name, WhatsApp number and address."
       }
@@ -430,42 +408,6 @@ export function SubscriptionForm({
     if (!validateAll()) return
     setSubmitting(true)
     try {
-      if (staffMode) {
-        const res = await fetch("/api/subscriptions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            customer_id: customerId,
-            details: {
-              planId: plan.id,
-              planName: plan.name,
-              planType: plan.type,
-              durationDays: plan.durationDays,
-              name: name.trim(),
-              email: email.trim() || null,
-              mobile_number: `+971${sanitizeUaLocal(mobile)}`,
-              address,
-              location,
-              mode,
-              restrictions: restricted.map((r) => r.id),
-              restrictionNames: Object.fromEntries(restricted.map((r) => [r.id, r.name])),
-              mealsPerDay,
-              breakfast,
-              includedMeals: mode === "flexible" ? selectedMeals : [],
-              days: onCall ? [] : days,
-              slots: onCall ? [] : slots,
-              onCall,
-              paymentStatus: "pending",
-            },
-          }),
-        })
-        if (!res.ok) {
-          const err = await res.json()
-          throw new Error(err.error ?? "Failed to submit")
-        }
-        onCreated?.()
-        return
-      }
       const res = await fetch("/api/subscription-inquiries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -504,7 +446,7 @@ export function SubscriptionForm({
     return <RedirectCountdown name={plan.name} countdown={countdown} setCountdown={setCountdown} router={router} />
   }
 
-  if (!staffMode && invite.status === "checking") {
+  if (invite.status === "checking") {
     return (
       <div className="mx-auto max-w-lg rounded-3xl border border-brand-700/40 bg-white p-8 text-center shadow-[0_24px_70px_-32px_rgba(17,139,80,0.35)]">
         <motion.div
@@ -527,7 +469,7 @@ export function SubscriptionForm({
     )
   }
 
-  if (!staffMode && invite.status === "invalid") {
+  if (invite.status === "invalid") {
     return (
       <div className="mx-auto max-w-lg rounded-3xl border border-red-100 bg-white p-8 text-center shadow-[0_24px_70px_-32px_rgba(239,68,68,0.25)]">
         <motion.div
@@ -570,7 +512,7 @@ export function SubscriptionForm({
 
         <StepProgress steps={STEP_DEFS.filter((step) => stepIds.includes(step.id))} currentIndex={currentIndex} onSelect={goToStep} />
 
-        {!staffMode && invite.status === "valid" && (
+        {invite.status === "valid" && (
           <motion.div
             initial={reduceMotion ? false : { opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
@@ -636,28 +578,6 @@ export function SubscriptionForm({
                     </li>
                   ))}
                 </ul>
-                {staffMode && (
-                  <div className="mt-5 border-t border-brand-700/40 pt-5">
-                    <h3 className="text-sm font-bold text-neutral-900">Change plan</h3>
-                    <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      {SUBSCRIPTION_PLANS.map((p) => (
-                        <button
-                          type="button"
-                          key={p.id}
-                          onClick={() => setStaffPlanId(p.id)}
-                          className={`rounded-2xl border p-3 text-left transition-all ${
-                            plan.id === p.id
-                              ? "border-brand-900 bg-brand-900 text-white shadow-md shadow-brand-900/20"
-                              : "border-brand-700/40 hover:border-brand-400 hover:bg-brand-700/20"
-                          }`}
-                        >
-                          <p className="text-sm font-semibold">{p.name}</p>
-                          <p className={`mt-0.5 text-xs ${plan.id === p.id ? "text-white/70" : "text-neutral-400"}`}>{p.durationDays} Days</p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
               </StepCard>
             )}
@@ -665,21 +585,6 @@ export function SubscriptionForm({
             {stepIds.includes("details") && (
               <StepCard index={stepIds.indexOf("details")} currentIndex={currentIndex}>
               <div className="space-y-4">
-                {staffMode && (
-                  <div>
-                    <label className="mb-1.5 block text-xs font-semibold text-brand-900">Customer</label>
-                    <select
-                      value={customerId}
-                      onChange={(e) => setCustomerId(e.target.value)}
-                      className="w-full rounded-xl border border-brand-700/40 bg-brand-700/20 px-3 py-2.5 text-sm outline-none transition-colors focus:border-brand-900"
-                    >
-                      <option value="">Select customer...</option>
-                      {customers.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
                 <FloatingInput label="Full Name" icon={<User size={13} />} required value={name} onChange={(e) => setName(e.target.value)} />
                 <div className="flex items-stretch gap-1.5">
                   <span className="flex shrink-0 items-center gap-1 rounded-xl border border-brand-700/40 bg-brand-700/20 px-2 text-xs font-semibold">
