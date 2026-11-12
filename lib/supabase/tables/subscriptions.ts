@@ -110,6 +110,33 @@ export async function createSubscription(
   return data as Subscription
 }
 
+const EDITABLE_DETAIL_KEYS = ["name", "email", "mobile_number", "address"] as const
+
+export async function updateSubscriptionDetails(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  id: string,
+  patch: Record<string, unknown>,
+): Promise<Subscription> {
+  const current = await getSubscription(supabase, id)
+  if (!current) throw new Error("Subscription not found")
+
+  const next: Record<string, unknown> = { ...((current.details as Record<string, unknown> | null) ?? {}) }
+  for (const key of EDITABLE_DETAIL_KEYS) {
+    if (!(key in patch)) continue
+    next[key] = patch[key]
+  }
+
+  const { data, error } = await supabase
+    .from("subscriptions")
+    .update({ details: next })
+    .eq("id", id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as Subscription
+}
+
 export async function cancelSubscription(
   supabase: import("@supabase/supabase-js").SupabaseClient,
   id: string,

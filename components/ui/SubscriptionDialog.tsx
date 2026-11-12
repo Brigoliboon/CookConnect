@@ -46,6 +46,7 @@ interface SubscriptionDialogProps {
   inline?: boolean
   payments?: Record<string, { paid: number; total: number | null }>
   onPaymentsChanged?: () => void
+  onUpdated?: () => void
 }
 
 function paymentPill(paid: number, total: number | null) {
@@ -54,10 +55,28 @@ function paymentPill(paid: number, total: number | null) {
   const base = "px-2.5 py-1 text-xs font-extrabold uppercase tracking-wide"
   if (paid <= 0) return <span className={`${base} bg-red-100 text-red-700`}>Unpaid · lacks {fmt(total)}</span>
   if (paid < total) return <span className={`${base} bg-amber-100 text-amber-800`}>Partial · lacks {fmt(total - paid)}</span>
-  return <span className={`${base} bg-emerald-100 text-emerald-800`}>Paid · {fmt(paid)}</span>
+  return <span className={`${base} bg-neutral-900 text-white`}>Paid · {fmt(paid)}</span>
 }
 
-export function SubscriptionDialog({ open, onClose, subscriptions, loading, onCancel, onPause, onResume, inline = false, payments, onPaymentsChanged }: SubscriptionDialogProps) {
+function sanitizeUaLocal(value: string) {
+  let digits = value.replace(/\D/g, "")
+  if (digits.startsWith("971")) digits = digits.slice(3)
+  else if (digits.startsWith("0971")) digits = digits.slice(4)
+  else if (digits.startsWith("0")) digits = digits.slice(1)
+  return digits.slice(0, 9)
+}
+
+function deliveryLabel(details: Record<string, unknown>): string {
+  if (details.onCall) return "On-call only"
+  const days = (details.days as string[] | undefined) ?? (details.deliveryDays as string[] | undefined) ?? []
+  const slots = (details.slots as string[] | undefined)
+    ?? (details.slot ? [String(details.slot)] : [])
+  const time = typeof details.deliveryTime === "string" ? details.deliveryTime : ""
+  const parts = [days.join(", "), slots.join(", "), time].filter(Boolean)
+  return parts.join(" · ") || "—"
+}
+
+export function SubscriptionDialog({ open, onClose, subscriptions, loading, onCancel, onPause, onResume, inline = false, payments, onPaymentsChanged, onUpdated }: SubscriptionDialogProps) {
   const [search, setSearch] = useState("")
   const [cancelTarget, setCancelTarget] = useState<string | null>(null)
   const [pauseTarget, setPauseTarget] = useState<{ id: string; action: "pause" | "resume" } | null>(null)
@@ -68,7 +87,77 @@ export function SubscriptionDialog({ open, onClose, subscriptions, loading, onCa
   const [payRef, setPayRef] = useState("")
   const [paying, setPaying] = useState(false)
   const [payError, setPayError] = useState("")
+  const [editName, setEditName] = useState("")
+  const [editEmail, setEditEmail] = useState("")
+  const [editMobile, setEditMobile] = useState("")
+  const [editAddress, setEditAddress] = useState("")
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState("")
+  const [saveOk, setSaveOk] = useState(false)
   const detail = detailId ? subscriptions.find((s) => s.id === detailId) ?? null : null
+
+  function openDetails(sub: SubscriptionRow) {
+    const d = sub.details ?? {}
+    setEditName(String(d.name ?? displayName(sub)))
+    setEditEmail(String(d.email ?? sub.customer_email ?? ""))
+    setEditMobile(String(d.mobile_number ?? ""))
+    setEditAddress(String(d.address ?? ""))
+    setSaveError("")
+    setSaveOk(false)
+    setPayError("")
+    setPayAmount("")
+    setPayRef("")
+    setDetailId(sub.id)
+  }
+
+  async function handleSaveDetails() {
+    if (!detail) return
+    const name = editName.trim()
+    const address = editAddress.trim()
+    const email = editEmail.trim()
+    const local = sanitizeUaLocal(editMobile)
+    if (!name || !address) {
+      setSaveError("Name and address are required.")
+      setSaveOk(false)
+      return
+    }
+    if (local.length !== 9) {
+      setSaveError("Enter a UAE WhatsApp number (9 digits after +971).")
+      setSaveOk(false)
+      return
+    }
+    if (email && !email.includes("@")) {
+      setSaveError("Email is invalid.")
+      setSaveOk(false)
+      return
+    }
+    setSaving(true)
+    setSaveError("")
+    setSaveOk(false)
+    try {
+      const res = await fetch(`/api/subscriptions/${detail.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          details: {
+            name,
+            email: email || null,
+            mobile_number: `+971${local}`,
+            address,
+          },
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Failed to save details")
+      setEditMobile(`+971${local}`)
+      setSaveOk(true)
+      onUpdated?.()
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Failed to save details")
+    } finally {
+      setSaving(false)
+    }
+  }
 
   async function handleRecordPayment() {
     if (!detail) return
@@ -183,7 +272,7 @@ export function SubscriptionDialog({ open, onClose, subscriptions, loading, onCa
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, delay: i * 0.04 }}
-          onClick={() => setDetailId(sub.id)}
+          onClick={() => openDetails(sub)}
           className={`cursor-pointer border p-4 transition-all sm:rounded-2xl sm:p-5 ${
             sub.status === "cancelled"
               ? "border-red-100 bg-red-50/50"
@@ -201,7 +290,7 @@ export function SubscriptionDialog({ open, onClose, subscriptions, loading, onCa
                   <span className="rounded-lg bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">Paused</span>
                 )}
                 {sub.remaining_meal_count !== undefined && sub.remaining_meal_count !== null && (
-                  <span className={`rounded-lg px-2 py-0.5 text-[10px] font-semibold ${sub.remaining_meal_count <= 0 ? "bg-neutral-200 text-neutral-500" : "bg-emerald-100 text-emerald-700"}`}>
+                  <span className={`rounded-lg px-2 py-0.5 text-[10px] font-semibold ${sub.remaining_meal_count <= 0 ? "bg-neutral-200 text-neutral-500" : "bg-neutral-100 text-neutral-700"}`}>
                     {sub.remaining_meal_count <= 0 ? "Depleted" : `${sub.remaining_meal_count} meals left`}
                   </span>
                 )}
@@ -242,7 +331,7 @@ export function SubscriptionDialog({ open, onClose, subscriptions, loading, onCa
                     e.stopPropagation()
                     setPauseTarget({ id: sub.id, action: "resume" })
                   }}
-                  className="font-nunito bg-emerald-50 px-3 py-1.5 text-[11px] font-semibold text-emerald-600 transition-all hover:bg-emerald-100 sm:text-xs"
+                  className="font-nunito bg-neutral-900 px-3 py-1.5 text-[11px] font-semibold text-white transition-all hover:bg-neutral-800 sm:text-xs"
                 >
                   Resume
                 </button>
@@ -307,14 +396,49 @@ export function SubscriptionDialog({ open, onClose, subscriptions, loading, onCa
   const detailDialog = (
     <Modal open={!!detail} onClose={() => setDetailId(null)} title={detail ? displayName(detail) : "Subscription"}>
       {detail && (
-        <div className="space-y-3 text-sm">
-          <div className="flex justify-between"><span className="text-neutral-500">Email</span><span className="font-semibold">{displayEmail(detail)}</span></div>
-          <div className="flex justify-between"><span className="text-neutral-500">Status</span><span className="font-semibold capitalize">{detail.status}</span></div>
-          <div className="flex justify-between"><span className="text-neutral-500">Meals per day</span><span className="font-semibold">{(detail.details?.mealsPerDay as number | undefined) ?? 1} / 4 max</span></div>
+        <div className="max-h-[70vh] space-y-3 overflow-y-auto pr-1 text-sm">
+          <div className="flex justify-between">
+            <span className="text-neutral-500">Status</span>
+            <span className={`font-semibold capitalize ${detail.status === "cancelled" ? "text-red-600" : detail.paused_at ? "text-amber-700" : "text-neutral-900"}`}>
+              {detail.status === "cancelled" ? "cancelled" : detail.paused_at ? "paused" : "active"}
+            </span>
+          </div>
+          <div className="grid gap-2 border-t border-neutral-100 pt-3">
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold text-neutral-500">Name</span>
+              <input value={editName} onChange={(e) => { setEditName(e.target.value); setSaveOk(false) }} className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-900" />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold text-neutral-500">Email</span>
+              <input type="email" value={editEmail} onChange={(e) => { setEditEmail(e.target.value); setSaveOk(false) }} className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-900" />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold text-neutral-500">WhatsApp</span>
+              <input value={editMobile} onChange={(e) => { setEditMobile(e.target.value); setSaveOk(false) }} placeholder="+9715XXXXXXXX" className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-900" />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold text-neutral-500">Address</span>
+              <textarea value={editAddress} onChange={(e) => { setEditAddress(e.target.value); setSaveOk(false) }} rows={3} className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-900" />
+            </label>
+            {saveError && <p className="text-xs font-medium text-red-500">{saveError}</p>}
+            {saveOk && <p className="text-xs font-medium text-neutral-600">Details saved.</p>}
+            <button
+              onClick={handleSaveDetails}
+              disabled={saving}
+              className="w-full rounded-xl bg-neutral-900 py-2.5 text-sm font-semibold text-white transition-all hover:bg-neutral-800 disabled:opacity-40"
+            >
+              {saving ? "Saving..." : "Save details"}
+            </button>
+          </div>
+          <div className="flex justify-between border-t border-neutral-100 pt-2">
+            <span className="text-neutral-500">Plan</span>
+            <span className="font-semibold">{String(detail.details?.planName ?? detail.details?.planId ?? "—")}</span>
+          </div>
+          <div className="flex justify-between"><span className="text-neutral-500">Meals per day</span><span className="font-semibold">{(detail.details?.mealsPerDay as number | undefined) ?? 1}</span></div>
           {detail.remaining_meal_count !== undefined && detail.remaining_meal_count !== null && (
             <div className="flex justify-between">
               <span className="text-neutral-500">Meals remaining</span>
-              <span className={`font-semibold ${detail.remaining_meal_count <= 0 ? "text-neutral-400" : ""}`}>
+              <span className={`font-semibold ${detail.remaining_meal_count <= 0 ? "text-neutral-400" : "text-neutral-900"}`}>
                 {detail.remaining_meal_count <= 0 ? "Depleted" : `${detail.remaining_meal_count} left`}
               </span>
             </div>
@@ -397,9 +521,7 @@ export function SubscriptionDialog({ open, onClose, subscriptions, loading, onCa
           ) : null}
           <div className="flex justify-between border-t border-neutral-100 pt-2">
             <span className="text-neutral-500">Delivery</span>
-            <span className="font-semibold">
-              {(detail.details?.deliveryDays as string[] | undefined)?.join(", ") || (detail.details?.deliveryTime as string | undefined) || "—"}
-            </span>
+            <span className="max-w-[60%] text-right font-semibold">{deliveryLabel(detail.details)}</span>
           </div>
           {typeof detail.details?.notes === "string" && detail.details.notes ? (
             <div><p className="text-neutral-500">Notes</p><p className="font-medium">{detail.details.notes as string}</p></div>

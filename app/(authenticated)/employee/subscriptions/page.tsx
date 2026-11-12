@@ -1,11 +1,18 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Button, Modal, Select, SubscriptionDialog } from "@/components/ui"
+import { Button, Modal, Select, SubscriptionDialog, CsvImportDialog } from "@/components/ui"
+import type { CsvImportPreviewRow } from "@/components/ui/CsvImportDialog"
 import { PAYMENT_METHODS, SUBSCRIPTION_PLANS } from "@/constants"
-import { Copy, Link2, Plus, X } from "lucide-react"
+import { ChevronDown, Copy, FileDown, FileSpreadsheet, Link2, Plus, X } from "lucide-react"
 import { SubscriptionForm } from "@/components/subscription/SubscriptionForm"
+import { downloadCsv, parseCsv } from "@/lib/meals/csv"
+import {
+  parseSubscriptionCsvRow,
+  SUBSCRIPTION_CSV_HEADERS,
+  SUBSCRIPTION_CSV_SHORT_LABELS,
+} from "@/lib/subscription/csv"
 
 interface SubscriptionRow {
   id: string
@@ -81,6 +88,14 @@ export default function EmployeeSubscriptionsPage() {
   const [inviteError, setInviteError] = useState("")
   const [inviteLoading, setInviteLoading] = useState(false)
   const [inviteCopied, setInviteCopied] = useState(false)
+  const [csvMenuOpen, setCsvMenuOpen] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [importPreviewOpen, setImportPreviewOpen] = useState(false)
+  const [importFileName, setImportFileName] = useState("")
+  const [importPreview, setImportPreview] = useState<CsvImportPreviewRow[]>([])
+  const [pendingImport, setPendingImport] = useState<{ line: number; values: Record<string, string> }[]>([])
+  const [importResult, setImportResult] = useState<{ created: number; failed: number; errors: string[] } | null>(null)
+  const csvFileRef = useRef<HTMLInputElement>(null)
 
   async function handleGenerateInvite() {
     setInviteLoading(true)
@@ -192,6 +207,110 @@ export default function EmployeeSubscriptionsPage() {
     setPayTotal("")
     setPayAmount("")
     setPayRef("")
+  }
+
+  function recipesByNameMap() {
+    const map = new Map<string, string>()
+    for (const [id, name] of Object.entries(mealNames)) {
+      const key = name.trim().toLowerCase()
+      if (key && !map.has(key)) map.set(key, id)
+    }
+    return map
+  }
+
+  function handleDownloadTemplate() {
+    setCsvMenuOpen(false)
+    downloadCsv("subscriptions-template.csv", [...SUBSCRIPTION_CSV_HEADERS], [])
+  }
+
+  async function handleImportFile(file: File) {
+    setCsvMenuOpen(false)
+    setImportResult(null)
+    try {
+      let recipesByName = recipesByNameMap()
+      if (recipesByName.size === 0) {
+        const recipeRes = await fetch("/api/recipe?sort=name")
+        if (recipeRes.ok) {
+          const { data } = await recipeRes.json()
+          const active = (data as { id: string; name: string; is_active: boolean }[]).filter((r) => r.is_active !== false)
+          setMealNames(Object.fromEntries(active.map((r) => [r.id, r.name])))
+          recipesByName = new Map<string, string>()
+          for (const recipe of active) {
+            const key = recipe.name.trim().toLowerCase()
+            if (key && !recipesByName.has(key)) recipesByName.set(key, recipe.id)
+          }
+        }
+      }
+
+      const text = await file.text()
+      const parsed = parseCsv(text)
+      if (parsed.length < 2) throw new Error("CSV has no data rows")
+      const headers = parsed[0].map((h) => h.trim().toLowerCase())
+      if (!headers.includes("name") || !headers.includes("plan") || !headers.includes("mobile_number") || !headers.includes("address")) {
+        throw new Error('CSV must have "name", "mobile_number", "address", and "plan" columns')
+      }
+      const colIndex: Record<string, number> = {}
+      for (const h of SUBSCRIPTION_CSV_HEADERS) colIndex[h] = headers.indexOf(h)
+      const preview: CsvImportPreviewRow[] = []
+      const pending: { line: number; values: Record<string, string> }[] = []
+      for (let i = 1; i < parsed.length; i++) {
+        const cells = parsed[i]
+        const col: Record<string, string> = {}
+        for (const h of SUBSCRIPTION_CSV_HEADERS) {
+          const idx = colIndex[h]
+          col[h] = idx === -1 ? "" : (cells[idx] ?? "")
+        }
+        const lineNo = i + 1
+        try {
+          parseSubscriptionCsvRow(col, recipesByName.size > 0 ? { recipesByName } : {})
+          pending.push({ line: lineNo, values: col })
+          preview.push({ lineNo, values: col, status: "new" })
+        } catch (e) {
+          preview.push({
+            lineNo,
+            values: col,
+            status: "error",
+            error: e instanceof Error ? e.message : "Invalid row",
+          })
+        }
+      }
+      setImportFileName(file.name)
+      setImportPreview(preview)
+      setPendingImport(pending)
+      setImportPreviewOpen(true)
+    } catch (e) {
+      setImportResult({ created: 0, failed: 1, errors: [e instanceof Error ? e.message : "Import failed"] })
+    }
+  }
+
+  async function handleConfirmImport() {
+    if (pendingImport.length === 0 || importing) return
+    setImporting(true)
+    try {
+      const res = await fetch("/api/subscriptions/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows: pendingImport }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Failed to import subscriptions")
+      const errors = Array.isArray(data.errors)
+        ? (data.errors as { line: number; message: string }[]).map((err) => `line ${err.line}: ${err.message}`)
+        : []
+      setImportResult({
+        created: Number(data.created) || 0,
+        failed: Number(data.failed) || errors.length,
+        errors: errors.slice(0, 8),
+      })
+      setImportPreviewOpen(false)
+      setPendingImport([])
+      await fetchSubscriptions()
+      await refreshPayMap()
+    } catch (e) {
+      setImportResult({ created: 0, failed: pendingImport.length, errors: [e instanceof Error ? e.message : "Import failed"] })
+    } finally {
+      setImporting(false)
+    }
   }
 
   async function handleCancel(id: string) {
@@ -316,7 +435,7 @@ export default function EmployeeSubscriptionsPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="font-nunito text-[11px] font-semibold uppercase tracking-[0.3em] text-neutral-400">
             Employee
@@ -324,7 +443,54 @@ export default function EmployeeSubscriptionsPage() {
           <h1 className="font-playfair mt-2 text-3xl font-medium text-neutral-900 sm:text-4xl">Subscriptions</h1>
           <p className="font-nunito mt-2 text-sm text-neutral-500">Review inquiries or manage existing subscriptions.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="relative">
+            <Button variant="outline" className="gap-1.5" onClick={() => setCsvMenuOpen((open) => !open)} disabled={importing}>
+              <FileSpreadsheet size={16} />
+              <span className="hidden sm:inline">{importing ? "Importing..." : "CSV"}</span>
+              <ChevronDown size={14} />
+            </Button>
+            {csvMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setCsvMenuOpen(false)} />
+                <div className="absolute right-0 z-20 mt-2 w-72 rounded-xl border border-neutral-200 bg-white p-1.5 shadow-xl">
+                  <button
+                    type="button"
+                    onClick={handleDownloadTemplate}
+                    className="flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-neutral-50"
+                  >
+                    <FileDown size={18} className="mt-0.5 shrink-0 text-neutral-500" />
+                    <span>
+                      <span className="block text-sm font-semibold text-neutral-900">Download CSV template</span>
+                      <span className="block text-xs text-neutral-500">Blank file with the subscription columns</span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setCsvMenuOpen(false); csvFileRef.current?.click() }}
+                    className="flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-neutral-50"
+                  >
+                    <FileSpreadsheet size={18} className="mt-0.5 shrink-0 text-neutral-500" />
+                    <span>
+                      <span className="block text-sm font-semibold text-neutral-900">Import CSV</span>
+                      <span className="block text-xs text-neutral-500">Create subscriptions from a spreadsheet</span>
+                    </span>
+                  </button>
+                </div>
+              </>
+            )}
+            <input
+              ref={csvFileRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                e.target.value = ""
+                if (file) void handleImportFile(file)
+              }}
+            />
+          </div>
           <Button variant="outline" onClick={() => { setShowInvite(true); setInviteLink(""); setInvitePrice(""); setInviteMealsPerDay(""); setInviteError(""); setInviteCopied(false) }}>
             <Link2 size={16} />
             Invite link
@@ -335,6 +501,21 @@ export default function EmployeeSubscriptionsPage() {
           </Button>
         </div>
       </div>
+
+      {importResult && !importing && (
+        <div className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${importResult.failed > 0 ? "border-amber-200 bg-amber-50 text-amber-800" : "border-neutral-200 bg-neutral-50 text-neutral-800"}`}>
+          <p className="flex-1">
+            Imported {importResult.created} subscription{importResult.created === 1 ? "" : "s"}
+            {importResult.failed > 0 && `, ${importResult.failed} failed`}
+            {importResult.errors.map((err, i) => (
+              <span key={i} className="mt-1 block text-xs opacity-80">{err}</span>
+            ))}
+          </p>
+          <button onClick={() => setImportResult(null)} className="shrink-0 rounded-lg p-1 transition-colors hover:bg-black/5" title="Dismiss">
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       <div>
         <h2 className="font-playfair mb-3 text-xl font-medium text-neutral-900">Inquiries ({inquiries.length})</h2>
@@ -460,6 +641,18 @@ export default function EmployeeSubscriptionsPage() {
         )}
       </Modal>
 
+      <CsvImportDialog
+        open={importPreviewOpen}
+        fileName={importFileName}
+        rows={importPreview}
+        importing={importing}
+        headers={[...SUBSCRIPTION_CSV_HEADERS]}
+        shortLabels={SUBSCRIPTION_CSV_SHORT_LABELS}
+        tone="neutral"
+        onClose={() => { if (!importing) { setImportPreviewOpen(false); setPendingImport([]) } }}
+        onConfirm={handleConfirmImport}
+      />
+
       <SubscriptionDialog
         inline
         subscriptions={subscriptions}
@@ -469,6 +662,7 @@ export default function EmployeeSubscriptionsPage() {
         onResume={(id) => handlePauseResume(id, "resume")}
         payments={payMap}
         onPaymentsChanged={refreshPayMap}
+        onUpdated={fetchSubscriptions}
       />
 
       <Modal

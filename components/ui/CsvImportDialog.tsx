@@ -19,6 +19,9 @@ interface CsvImportDialogProps {
   importing: boolean
   onClose: () => void
   onConfirm: () => void
+  headers?: string[]
+  shortLabels?: Record<string, string>
+  tone?: "default" | "neutral"
 }
 
 const SHORT_LABELS: Record<string, string> = {
@@ -38,17 +41,28 @@ const SHORT_LABELS: Record<string, string> = {
   image_path: "Image",
 }
 
-function statusBadge(status: CsvImportPreviewRow["status"]) {
-  if (status === "new") return "bg-green-100 text-green-700"
+function statusBadge(status: CsvImportPreviewRow["status"], tone: "default" | "neutral") {
+  if (status === "new") return tone === "neutral" ? "bg-neutral-200 text-neutral-700" : "bg-green-100 text-green-700"
   if (status === "update") return "bg-blue-100 text-blue-700"
   return "bg-red-100 text-red-600"
 }
 
-export function CsvImportDialog({ open, fileName, rows, importing, onClose, onConfirm }: CsvImportDialogProps) {
+export function CsvImportDialog({
+  open,
+  fileName,
+  rows,
+  importing,
+  onClose,
+  onConfirm,
+  headers = CSV_HEADERS,
+  shortLabels = SHORT_LABELS,
+  tone = "default",
+}: CsvImportDialogProps) {
   const newCount = rows.filter((r) => r.status === "new").length
   const updateCount = rows.filter((r) => r.status === "update").length
   const errorCount = rows.filter((r) => r.status === "error").length
   const validCount = newCount + updateCount
+  const labels = { ...SHORT_LABELS, ...shortLabels }
 
   return (
     <AnimatePresence>
@@ -72,7 +86,8 @@ export function CsvImportDialog({ open, fileName, rows, importing, onClose, onCo
               <div className="min-w-0">
                 <h2 className="truncate text-lg font-bold text-neutral-900">Preview Import</h2>
                 <p className="truncate text-xs text-neutral-500">
-                  {fileName} · {newCount} new · {updateCount} update{updateCount === 1 ? "" : "s"}
+                  {fileName} · {newCount} new
+                  {updateCount > 0 ? ` · ${updateCount} update${updateCount === 1 ? "" : "s"}` : ""}
                   {errorCount > 0 && ` · ${errorCount} invalid (skipped)`}
                 </p>
               </div>
@@ -91,23 +106,23 @@ export function CsvImportDialog({ open, fileName, rows, importing, onClose, onCo
                   <thead className="sticky top-0 z-10 bg-neutral-50">
                     <tr>
                       <th className="px-1.5 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Status</th>
-                      {CSV_HEADERS.map((h) => (
+                      {headers.map((h) => (
                         <th key={h} className="min-w-24 px-1.5 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
-                          {SHORT_LABELS[h] ?? h}
+                          {labels[h] ?? h}
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {rows.map((row) => (
-                      <tr key={row.lineNo} className={`border-t border-neutral-100 ${row.status === "error" ? "bg-red-50/60" : row.status === "new" ? "bg-green-50/40" : undefined}`}>
+                      <tr key={row.lineNo} className={`border-t border-neutral-100 ${row.status === "error" ? "bg-red-50/60" : row.status === "new" && tone !== "neutral" ? "bg-green-50/40" : undefined}`}>
                         <td className="px-1.5 py-1.5 align-top">
-                          <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${statusBadge(row.status)}`}>
+                          <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${statusBadge(row.status, tone)}`}>
                             {row.status}
                           </span>
                           {row.error && <span className="mt-1 block max-w-40 text-[11px] leading-snug text-red-600">{row.error}</span>}
                         </td>
-                        {CSV_HEADERS.map((h) => (
+                        {headers.map((h) => (
                           <td key={h} className="max-w-48 truncate px-1.5 py-1.5 align-top text-sm text-neutral-700" title={row.values[h] ?? ""}>
                             {row.values[h] ?? ""}
                           </td>

@@ -2,15 +2,7 @@ import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
 import { createSubscription } from "@/lib/supabase/tables/subscriptions"
 import { recordSubscriptionPayment } from "@/lib/supabase/tables/subscription_payments"
-
-const PLAN_DAYS: Record<string, number> = {
-  "standard-15": 15,
-  "standard-20": 20,
-  "healthy": 30,
-  "standard-26": 26,
-  "standard-30": 30,
-  "standard-45": 45,
-}
+import { listActivePlanRows, PLAN_DAYS, resolveActivePlan } from "@/lib/subscription/plan"
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -70,20 +62,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const planSlug = String(row.plan_id ?? "")
   const validityDays = PLAN_DAYS[planSlug] ?? 30
-  const { data: plans } = await supabase
-    .from("subscription_plans")
-    .select("id, validity_days, details")
-    .eq("is_active", true)
-
-  const planRows = (plans ?? []) as {
-    id: string
-    validity_days: number
-    details: { slug?: string } | null
-  }[]
-  const planRow =
-    planRows.find((candidate) => candidate.details?.slug === planSlug) ??
-    planRows.find((candidate) => candidate.validity_days === validityDays) ??
-    null
+  let planRow
+  try {
+    planRow = resolveActivePlan(await listActivePlanRows(supabase), planSlug)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to load subscription plans"
+    return Response.json({ error: message }, { status: 500 })
+  }
   if (!planRow) {
     return Response.json(
       { error: `No active subscription plan matching "${planSlug}" (${validityDays} days)` },
