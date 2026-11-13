@@ -5,16 +5,15 @@ import dynamic from "next/dynamic"
 import Image from "next/image"
 import useSWRInfinite from "swr/infinite"
 import { motion } from "framer-motion"
-import { Search, X, ArrowUp, ArrowUpDown, Flame, Beef, Wheat, ChevronDown, ShoppingCart, Check } from "lucide-react"
+import { Search, X, ArrowUp, ArrowUpDown } from "lucide-react"
 import { useTranslations, useLocale } from "next-intl"
 import { translateContent } from "@/constants/translations"
 import { Nav } from "@/components/landing/Nav"
 import { Footer } from "@/components/landing/Footer"
 import { MobileAddonSheet, type AddonOption } from "@/components/landing/MobileAddonSheet"
 import { toDialogMeal } from "@/lib/meal-detail"
-import { imageSrcSet, imageVariant } from "@/lib/images"
-import { DirhamSign } from "@/components/ui/DirhamSign"
 import type { MenuItem as DialogMeal } from "@/constants"
+import { MenuCardsSkeleton, MenuMealCard, menuCardGridClass, type AddonTargetState } from "./MenuMealCard"
 import { decodeRecipeIds } from "@/utils/catalogShare"
 import { fetchRecipeList, recipeListUrl, type RecipeListResponse } from "@/hooks/useRecipes"
 import { addCartItem, getCart, setCart } from "@/utils/cart"
@@ -59,14 +58,7 @@ export interface MenuItem {
   servings: MealServingOption[]
 }
 
-/** Meal awaiting a side selection in the mobile addon sheet. */
-interface AddonTargetState {
-  recipeId: string
-  /** Serving-aware cart name, e.g. "Chicken Bowl (Large)". */
-  name: string
-  price: number
-  image: string
-}
+const COMPACT_CATEGORIES = new Set(["rice-sides", "salad", "desserts", "drinks"])
 
 const fallbackImages: Record<string, string> = {
   beef: "/placeholder/empty_plate.svg",
@@ -130,188 +122,6 @@ const sortOptions = [
   { id: "price_desc", labelKey: "sortPriceDesc" },
 ]
 
-function MenuCardsSkeleton() {
-  return (
-    <div className="flex flex-col gap-3" aria-hidden="true">
-      {Array.from({ length: 6 }).map((_, index) => (
-        <div key={index} className="flex overflow-hidden rounded-2xl border border-neutral-100 bg-white">
-          <div className="flex min-w-0 flex-1 flex-col gap-2.5 p-3 sm:p-4">
-            <div className="h-4 w-2/3 animate-pulse rounded bg-neutral-100" />
-            <div className="h-2.5 w-full animate-pulse rounded bg-neutral-100" />
-            <div className="h-2.5 w-4/5 animate-pulse rounded bg-neutral-100" />
-            <div className="flex gap-2 pt-3">
-              <div className="h-3 w-12 animate-pulse rounded bg-neutral-100" />
-              <div className="h-3 w-12 animate-pulse rounded bg-neutral-100" />
-            </div>
-            <div className="mt-auto flex items-center justify-between pt-3">
-              <div className="h-4 w-16 animate-pulse rounded bg-neutral-100" />
-              <div className="h-8 w-24 animate-pulse rounded bg-neutral-100" />
-            </div>
-          </div>
-          <div className="m-3 h-24 w-24 shrink-0 animate-pulse self-center rounded-xl bg-neutral-100 sm:m-4 sm:h-44 sm:w-44 lg:h-52 lg:w-52" />
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function MenuMealCard({
-  item,
-  name,
-  description,
-  hasAddons = false,
-  onAdd,
-  onClick,
-}: {
-  item: MenuItem
-  name: string
-  description: string
-  hasAddons?: boolean
-  /**
-   * Called when "Add" is pressed. Return `true` to signal the parent handled
-   * the add (e.g. it opened the addon sheet); otherwise the card adds directly.
-   */
-  onAdd?: (target: AddonTargetState, hasAddons: boolean) => boolean | void
-  onClick: () => void
-}) {
-  const mt = useTranslations("meals")
-  const [servingIndex, setServingIndex] = useState(0)
-  const [servingOpen, setServingOpen] = useState(false)
-  const [added, setAdded] = useState(false)
-
-  const { servings, category } = item
-  const activeServing = servings.length > 0 ? servings[Math.min(servingIndex, servings.length - 1)] : null
-  const displayPrice = activeServing?.price ?? item.price
-  const displayCalories = activeServing?.calories ?? item.calories
-  const displayProtein = activeServing?.nutrition?.protein_g ?? item.protein
-  const displayCarbs = activeServing?.nutrition?.carbs_g ?? item.carbs
-  const imgSrc = item.image || fallbackImages[category] || "/drink_sample.svg"
-
-  function handleAdd() {
-    const key = activeServing
-      ? `${name} (${activeServing.name ?? mt("servingFallback", { index: servingIndex + 1 })})`
-      : name
-
-    const handled = onAdd?.(
-      { recipeId: item.id, name: key, price: displayPrice, image: imgSrc },
-      hasAddons,
-    )
-    if (handled === true) return
-
-    addCartItem({ name: key, price: displayPrice, image: imgSrc, recipeId: item.id })
-    setAdded(true)
-    setTimeout(() => setAdded(false), 1500)
-  }
-
-  return (
-    <article
-      onClick={onClick}
-      className="group flex cursor-pointer overflow-hidden rounded-2xl border border-neutral-200 bg-white transition-colors hover:border-neutral-300 hover:shadow-sm"
-    >
-      <div className="flex min-w-0 flex-1 flex-col p-3 sm:p-4">
-        <div className="min-w-0">
-          <h3 className="font-nunito truncate text-base font-bold leading-tight text-neutral-900" title={name}>
-            {name}
-          </h3>
-          {description && (
-            <p className="font-nunito mt-1 line-clamp-2 text-xs text-neutral-500">{description}</p>
-          )}
-        </div>
-
-        <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-neutral-500">
-          <span className="flex items-center gap-1 text-sm font-bold text-neutral-900">
-            <Flame size={15} strokeWidth={2.5} className="text-orange-500" />
-            {displayCalories}
-          </span>
-          <span className="flex items-center gap-0.5">
-            <Beef size={11} className="text-macro-protein" />
-            {displayProtein.toFixed(0)}g
-          </span>
-          <span className="flex items-center gap-0.5">
-            <Wheat size={11} className="text-macro-carbs" />
-            {displayCarbs.toFixed(0)}g
-          </span>
-        </div>
-
-        {servings.length > 1 && (
-          <div className="relative mt-2">
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setServingOpen(!servingOpen) }}
-              className="flex w-full items-center justify-between rounded-lg border border-neutral-200 px-2.5 py-1.5 text-xs text-neutral-600 transition-colors hover:border-neutral-300"
-            >
-              <span className="truncate">{activeServing?.name ?? mt("servingFallback", { index: servingIndex + 1 })}</span>
-              <ChevronDown size={12} className={`shrink-0 transition-transform ${servingOpen ? "rotate-180" : ""}`} />
-            </button>
-            {servingOpen && (
-              <div className="absolute inset-x-0 top-full z-20 mt-1 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-md">
-                {servings.map((serving, index) => (
-                  <button
-                    key={serving.id ?? index}
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setServingIndex(index); setServingOpen(false) }}
-                    className={`flex w-full items-center justify-between px-2.5 py-2 text-xs transition-colors hover:bg-neutral-50 ${
-                      index === servingIndex ? "bg-neutral-50 font-semibold text-brand-900" : "text-neutral-600"
-                    }`}
-                  >
-                    <span className="truncate">{serving.name ?? mt("servingFallback", { index: index + 1 })}</span>
-                    {serving.price != null && (
-                      <span className="ml-2 flex shrink-0 items-center gap-1">
-                        <DirhamSign className="size-3" />
-                        {serving.price}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="mt-auto flex items-center justify-between gap-3 pt-3">
-          <span className="flex shrink-0 items-center gap-1 text-sm font-bold text-brand-900">
-            <DirhamSign className="size-3.5" />
-            {displayPrice}
-          </span>
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); handleAdd() }}
-            className={`flex shrink-0 items-center justify-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-all ${
-              added
-                ? "bg-emerald-50 text-emerald-600"
-                : "border border-neutral-900/15 text-neutral-800 hover:bg-neutral-900 hover:text-white"
-            }`}
-          >
-            {added ? (
-              <>
-                <Check size={13} />
-                {mt("added")}
-              </>
-            ) : (
-              <>
-                <ShoppingCart size={13} />
-                {mt("add")}
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-
-      <div className="relative m-3 h-24 w-24 shrink-0 self-center overflow-hidden rounded-xl bg-neutral-100 sm:m-4 sm:h-44 sm:w-44 lg:h-52 lg:w-52">
-        <img
-          src={imageVariant(imgSrc, 600)}
-          srcSet={imageSrcSet(imgSrc, [96, 600])}
-          sizes="(max-width: 640px) 96px, (max-width: 1024px) 176px, 208px"
-          alt={name}
-          loading="lazy"
-          decoding="async"
-          className="absolute inset-0 h-full w-full object-contain object-center transition-transform duration-300 group-hover:scale-105"
-        />
-      </div>
-    </article>
-  )
-}
-
 export default function MenuClient({
   initialData,
   idsParam = null,
@@ -362,6 +172,7 @@ function CatalogContent({
   const checkoutHandledRef = useRef<string | null>(null)
 
   const activeCat = categories.find((c) => c.id === activeCategory)
+  const cardVariant = sharedIds.length === 0 && COMPACT_CATEGORIES.has(activeCategory) ? "compact" : "list"
 
   const buildUrl = useCallback((offset: number) => {
     const targetValue = sharedIds.length > 0
@@ -536,7 +347,7 @@ function CatalogContent({
       <Nav />
 
       <section id="catalog" className="min-h-screen bg-white pt-20 pb-16">
-        <div className="px-4 sm:px-6">
+        <div className="px-4 sm:px-6 lg:px-8">
           <motion.div
             initial="hidden"
             animate="visible"
@@ -651,9 +462,9 @@ function CatalogContent({
           {activeCat?.subs && activeCat.subs.length > 0 && (
             <div
               ref={subCategoryRef}
-              className="no-scrollbar relative mb-2 -mx-4 min-w-0 snap-x snap-mandatory overflow-x-auto sm:-mx-6"
+              className="no-scrollbar relative mb-2 -mx-4 min-w-0 snap-x snap-mandatory overflow-x-auto sm:-mx-6 lg:-mx-8"
             >
-              <div className="flex min-w-fit gap-4 px-4 sm:px-6">
+              <div className="flex min-w-fit gap-4 px-4 sm:px-6 lg:px-8">
                 {activeCat.subs.map((sub) => (
                   <button
                     key={sub}
@@ -695,15 +506,16 @@ function CatalogContent({
           >
             {loading || isSwitching ? (
               <div aria-busy="true">
-                <MenuCardsSkeleton />
+                <MenuCardsSkeleton variant={cardVariant} />
               </div>
             ) : menuItems.length > 0 ? (
               <>
-                <div className="flex flex-col gap-3">
+                <div className={menuCardGridClass(cardVariant)}>
                   {menuItems.map((item) => (
                     <MenuMealCard
                       key={item.id}
                       item={item}
+                      variant={cardVariant}
                       name={translateContent(item.name, locale)}
                       description={translateContent(item.description, locale)}
                       hasAddons={item.has_addons}
