@@ -1,3 +1,4 @@
+import { categoryPriority, isOccasionalCategory, packScore } from "./categories"
 import type { ProteinAllowance } from "./credits"
 import { BREAKFAST_CATEGORY, LOOKBACK_DAYS, addCalendarDays } from "./day"
 
@@ -214,14 +215,20 @@ export function autoFillDay(args: {
       const proteins = new Set(
         chosen.map((r) => r.primary_protein_ingredient_id).filter((id): id is string => !!id),
       )
-      const candidates = args.recipes.filter((r) => {
+      const occasionalUsed = chosen.filter((r) => isOccasionalCategory(r.category)).length
+      const open = args.recipes.filter((r) => {
         if (taken.has(r.id)) return false
         return breakfast ? isBreakfastRecipe(r) : !isBreakfastRecipe(r)
       })
-      if (candidates.length === 0) break
+      if (open.length === 0) break
+      const withoutOccasional =
+        !breakfast && occasionalUsed >= 1
+          ? open.filter((r) => !isOccasionalCategory(r.category))
+          : open
+      const candidates = withoutOccasional.length > 0 ? withoutOccasional : open
       candidates.sort((a, b) => {
-        const cov = coverage(b, breakfast) - coverage(a, breakfast)
-        if (cov !== 0) return cov
+        const score = packScore(coverage(b, breakfast), b.category) - packScore(coverage(a, breakfast), a.category)
+        if (score !== 0) return score
         const pref = preferenceHits(b, breakfast) - preferenceHits(a, breakfast)
         if (pref !== 0) return pref
         const da = globalLastServed(a.id)
@@ -392,6 +399,10 @@ export function autoFillDay(args: {
       const onList = candidates.filter((r) => cookList.has(r.id))
       const pool = onList.length > 0 ? onList : candidates
       pool.sort((a, b) => {
+        if (!opts.cookListOnly && !opts.mustBePreferred) {
+          const cat = categoryPriority(b.category) - categoryPriority(a.category)
+          if (cat !== 0) return cat
+        }
         if (!opts.cookListOnly) {
           const da = globalLastServed(a.id)
           const db = globalLastServed(b.id)
