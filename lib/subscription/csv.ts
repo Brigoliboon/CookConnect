@@ -21,6 +21,12 @@ export const SUBSCRIPTION_CSV_HEADERS = [
   "paid_aed",
   "payment_method",
   "payment_reference",
+  "notes",
+  "paused",
+  "remaining_meals",
+  "delivery_time",
+  "latitude",
+  "longitude",
 ] as const
 
 export const SUBSCRIPTION_CSV_SHORT_LABELS: Record<string, string> = {
@@ -43,6 +49,12 @@ export const SUBSCRIPTION_CSV_SHORT_LABELS: Record<string, string> = {
   paid_aed: "Paid",
   payment_method: "Method",
   payment_reference: "Ref",
+  notes: "Notes",
+  paused: "Paused",
+  remaining_meals: "Left",
+  delivery_time: "Time",
+  latitude: "Lat",
+  longitude: "Lng",
 }
 
 const DAY_ALIASES: Record<string, string> = Object.fromEntries(
@@ -64,16 +76,22 @@ const SLOT_ALIASES: Record<string, "morning" | "noon" | "evening"> = {
   dinner: "evening",
 }
 
-const METHOD_ALIASES: Record<string, string> = Object.fromEntries(
-  PAYMENT_METHODS.flatMap((method) => [
-    [method.value, method.value],
-    [method.label.toLowerCase(), method.value],
-  ]),
-)
+const METHOD_ALIASES: Record<string, string> = {
+  cash: "cod",
+  ...Object.fromEntries(
+    PAYMENT_METHODS.flatMap((method) => [
+      [method.value, method.value],
+      [method.label.toLowerCase(), method.value],
+    ]),
+  ),
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export type SubscriptionCsvLookups = {
   recipesByName?: Map<string, string>
   ingredientsByName?: Map<string, { id: string; name: string }>
+  subscriptionRecipeIds?: string[]
 }
 
 export type ParsedSubscriptionCsvRow = {
@@ -101,6 +119,11 @@ export type ParsedSubscriptionCsvRow = {
   payment_method: string | null
   payment_reference: string | null
   paymentStatus: "pending" | "partial" | "paid"
+  notes: string | null
+  paused: boolean
+  remaining_meals?: number
+  deliveryTime: string | null
+  location: { lat: number; lng: number } | null
 }
 
 function cell(col: Record<string, string>, key: string): string {
@@ -198,12 +221,17 @@ function resolveRestrictions(
 function resolveIncludedMeals(
   names: string[],
   recipesByName?: Map<string, string>,
+  fallbackIds?: string[],
 ): string[] {
-  if (!recipesByName) return []
+  if (names.length === 0) return fallbackIds ?? []
   const ids: string[] = []
   const missing: string[] = []
   for (const name of names) {
-    const id = recipesByName.get(name.toLowerCase())
+    if (UUID_RE.test(name)) {
+      ids.push(name)
+      continue
+    }
+    const id = recipesByName?.get(name.toLowerCase())
     if (!id) missing.push(name)
     else ids.push(id)
   }
@@ -211,6 +239,22 @@ function resolveIncludedMeals(
     throw new Error(`Unknown included meal${missing.length === 1 ? "" : "s"}: ${missing.join(", ")}`)
   }
   return ids
+}
+
+function parseOptionalInt(value: string, field: string): number | undefined {
+  const raw = value.trim()
+  if (!raw) return undefined
+  const n = Number(raw)
+  if (!Number.isInteger(n) || n < 0) throw new Error(`${field} must be a whole number 0 or greater`)
+  return n
+}
+
+function parseOptionalCoord(value: string, field: string): number | undefined {
+  const raw = value.trim()
+  if (!raw) return undefined
+  const n = Number(raw)
+  if (!Number.isFinite(n)) throw new Error(`${field} must be a number`)
+  return n
 }
 
 export function parseSubscriptionCsvRow(
@@ -253,13 +297,10 @@ export function parseSubscriptionCsvRow(
   const breakfast = parseBool(cell(col, "breakfast"), "breakfast") ?? false
   const restrictionLabels = splitList(cell(col, "restrictions"))
   const includedMealNames = splitList(cell(col, "included_meals"))
-  if (mode === "flexible" && includedMealNames.length === 0) {
-    throw new Error("included_meals is required when mode is flexible")
-  }
 
   const restrictions = resolveRestrictions(restrictionLabels, lookups.ingredientsByName)
   const includedMeals = mode === "flexible"
-    ? resolveIncludedMeals(includedMealNames, lookups.recipesByName)
+    ? resolveIncludedMeals(includedMealNames, lookups.recipesByName, lookups.subscriptionRecipeIds)
     : []
 
   const days: string[] = []
@@ -305,6 +346,18 @@ export function parseSubscriptionCsvRow(
     else paymentStatus = "paid"
   }
 
+  const paused = parseBool(cell(col, "paused"), "paused") ?? false
+  const remaining_meals = parseOptionalInt(cell(col, "remaining_meals"), "remaining_meals")
+  const notes = cell(col, "notes") || null
+  const deliveryTime = cell(col, "delivery_time") || null
+
+  const lat = parseOptionalCoord(cell(col, "latitude"), "latitude")
+  const lng = parseOptionalCoord(cell(col, "longitude"), "longitude")
+  if ((lat === undefined) !== (lng === undefined)) {
+    throw new Error("latitude and longitude must be provided together")
+  }
+  const location = lat !== undefined && lng !== undefined ? { lat, lng } : null
+
   return {
     planId: catalog.id,
     planName: catalog.name,
@@ -330,6 +383,11 @@ export function parseSubscriptionCsvRow(
     payment_method,
     payment_reference: cell(col, "payment_reference") || null,
     paymentStatus,
+    notes,
+    paused,
+    remaining_meals,
+    deliveryTime,
+    location,
   }
 }
 
@@ -344,7 +402,7 @@ export function subscriptionDetailsFromCsvRow(row: ParsedSubscriptionCsvRow): Re
     email: row.email,
     mobile_number: row.mobile_number,
     address: row.address,
-    location: null,
+    location: row.location,
     mode: row.mode,
     restrictions: row.restrictionIds,
     restrictionNames: row.restrictionNames,
@@ -357,5 +415,7 @@ export function subscriptionDetailsFromCsvRow(row: ParsedSubscriptionCsvRow): Re
     paymentStatus: row.paymentStatus,
   }
   if (row.total_cents !== undefined) details.total_cents = row.total_cents
+  if (row.notes) details.notes = row.notes
+  if (row.deliveryTime) details.deliveryTime = row.deliveryTime
   return details
 }

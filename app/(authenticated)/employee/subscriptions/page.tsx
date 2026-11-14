@@ -228,18 +228,24 @@ export default function EmployeeSubscriptionsPage() {
     setImportResult(null)
     try {
       let recipesByName = recipesByNameMap()
-      if (recipesByName.size === 0) {
-        const recipeRes = await fetch("/api/recipe?sort=name")
-        if (recipeRes.ok) {
-          const { data } = await recipeRes.json()
-          const active = (data as { id: string; name: string; is_active: boolean }[]).filter((r) => r.is_active !== false)
-          setMealNames(Object.fromEntries(active.map((r) => [r.id, r.name])))
-          recipesByName = new Map<string, string>()
-          for (const recipe of active) {
-            const key = recipe.name.trim().toLowerCase()
-            if (key && !recipesByName.has(key)) recipesByName.set(key, recipe.id)
-          }
+      let subscriptionRecipeIds: string[] = []
+      const [allRes, subRes] = await Promise.all([
+        recipesByName.size === 0 ? fetch("/api/recipe?sort=name") : Promise.resolve(null),
+        fetch("/api/recipe?is_subscription_included=true&is_active=true&sort=name"),
+      ])
+      if (allRes?.ok) {
+        const { data } = await allRes.json()
+        const active = (data as { id: string; name: string; is_active: boolean }[]).filter((r) => r.is_active !== false)
+        setMealNames(Object.fromEntries(active.map((r) => [r.id, r.name])))
+        recipesByName = new Map<string, string>()
+        for (const recipe of active) {
+          const key = recipe.name.trim().toLowerCase()
+          if (key && !recipesByName.has(key)) recipesByName.set(key, recipe.id)
         }
+      }
+      if (subRes.ok) {
+        const { data } = await subRes.json()
+        subscriptionRecipeIds = (data as { id: string }[]).map((recipe) => recipe.id)
       }
 
       const text = await file.text()
@@ -262,7 +268,10 @@ export default function EmployeeSubscriptionsPage() {
         }
         const lineNo = i + 1
         try {
-          parseSubscriptionCsvRow(col, recipesByName.size > 0 ? { recipesByName } : {})
+          parseSubscriptionCsvRow(col, {
+            ...(recipesByName.size > 0 ? { recipesByName } : {}),
+            subscriptionRecipeIds,
+          })
           pending.push({ line: lineNo, values: col })
           preview.push({ lineNo, values: col, status: "new" })
         } catch (e) {

@@ -27,6 +27,7 @@ export type CreateSubscriptionInput = {
   status?: Subscription["status"]
   started_at?: string
   expires_at?: string
+  paused_at?: string | null
   details?: Record<string, unknown>
 }
 
@@ -101,8 +102,25 @@ export async function createSubscription(
       status: input.status ?? "active",
       started_at: startedAt,
       expires_at: expiresAt,
+      paused_at: input.paused_at ?? null,
       details: input.details ?? {},
     })
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as Subscription
+}
+
+export async function setSubscriptionRemainingMealCount(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  id: string,
+  remaining: number,
+): Promise<Subscription> {
+  const { data, error } = await supabase
+    .from("subscriptions")
+    .update({ remaining_meal_count: remaining })
+    .eq("id", id)
     .select()
     .single()
 

@@ -5,7 +5,7 @@ import {
   subscriptionDetailsFromCsvRow,
 } from "@/lib/subscription/csv"
 import { listActivePlanRows, PLAN_DAYS, resolveActivePlan } from "@/lib/subscription/plan"
-import { createSubscription } from "@/lib/supabase/tables/subscriptions"
+import { createSubscription, setSubscriptionRemainingMealCount } from "@/lib/supabase/tables/subscriptions"
 import { recordSubscriptionPayment } from "@/lib/supabase/tables/subscription_payments"
 import { createClient } from "@/utils/supabase/server"
 
@@ -58,13 +58,19 @@ export async function POST(request: Request) {
   const supabase = createClient(cookieStore)
 
   try {
-    const [plans, recipesRes, ingredientsRes] = await Promise.all([
+    const [plans, recipesRes, ingredientsRes, subRecipesRes] = await Promise.all([
       listActivePlanRows(supabase),
       supabase.from("recipes").select("id, name").eq("is_active", true),
       supabase.from("ingredients").select("id, name"),
+      supabase
+        .from("recipes")
+        .select("id")
+        .eq("is_active", true)
+        .eq("is_subscription_included", true),
     ])
     if (recipesRes.error) throw recipesRes.error
     if (ingredientsRes.error) throw ingredientsRes.error
+    if (subRecipesRes.error) throw subRecipesRes.error
 
     const recipesByName = new Map<string, string>()
     for (const recipe of recipesRes.data ?? []) {
@@ -78,6 +84,7 @@ export async function POST(request: Request) {
         ingredientsByName.set(key, { id: ingredient.id, name: ingredient.name })
       }
     }
+    const subscriptionRecipeIds = (subRecipesRes.data ?? []).map((recipe) => recipe.id)
 
     let created = 0
     let failed = 0
@@ -87,7 +94,11 @@ export async function POST(request: Request) {
       const { line, values } = normalizeImportRow(rawRows[i], i)
 
       try {
-        const parsed = parseSubscriptionCsvRow(values, { recipesByName, ingredientsByName })
+        const parsed = parseSubscriptionCsvRow(values, {
+          recipesByName,
+          ingredientsByName,
+          subscriptionRecipeIds,
+        })
         const planRow = resolveActivePlan(plans, parsed.planId)
         if (!planRow) {
           const validityDays = PLAN_DAYS[parsed.planId] ?? parsed.durationDays
@@ -99,8 +110,13 @@ export async function POST(request: Request) {
           subscription_plan_id: planRow.id,
           started_at: parsed.started_at,
           expires_at: parsed.expires_at,
+          paused_at: parsed.paused ? new Date().toISOString() : null,
           details: subscriptionDetailsFromCsvRow(parsed),
         })
+
+        if (parsed.remaining_meals !== undefined) {
+          await setSubscriptionRemainingMealCount(supabase, subscription.id, parsed.remaining_meals)
+        }
 
         if (parsed.paid_cents > 0) {
           await recordSubscriptionPayment(supabase, {
