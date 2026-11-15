@@ -6,6 +6,7 @@ export interface SubscriptionInvitePreferences {
   mode?: "normal" | "flexible"
   restrictions?: string[]
   restrictionNames?: Record<string, string>
+  restrictedCategories?: string[]
   breakfast?: boolean
   includedMeals?: string[]
   days?: string[]
@@ -132,6 +133,7 @@ function optionalPreferences(value: unknown): SubscriptionInvitePreferences | un
   const mode = optionalMode(input.mode)
   const restrictions = optionalStringArray(input.restrictions, "preferences.restrictions")
   const restrictionNames = optionalStringMap(input.restrictionNames, "preferences.restrictionNames")
+  const restrictedCategories = optionalStringArray(input.restrictedCategories, "preferences.restrictedCategories")
   const breakfast = optionalBoolean(input.breakfast, "preferences.breakfast")
   const includedMeals = optionalStringArray(input.includedMeals, "preferences.includedMeals")
   const days = optionalStringArray(input.days, "preferences.days")
@@ -145,6 +147,7 @@ function optionalPreferences(value: unknown): SubscriptionInvitePreferences | un
     ...(mode ? { mode } : {}),
     ...(restrictions ? { restrictions } : {}),
     ...(restrictionNames ? { restrictionNames } : {}),
+    ...(restrictedCategories ? { restrictedCategories } : {}),
     ...(breakfast !== undefined ? { breakfast } : {}),
     ...(includedMeals ? { includedMeals } : {}),
     ...(days ? { days } : {}),

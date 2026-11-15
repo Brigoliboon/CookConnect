@@ -3,6 +3,7 @@ import type { Recipe } from "../models"
 export type CreateRecipeInput = Pick<Recipe, "name"> & Partial<Omit<Recipe, "id" | "name">>
 
 export interface RecipeIngredientField {
+  id: string | null
   name: string
   quantity_g: number
   unit: string | null
@@ -113,7 +114,7 @@ export async function deleteRecipe(
 const RECIPE_COLUMNS = "id, name, category, description, is_active, is_subscription_included, image_path, primary_protein_ingredient_id"
 const RECIPE_ADDON_COLUMNS = "recipe_addons!meal_recipe_id(id, is_active)"
 const SERVING_COLUMNS = "name, price, calories, nutrition, is_active"
-const SERVING_INGREDIENT_COLUMNS = "serving_ingredients(quantity_g, unit, ingredient:ingredients(name, nutrition, fatsecret_id))"
+const SERVING_INGREDIENT_COLUMNS = "serving_ingredients(quantity_g, unit, ingredient:ingredients(id, name, nutrition, fatsecret_id))"
 
 function isMissingRecipeAddonsRelation(error: unknown): boolean {
   if (!error || typeof error !== "object") return false
@@ -353,9 +354,9 @@ export async function getRecipe(
   id: string,
 ): Promise<RecipeWithServings | null> {
   const fullSelect =
-    "*, recipe_addons!meal_recipe_id(id, is_active), servings(name, price, calories, nutrition, is_active, serving_ingredients(quantity_g, unit, ingredient:ingredients(name, nutrition, fatsecret_id)))"
+    `*, recipe_addons!meal_recipe_id(id, is_active), servings(name, price, calories, nutrition, is_active, ${SERVING_INGREDIENT_COLUMNS})`
   const baseSelect =
-    "*, servings(name, price, calories, nutrition, is_active, serving_ingredients(quantity_g, unit, ingredient:ingredients(name, nutrition, fatsecret_id)))"
+    `*, servings(name, price, calories, nutrition, is_active, ${SERVING_INGREDIENT_COLUMNS})`
 
   let result = (await supabase.from("recipes").select(fullSelect).eq("id", id).single()) as {
     data: unknown | null
@@ -402,11 +403,15 @@ export async function getRecipe(
 }
 
 function mapServingIngredients(rows: unknown): RecipeIngredientField[] {
-  return ((rows as Record<string, unknown>[]) ?? []).map((si: Record<string, unknown>) => ({
-    name: (si.ingredient as Record<string, unknown>)?.name as string,
-    quantity_g: si.quantity_g as number,
-    unit: si.unit as string | null,
-    nutrition: (si.ingredient as Record<string, unknown>)?.nutrition as Record<string, unknown> | null,
-    fatsecret_id: (si.ingredient as Record<string, unknown>)?.fatsecret_id as string | null,
-  }))
+  return ((rows as Record<string, unknown>[]) ?? []).map((si: Record<string, unknown>) => {
+    const ingredient = si.ingredient as Record<string, unknown> | null | undefined
+    return {
+      id: (ingredient?.id as string | null | undefined) ?? null,
+      name: ingredient?.name as string,
+      quantity_g: si.quantity_g as number,
+      unit: si.unit as string | null,
+      nutrition: (ingredient?.nutrition as Record<string, unknown> | null) ?? null,
+      fatsecret_id: (ingredient?.fatsecret_id as string | null) ?? null,
+    }
+  })
 }

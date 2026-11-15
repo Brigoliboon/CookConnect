@@ -10,7 +10,6 @@ import {
   ArrowRight,
   Check,
   ChefHat,
-  ChevronDown,
   Croissant,
   Mail,
   Phone,
@@ -29,8 +28,15 @@ import {
   SUBSCRIPTION_DELIVERY_FEES,
   type DeliveryArea,
 } from "@/utils/mapbox"
+import { RestrictionFields } from "@/components/subscription/RestrictionFields"
+import {
+  categoryRestrictionLabel,
+  isIngredientUuid,
+  recipePassesRestrictions,
+  restrictionDetailsPayload,
+  type IngredientRef,
+} from "@/lib/subscription/restrictions"
 
-interface Ingredient { id: string; name: string }
 interface GalleryServing {
   calories: number | null
   nutrition: {
@@ -38,7 +44,7 @@ interface GalleryServing {
     carbs_g?: number
     fats_g?: number
   } | null
-  ingredients: { name: string }[]
+  ingredients: { id?: string | null; name: string }[]
 }
 interface GalleryRecipe {
   id: string
@@ -54,6 +60,7 @@ type InvitePreferences = {
   mode?: "normal" | "flexible"
   restrictions?: string[]
   restrictionNames?: Record<string, string>
+  restrictedCategories?: string[]
   breakfast?: boolean
   includedMeals?: string[]
   days?: string[]
@@ -142,9 +149,8 @@ export function SubscriptionForm() {
   const resolveSeq = useRef(0)
   const [mode, setMode] = useState<"normal" | "flexible">("normal")
 
-  const [ingSearch, setIngSearch] = useState("")
-  const [ingredients, setIngredients] = useState<Ingredient[]>([])
-  const [restricted, setRestricted] = useState<{ id: string; name: string }[]>([])
+  const [restricted, setRestricted] = useState<IngredientRef[]>([])
+  const [restrictedCategories, setRestrictedCategories] = useState<string[]>([])
 
   const [mealSearch, setMealSearch] = useState("")
   const [category, setCategory] = useState("")
@@ -155,7 +161,6 @@ export function SubscriptionForm() {
   const [days, setDays] = useState<string[]>([])
   const [mealsPerDay, setMealsPerDay] = useState(1)
   const [breakfast, setBreakfast] = useState(false)
-  const [ingsExpanded, setIngsExpanded] = useState(false)
   const [slots, setSlots] = useState<("morning" | "noon" | "evening")[]>(["morning"])
   const [onCall, setOnCall] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -236,11 +241,14 @@ export function SubscriptionForm() {
           if (Array.isArray(preferences.restrictions)) {
             const names = preferences.restrictionNames ?? {}
             setRestricted(
-              preferences.restrictions.map((id) => ({
+              preferences.restrictions.filter(isIngredientUuid).map((id) => ({
                 id,
                 name: names[id] || id,
               })),
             )
+          }
+          if (Array.isArray(preferences.restrictedCategories)) {
+            setRestrictedCategories(preferences.restrictedCategories.map((c) => c.trim().toLowerCase()).filter(Boolean))
           }
           if (typeof preferences.breakfast === "boolean") setBreakfast(preferences.breakfast)
           if (Array.isArray(preferences.includedMeals)) setSelectedMeals(preferences.includedMeals)
@@ -268,19 +276,6 @@ export function SubscriptionForm() {
   }, [currentIndex, mode])
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      fetch(`/api/ingredients?search=${encodeURIComponent(ingSearch)}&limit=30`)
-        .then((r) => r.json())
-        .then((d) => {
-          const list = (d.data ?? []) as Ingredient[]
-          setIngredients(list)
-        })
-        .catch(() => {})
-    }, 300)
-    return () => clearTimeout(t)
-  }, [ingSearch])
-
-  useEffect(() => {
     if (mode !== "flexible") return
     const t = setTimeout(() => {
       const q = new URLSearchParams({ limit: "24", is_subscription_included: "true", is_active: "true" })
@@ -303,22 +298,27 @@ export function SubscriptionForm() {
     return () => clearTimeout(t)
   }, [mode, mealSearch, category])
 
-  const restrictedNames = useMemo(() => {
-    return new Set(restricted.map((r) => r.name.toLowerCase()).filter(Boolean))
-  }, [restricted])
-
-  function toggleRestriction(id: string, name: string) {
-    setRestricted((p) => (p.some((r) => r.id === id) ? p.filter((r) => r.id !== id) : [...p, { id, name }]))
-  }
+  const restrictionMatch = useMemo(
+    () => ({
+      restrictedIngredientIds: restricted.map((item) => item.id),
+      restrictedCategories,
+    }),
+    [restricted, restrictedCategories],
+  )
 
   const visibleMeals = useMemo(() => {
-    if (restrictedNames.size === 0) return meals
-    return meals.filter((m) =>
-      !(m.servings ?? []).some((s) =>
-        (s.ingredients ?? []).some((ing) => restrictedNames.has(ing.name.toLowerCase())),
-      ),
-    )
-  }, [meals, restrictedNames])
+    if (restrictionMatch.restrictedIngredientIds.length === 0 && restrictionMatch.restrictedCategories.length === 0) {
+      return meals
+    }
+    return meals.filter((m) => recipePassesRestrictions(m, restrictionMatch))
+  }, [meals, restrictionMatch])
+
+  useEffect(() => {
+    if (selectedMeals.length === 0) return
+    const blocked = new Set(meals.filter((m) => !recipePassesRestrictions(m, restrictionMatch)).map((m) => m.id))
+    if (blocked.size === 0) return
+    setSelectedMeals((prev) => prev.filter((id) => !blocked.has(id)))
+  }, [meals, restrictionMatch, selectedMeals.length])
 
   function toggleDay(v: string) {
     setDays((p) => (p.includes(v) ? p.filter((d) => d !== v) : [...p, v]))
@@ -419,8 +419,7 @@ export function SubscriptionForm() {
           address,
           location,
           mode,
-          restrictions: restricted.map((r) => r.id),
-          restrictionNames: Object.fromEntries(restricted.map((r) => [r.id, r.name])),
+          ...restrictionDetailsPayload(restricted, restrictedCategories),
           mealsPerDay,
           breakfast,
           includedMeals: mode === "flexible" ? selectedMeals : [],
@@ -487,7 +486,10 @@ export function SubscriptionForm() {
   }
 
   const selectedMealNames = selectedMeals.map((id) => mealLookup[id] ?? id)
-  const restrictionNamesList = restricted.map((r) => r.name)
+  const restrictionNamesList = [
+    ...restrictedCategories.map(categoryRestrictionLabel),
+    ...restricted.map((r) => r.name),
+  ]
   const deliveryLabel = onCall
     ? "On-call only"
     : `${days.length > 0 ? days.join(", ") : "No days selected"} · ${slots.length > 0 ? slots.join(", ") : "No slots selected"}`
@@ -710,64 +712,12 @@ export function SubscriptionForm() {
                   </span>
                 </button>
 
-                <div>
-                  <h3 className="text-sm font-bold text-neutral-900">Ingredient restrictions</h3>
-                  <p className="mt-0.5 text-xs text-neutral-400">Optional — choose anything you cannot eat.</p>
-                  <div className="relative mt-3">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-900" />
-                    <input value={ingSearch} onChange={(e) => setIngSearch(e.target.value)} placeholder="Search ingredients..." className="w-full rounded-xl border border-brand-700/40 bg-brand-700/20 py-2.5 pl-9 pr-3 text-sm outline-none transition-colors focus:border-brand-900 focus:bg-white" />
-                  </div>
-                  {restricted.length > 0 && (
-                    <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-                      {restricted.map((r) => (
-                        <span key={r.id} className="flex shrink-0 items-center gap-1.5 rounded-full border border-red-400 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600">
-                          {r.name}
-                          <button type="button" onClick={() => setRestricted((p) => p.filter((x) => x.id !== r.id))} aria-label="Remove restriction">
-                            <X size={12} />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {ingredients.slice(0, 8).map((ing) => (
-                      <button
-                        type="button"
-                        key={ing.id}
-                        onClick={() => toggleRestriction(ing.id, ing.name)}
-                        className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all active:scale-95 ${restricted.some((r) => r.id === ing.id) ? "border-red-400 bg-red-50 text-red-600" : "border-brand-700/40 text-neutral-600 hover:border-brand-400 hover:bg-brand-700/20"}`}
-                      >
-                        {ing.name}
-                      </button>
-                    ))}
-                    {ingredients.length > 8 && (
-                      <button
-                        type="button"
-                        onClick={() => setIngsExpanded((v) => !v)}
-                        aria-label={ingsExpanded ? "Collapse ingredients" : "Expand ingredients"}
-                        className="flex items-center justify-center rounded-full border border-brand-700/40 px-2.5 py-1.5 text-brand-900 transition-all hover:border-brand-400 hover:bg-brand-700/20"
-                      >
-                        <ChevronDown size={14} className={`transition-transform duration-300 ${ingsExpanded ? "rotate-180" : ""}`} />
-                      </button>
-                    )}
-                  </div>
-                  <div className={`grid transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${ingsExpanded ? "mt-2 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
-                    <div className="overflow-hidden">
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {ingredients.slice(8).map((ing) => (
-                          <button
-                            type="button"
-                            key={ing.id}
-                            onClick={() => toggleRestriction(ing.id, ing.name)}
-                            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${restricted.some((r) => r.id === ing.id) ? "border-red-400 bg-red-50 text-red-600" : "border-brand-700/40 text-neutral-600 hover:border-brand-400 hover:bg-brand-700/20"}`}
-                          >
-                            {ing.name}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <RestrictionFields
+                  restricted={restricted}
+                  onRestrictedChange={setRestricted}
+                  restrictedCategories={restrictedCategories}
+                  onCategoriesChange={setRestrictedCategories}
+                />
               </div>
               </StepCard>
             )}

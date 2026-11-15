@@ -1,5 +1,9 @@
 import { DELIVERY_DAYS, PAYMENT_METHODS } from "@/constants/subscriptions"
 import { catalogPlanFromInput } from "@/lib/subscription/plan"
+import {
+  appendRestrictionLeftoversToNotes,
+  resolveRestrictionLabels,
+} from "@/lib/subscription/restrictions"
 
 export const SUBSCRIPTION_CSV_HEADERS = [
   "name",
@@ -106,6 +110,7 @@ export type ParsedSubscriptionCsvRow = {
   mode: "normal" | "flexible"
   restrictionIds: string[]
   restrictionNames: Record<string, string>
+  restrictedCategories: string[]
   mealsPerDay: number
   breakfast: boolean
   includedMeals: string[]
@@ -181,41 +186,11 @@ function parseAedToCents(value: string, field: string): number | undefined {
   return Math.round(amount * 100)
 }
 
-function slugify(value: string): string {
-  const slug = value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-  return slug || "restriction"
-}
-
 function resolveRestrictions(
   names: string[],
   ingredientsByName?: Map<string, { id: string; name: string }>,
-): { ids: string[]; names: Record<string, string> } {
-  const ids: string[] = []
-  const namesMap: Record<string, string> = {}
-  const used = new Set<string>()
-
-  for (const name of names) {
-    const match = ingredientsByName?.get(name.toLowerCase())
-    if (match) {
-      ids.push(match.id)
-      namesMap[match.id] = match.name
-      continue
-    }
-    let key = `csv:${slugify(name)}`
-    let n = 2
-    while (used.has(key) || key in namesMap) {
-      key = `csv:${slugify(name)}-${n++}`
-    }
-    used.add(key)
-    ids.push(key)
-    namesMap[key] = name
-  }
-
-  return { ids, names: namesMap }
+) {
+  return resolveRestrictionLabels(names, ingredientsByName ?? new Map())
 }
 
 function resolveIncludedMeals(
@@ -348,7 +323,7 @@ export function parseSubscriptionCsvRow(
 
   const paused = parseBool(cell(col, "paused"), "paused") ?? false
   const remaining_meals = parseOptionalInt(cell(col, "remaining_meals"), "remaining_meals")
-  const notes = cell(col, "notes") || null
+  const notes = appendRestrictionLeftoversToNotes(cell(col, "notes") || null, restrictions.leftovers)
   const deliveryTime = cell(col, "delivery_time") || null
 
   const lat = parseOptionalCoord(cell(col, "latitude"), "latitude")
@@ -368,8 +343,9 @@ export function parseSubscriptionCsvRow(
     mobile_number: `+971${local}`,
     address,
     mode,
-    restrictionIds: restrictions.ids,
-    restrictionNames: restrictions.names,
+    restrictionIds: restrictions.restrictions,
+    restrictionNames: restrictions.restrictionNames,
+    restrictedCategories: restrictions.restrictedCategories,
     mealsPerDay,
     breakfast,
     includedMeals,
@@ -406,6 +382,7 @@ export function subscriptionDetailsFromCsvRow(row: ParsedSubscriptionCsvRow): Re
     mode: row.mode,
     restrictions: row.restrictionIds,
     restrictionNames: row.restrictionNames,
+    restrictedCategories: row.restrictedCategories,
     mealsPerDay: row.mealsPerDay,
     breakfast: row.breakfast,
     includedMeals: row.mode === "flexible" ? row.includedMeals : [],

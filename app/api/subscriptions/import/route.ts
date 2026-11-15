@@ -8,6 +8,7 @@ import { listActivePlanRows, PLAN_DAYS, resolveActivePlan } from "@/lib/subscrip
 import { createSubscription, setSubscriptionRemainingMealCount } from "@/lib/supabase/tables/subscriptions"
 import { recordSubscriptionPayment } from "@/lib/supabase/tables/subscription_payments"
 import { createClient } from "@/utils/supabase/server"
+import { indexIngredientsByName } from "@/lib/subscription/restrictions"
 
 const MAX_ROWS = 500
 
@@ -77,13 +78,12 @@ export async function POST(request: Request) {
       const key = String(recipe.name ?? "").trim().toLowerCase()
       if (key && !recipesByName.has(key)) recipesByName.set(key, recipe.id)
     }
-    const ingredientsByName = new Map<string, { id: string; name: string }>()
-    for (const ingredient of ingredientsRes.data ?? []) {
-      const key = String(ingredient.name ?? "").trim().toLowerCase()
-      if (key && !ingredientsByName.has(key)) {
-        ingredientsByName.set(key, { id: ingredient.id, name: ingredient.name })
-      }
-    }
+    const ingredientsByName = indexIngredientsByName(
+      (ingredientsRes.data ?? []).map((ingredient) => ({
+        id: ingredient.id,
+        name: String(ingredient.name ?? ""),
+      })),
+    )
     const subscriptionRecipeIds = (subRecipesRes.data ?? []).map((recipe) => recipe.id)
 
     let created = 0

@@ -3,7 +3,7 @@
 import { useMemo } from "react"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts"
 import type { Subscription } from "@/constants"
-import { FOOD_RESTRICTIONS } from "@/constants"
+import { restrictionDisplayLabels } from "@/lib/subscription/restrictions"
 import { Ban } from "lucide-react"
 
 interface Props {
@@ -16,17 +16,13 @@ export function RestrictionsChart({ subscriptions }: Props) {
   const data = useMemo(() => {
     const counts: Record<string, number> = {}
     for (const sub of subscriptions) {
-      const restrictions = (sub.details as Record<string, unknown>).restrictions as string[] | undefined
-      if (restrictions) {
-        for (const r of restrictions) {
-          if (r === "other") continue
-          counts[r] = (counts[r] || 0) + 1
-        }
+      for (const label of restrictionDisplayLabels(sub.details as Record<string, unknown>)) {
+        counts[label] = (counts[label] || 0) + 1
       }
     }
     return Object.entries(counts)
-      .map(([value, count]) => ({
-        name: FOOD_RESTRICTIONS.find((r) => r.value === value)?.label ?? value,
+      .map(([name, count]) => ({
+        name,
         value: count,
       }))
       .sort((a, b) => b.value - a.value)

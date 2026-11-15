@@ -30,7 +30,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react"
-import { FOOD_RESTRICTIONS } from "@/constants"
+import { isIngredientUuid, restrictionDisplayItems, restrictionMatchFromDetails } from "@/lib/subscription/restrictions"
 import { Button } from "./Button"
 import { ConfirmDialog } from "./ConfirmDialog"
 import { Modal } from "./Modal"
@@ -333,17 +333,9 @@ export function SubscriptionDialog({
     }
   }
 
-  function restrictionLabel(id: string): string | null {
-    const staticLabel = FOOD_RESTRICTIONS.find((f) => f.value === id)?.label
-    if (staticLabel) return staticLabel
-    const stored = (detail?.details as Record<string, unknown> | undefined)?.restrictionNames as Record<string, string> | undefined
-    if (stored?.[id]) return stored[id]
-    return ingNames[id] ?? null
-  }
-
   useEffect(() => {
-    const ids = ((detail?.details?.restrictions as string[] | undefined) ?? []).filter(
-      (id) => !FOOD_RESTRICTIONS.some((f) => f.value === id) && !ingNames[id],
+    const ids = restrictionMatchFromDetails(detail?.details).restrictedIngredientIds.filter(
+      (id) => isIngredientUuid(id) && !ingNames[id],
     )
     if (ids.length === 0) return
     fetch(`/api/ingredients?ids=${ids.join(",")}&limit=200`)
@@ -671,7 +663,10 @@ export function SubscriptionDialog({
   )
 
   const included = (detail?.details?.includedMeals as string[] | undefined) ?? []
-  const restrictions = (detail?.details?.restrictions as string[] | undefined) ?? []
+  const restrictionItems = restrictionDisplayItems(detail?.details).map((item) => ({
+    ...item,
+    label: ingNames[item.key] ?? item.label,
+  }))
 
   const detailDialog = (
     <Modal open={!!detail} onClose={() => setDetailId(null)} title={detail ? displayName(detail) : "Subscription"}>
@@ -800,19 +795,15 @@ export function SubscriptionDialog({
               )}
             </div>
           )}
-          {restrictions.length > 0 && (
+          {restrictionItems.length > 0 && (
             <div>
               <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-700">
                 <ShieldAlert size={12} /> Restrictions
               </p>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
-                {restrictions.map((r) => {
-                  const label = restrictionLabel(r)
-                  if (!label) return null
-                  return (
-                    <span key={r} className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-700">{label}</span>
-                  )
-                })}
+                {restrictionItems.map((item) => (
+                  <span key={item.key} className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-700">{item.label}</span>
+                ))}
               </div>
             </div>
           )}

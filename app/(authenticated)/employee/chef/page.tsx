@@ -8,6 +8,11 @@ import { imageThumb } from "@/lib/images"
 import { proteinBuckets, type ProteinAllowance } from "@/lib/chef/credits"
 import { autoFillDay, type AutoFillResult, type SuggestedStandard } from "@/lib/chef/autoFill"
 import {
+  recipePassesRestrictions,
+  restrictionDisplayLabels,
+  restrictionMatchFromDetails,
+} from "@/lib/subscription/restrictions"
+import {
   activeOn,
   addCalendarDays,
   assignmentNeed,
@@ -59,7 +64,7 @@ interface RecipeRow {
   description: string | null
   image_path: string | null
   primary_protein_ingredient_id: string | null
-  servings: { ingredients?: { name: string }[] }[]
+  servings: { ingredients?: { id?: string | null; name: string }[] }[]
 }
 
 interface PickRow {
@@ -99,17 +104,8 @@ function toStandardsMap(rows: DailyStandard[]): Map<string, string[]> {
   return map
 }
 
-function restrictionSet(details: Record<string, unknown> | null): Set<string> {
-  const d = details ?? {}
-  const names = d.restrictionNames as Record<string, string> | undefined
-  const list = names ? Object.values(names) : []
-  return new Set(list.map((n) => String(n).toLowerCase()).filter(Boolean))
-}
-
-function restrictionNames(details: Record<string, unknown> | null): string[] {
-  const d = details ?? {}
-  const names = d.restrictionNames as Record<string, string> | undefined
-  return names ? Object.values(names).map(String) : []
+function restrictionLabels(details: Record<string, unknown> | null): string[] {
+  return restrictionDisplayLabels(details)
 }
 
 function customerName(sub: SubRow): string {
@@ -376,7 +372,7 @@ export default function EmployeeChefPage() {
   const activeBuckets = activeSub ? proteinBuckets(creditAllowances, recipeProtein, subAllPicks) : []
   const activeUsedTotal = activeBuckets.reduce((s, b) => s + b.used, 0)
   const activeAllowanceTotal = activeBuckets.reduce((s, b) => s + b.allowance, 0)
-  const activeRestricted = activeSub ? restrictionNames(activeSub.details) : []
+  const activeRestricted = activeSub ? restrictionLabels(activeSub.details) : []
   const activePreferred = activeSub ? new Set(preferredRecipeIds(activeSub.details)) : new Set<string>()
   const activeRemaining = activeSub?.remaining_meal_count ?? null
   const draftBreakfastCount = draft.filter(
@@ -432,21 +428,17 @@ export default function EmployeeChefPage() {
   )
 
   function hiddenByRestriction(sub: SubRow): RecipeRow[] {
-    const restricted = restrictionSet(sub.details)
-    if (restricted.size === 0) return []
-    return recipes.filter((m) =>
-      (m.servings ?? []).some((s) => (s.ingredients ?? []).some((ing) => restricted.has(ing.name.toLowerCase()))),
-    )
+    const match = restrictionMatchFromDetails(sub.details)
+    if (match.restrictedIngredientIds.length === 0 && match.restrictedCategories.length === 0) return []
+    return recipes.filter((m) => !recipePassesRestrictions(m, match))
   }
 
   function mealsFor(sub: SubRow): RecipeRow[] {
-    const restricted = restrictionSet(sub.details)
+    const match = restrictionMatchFromDetails(sub.details)
     let list = recipes
     if (category) list = list.filter((m) => m.category === category)
-    if (restricted.size > 0) {
-      list = list.filter(
-        (m) => !(m.servings ?? []).some((s) => (s.ingredients ?? []).some((ing) => restricted.has(ing.name.toLowerCase()))),
-      )
+    if (match.restrictedIngredientIds.length > 0 || match.restrictedCategories.length > 0) {
+      list = list.filter((m) => recipePassesRestrictions(m, match))
     }
     const q = search.trim().toLowerCase()
     if (q) list = list.filter((m) => m.name.toLowerCase().includes(q) || (m.description ?? "").toLowerCase().includes(q))
@@ -539,6 +531,7 @@ export default function EmployeeChefPage() {
         date: selected,
         subs: daySubs.map((s) => {
           const need = assignmentNeed(s, selected)
+          const restrictions = restrictionMatchFromDetails(s.details)
           return {
             id: s.id,
             customerName: customerName(s),
@@ -547,7 +540,8 @@ export default function EmployeeChefPage() {
             dayMultiplier: need.dayMultiplier,
             breakfastCount: need.breakfastCount,
             isFridayMoved: need.isFridayMoved,
-            restrictedNames: [...restrictionSet(s.details)],
+            restrictedIngredientIds: restrictions.restrictedIngredientIds,
+            restrictedCategories: restrictions.restrictedCategories,
             preferredRecipeIds: preferredRecipeIds(s.details),
             remainingMeals: s.remaining_meal_count,
           }
@@ -839,7 +833,7 @@ export default function EmployeeChefPage() {
             const done = picked.size
             const complete = target > 0 ? done >= target : done > 0
             const partial = done > 0 && !complete
-            const restrictions = restrictionNames(sub.details)
+            const restrictions = restrictionLabels(sub.details)
             const remaining = sub.remaining_meal_count ?? null
             const depleted = remaining !== null && remaining <= 0
             const pickedRecipes = [...picked].map((rid) => recipeById.get(rid)).filter((r): r is RecipeRow => !!r)
@@ -1200,7 +1194,7 @@ export default function EmployeeChefPage() {
               )}
               <div className="rounded-xl bg-neutral-50 p-4 ring-1 ring-neutral-100">
                 <p className="text-xs font-bold text-neutral-900">
-                  Restricted ingredients ({activeRestricted.length})
+                  Restrictions ({activeRestricted.length})
                 </p>
                 {activeRestricted.length > 0 ? (
                   <div className="mt-2 flex flex-wrap gap-1.5">

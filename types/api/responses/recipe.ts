@@ -1,4 +1,5 @@
 export interface RecipeIngredientResponse {
+  id: string | null
   name: string
   quantity_g: number
   unit: string | null

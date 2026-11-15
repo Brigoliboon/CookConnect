@@ -35,6 +35,7 @@ import {
   SUBSCRIPTION_CSV_HEADERS,
   SUBSCRIPTION_CSV_SHORT_LABELS,
 } from "@/lib/subscription/csv"
+import { restrictionDisplayItems } from "@/lib/subscription/restrictions"
 
 interface SubscriptionRow {
   id: string
@@ -58,6 +59,7 @@ interface InquiryRow {
     mode?: string
     restrictions?: string[]
     restrictionNames?: Record<string, string>
+    restrictedCategories?: string[]
     mealsPerDay?: number
     breakfast?: boolean
     includedMeals?: string[]
@@ -638,17 +640,15 @@ export default function EmployeeSubscriptionsPage() {
             {selectedInquiry.details?.breakfast && (
               <div className="flex justify-between gap-3"><span className="inline-flex items-center gap-1.5 font-medium text-neutral-700"><Coffee size={14} /> Breakfast</span><span className="font-semibold">Included (extra)</span></div>
             )}
-            {(selectedInquiry.details?.restrictions ?? []).length > 0 && (
+            {restrictionDisplayItems(selectedInquiry.details).length > 0 && (
               <div>
                 <p className="inline-flex items-center gap-1.5 font-medium text-neutral-700"><ShieldAlert size={14} /> Restrictions</p>
                 <div className="mt-1 flex flex-wrap gap-1.5">
-                  {(selectedInquiry.details.restrictions ?? []).map((id) => {
-                    const label = selectedInquiry.details.restrictionNames?.[id] ?? ingNames[id]
-                    if (!label) return null
-                    return (
-                      <span key={id} className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs text-neutral-700">{label}</span>
-                    )
-                  })}
+                  {restrictionDisplayItems(selectedInquiry.details).map((item) => (
+                    <span key={item.key} className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs text-neutral-700">
+                      {ingNames[item.key] ?? item.label}
+                    </span>
+                  ))}
                 </div>
               </div>
             )}

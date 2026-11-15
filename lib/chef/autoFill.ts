@@ -1,3 +1,8 @@
+import {
+  recipePassesRestrictions,
+  recipeRestrictionFailReason,
+  type RestrictionMatchInput,
+} from "@/lib/subscription/restrictions"
 import { categoryPriority, isOccasionalCategory, packScore } from "./categories"
 import type { ProteinAllowance } from "./credits"
 import { BREAKFAST_CATEGORY, LOOKBACK_DAYS, addCalendarDays } from "./day"
@@ -7,7 +12,7 @@ export interface AutoFillRecipe {
   name: string
   category: string | null
   primary_protein_ingredient_id: string | null
-  servings: { ingredients?: { name: string }[] }[]
+  servings: { ingredients?: { id?: string | null; name: string }[] }[]
 }
 
 export interface AutoFillPick {
@@ -26,8 +31,10 @@ export interface AutoFillSub {
   breakfastCount: number
   /** Thursday appearance only because Friday delivery moved */
   isFridayMoved: boolean
-  /** lowercase restricted ingredient names */
-  restrictedNames: string[]
+  /** ingredient UUIDs from details.restrictions */
+  restrictedIngredientIds: string[]
+  /** recipe.category values to skip, e.g. seafood */
+  restrictedCategories: string[]
   /** Flexible included meal recipe IDs; empty = Normal / chef's choice */
   preferredRecipeIds: string[]
   /** stored remaining_meal_count, null when unknown (no trim applied) */
@@ -74,11 +81,19 @@ export interface AutoFillDayOutput {
   suggestedFridayStandards: SuggestedStandard[]
 }
 
-function passesRestrictions(r: AutoFillRecipe, restricted: Set<string>): boolean {
-  if (restricted.size === 0) return true
-  return !(r.servings ?? []).some((s) =>
-    (s.ingredients ?? []).some((ing) => restricted.has(ing.name.toLowerCase())),
-  )
+function restrictionMatch(sub: AutoFillSub): RestrictionMatchInput {
+  return {
+    restrictedIngredientIds: sub.restrictedIngredientIds,
+    restrictedCategories: sub.restrictedCategories,
+  }
+}
+
+function restrictionWeight(sub: AutoFillSub): number {
+  return sub.restrictedIngredientIds.length + sub.restrictedCategories.length
+}
+
+function passesRestrictions(r: AutoFillRecipe, sub: AutoFillSub): boolean {
+  return recipePassesRestrictions(r, restrictionMatch(sub))
 }
 
 function isBreakfastRecipe(r: AutoFillRecipe): boolean {
@@ -178,8 +193,7 @@ export function autoFillDay(args: {
   }
 
   const canEat = (sub: AutoFillSub, r: AutoFillRecipe, avoidRecent: boolean): boolean => {
-    const restricted = new Set(sub.restrictedNames.map((n) => n.toLowerCase()))
-    if (!passesRestrictions(r, restricted)) return false
+    if (!passesRestrictions(r, sub)) return false
     if (!creditOkFor(sub, r.primary_protein_ingredient_id)) return false
     if (avoidRecent && isRecent(sub.id, r.id, sub.mealsPerDay)) return false
     return true
@@ -279,7 +293,7 @@ export function autoFillDay(args: {
   }
 
   const ordered = [...args.subs].sort(
-    (a, b) => a.restrictedNames.length - b.restrictedNames.length || a.customerName.localeCompare(b.customerName),
+    (a, b) => restrictionWeight(a) - restrictionWeight(b) || a.customerName.localeCompare(b.customerName),
   )
   const results = new Map<string, AutoFillResult>()
 
@@ -324,7 +338,6 @@ export function autoFillDay(args: {
     }
     const mainCount = Math.max(1, sub.mealsPerDay) * Math.max(1, sub.dayMultiplier)
     const breakfastCount = Math.max(0, sub.breakfastCount)
-    const restricted = new Set(sub.restrictedNames.map((n) => n.toLowerCase()))
     const allowances = args.allowancesByPlan.get(sub.subscription_plan_id) ?? []
     const allowByProtein = new Map(allowances.map((a) => [a.ingredient_id, a.allowance]))
     const used = new Map(usedBySub.get(sub.id) ?? [])
@@ -388,7 +401,7 @@ export function autoFillDay(args: {
       const candidates = args.recipes.filter((r) => {
         if (chosenSet.has(r.id)) return false
         if (opts.breakfast ? !isBreakfastRecipe(r) : isBreakfastRecipe(r)) return false
-        if (!passesRestrictions(r, restricted)) return false
+        if (!passesRestrictions(r, sub)) return false
         if (!creditOk(r.primary_protein_ingredient_id)) return false
         if (opts.cookListOnly && !cookList.has(r.id)) return false
         if (prefSet && !prefSet.has(r.id)) return false
@@ -517,8 +530,13 @@ export function autoFillDay(args: {
         if (rep) take(rep, true)
         return
       }
-      if (!passesRestrictions(recipe, restricted)) {
-        const rep = replace("swapped-restriction", `Restricted ingredient — swapped ${recipe.name}.`, breakfast)
+      const restrictionFail = recipeRestrictionFailReason(recipe, restrictionMatch(sub))
+      if (restrictionFail) {
+        const reason =
+          restrictionFail === "category"
+            ? `Restricted category — swapped ${recipe.name}.`
+            : `Restricted ingredient — swapped ${recipe.name}.`
+        const rep = replace("swapped-restriction", reason, breakfast)
         if (rep) take(rep, breakfast)
         return
       }

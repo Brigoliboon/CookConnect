@@ -223,6 +223,12 @@ function buildPlans(summary: SalesSummary | undefined, currency: string): PlanRo
     }))
 }
 
+function subscriberName(subscription: SubscriptionWithDetails): string {
+  const details = (subscription.details as Record<string, unknown> | null) ?? {}
+  const fromDetails = typeof details.name === "string" ? details.name.trim() : ""
+  return fromDetails || subscription.customer?.name || "Subscriber"
+}
+
 function subscriberStatus(subscription: SubscriptionWithDetails): SubscriberStatus {
   if (subscription.status === "cancelled") return "Cancelled"
   if (subscription.paused_at) return "Paused"
@@ -436,7 +442,7 @@ export default function EmployeeDashboardPage() {
   const orderTotal = origin.reduce((sum, row) => sum + row.amount, 0)
   const hasSales = trend.some((row) => row.orders > 0 || row.subscriptions > 0)
   const subscriberOverview: SubscriberRow[] = performance.subscriptions.slice(0, 4).map((subscription) => ({
-    name: subscription.customer?.name ?? "Guest subscriber",
+    name: subscriberName(subscription),
     plan: subscription.plan?.name ?? "Custom plan",
     status: subscriberStatus(subscription),
     detail: subscriberDetail(subscription),

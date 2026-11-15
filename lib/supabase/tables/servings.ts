@@ -52,7 +52,7 @@ export async function listServingsForRecipe(
 ): Promise<ServingWithIngredients[]> {
   const { data, error } = await supabase
     .from("servings")
-    .select("*, serving_ingredients(quantity_g, unit, ingredient:ingredients(name, nutrition, fatsecret_id))")
+    .select("*, serving_ingredients(quantity_g, unit, ingredient:ingredients(id, name, nutrition, fatsecret_id))")
     .eq("recipe_id", recipeId)
     .eq("is_active", true)
 
@@ -65,7 +65,7 @@ export async function listAllServings(
 ): Promise<ServingWithIngredients[]> {
   const { data, error } = await supabase
     .from("servings")
-    .select("*, serving_ingredients(quantity_g, unit, ingredient:ingredients(name, nutrition, fatsecret_id))")
+    .select("*, serving_ingredients(quantity_g, unit, ingredient:ingredients(id, name, nutrition, fatsecret_id))")
     .eq("is_active", true)
 
   if (error) throw error
@@ -78,7 +78,7 @@ export async function getServing(
 ): Promise<ServingWithIngredients | null> {
   const { data, error } = await supabase
     .from("servings")
-    .select("*, serving_ingredients(quantity_g, unit, ingredient:ingredients(name, nutrition, fatsecret_id))")
+    .select("*, serving_ingredients(quantity_g, unit, ingredient:ingredients(id, name, nutrition, fatsecret_id))")
     .eq("id", id)
     .single()
 
@@ -183,7 +183,7 @@ async function insertServingIngredients(
   const { data, error } = await supabase
     .from("serving_ingredients")
     .insert(rows)
-    .select("quantity_g, unit, ingredient:ingredients(name, nutrition, fatsecret_id)")
+    .select("quantity_g, unit, ingredient:ingredients(id, name, nutrition, fatsecret_id)")
 
   if (error) throw error
   return ((data as Record<string, unknown>[]) ?? []).map(mapIngredient)
@@ -205,11 +205,13 @@ function mapServing(s: Record<string, unknown>): ServingWithIngredients {
 }
 
 function mapIngredient(si: Record<string, unknown>): RecipeIngredientField {
+  const ingredient = si.ingredient as Record<string, unknown> | null | undefined
   return {
-    name: (si.ingredient as Record<string, unknown>)?.name as string,
+    id: (ingredient?.id as string | null | undefined) ?? null,
+    name: ingredient?.name as string,
     quantity_g: si.quantity_g as number,
     unit: si.unit as string | null,
-    nutrition: (si.ingredient as Record<string, unknown>)?.nutrition as Record<string, unknown> | null,
-    fatsecret_id: (si.ingredient as Record<string, unknown>)?.fatsecret_id as string | null,
+    nutrition: (ingredient?.nutrition as Record<string, unknown> | null) ?? null,
+    fatsecret_id: (ingredient?.fatsecret_id as string | null) ?? null,
   }
 }

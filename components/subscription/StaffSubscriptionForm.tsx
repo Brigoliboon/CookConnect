@@ -2,6 +2,8 @@
 
 import { useState, type FormEvent } from "react"
 import { Button, Select } from "@/components/ui"
+import { RestrictionFields } from "@/components/subscription/RestrictionFields"
+import { restrictionDetailsPayload, type IngredientRef } from "@/lib/subscription/restrictions"
 import { DELIVERY_DAYS, PAYMENT_METHODS, SUBSCRIPTION_PLANS } from "@/constants/subscriptions"
 
 const SLOTS: { label: string; value: "morning" | "noon" | "evening" }[] = [
@@ -16,22 +18,6 @@ function sanitizeUaLocal(value: string) {
   else if (digits.startsWith("0971")) digits = digits.slice(4)
   else if (digits.startsWith("0")) digits = digits.slice(1)
   return digits.slice(0, 9)
-}
-
-function slugify(value: string) {
-  const slug = value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-  return slug || "restriction"
-}
-
-function splitNames(value: string): string[] {
-  return value
-    .split(/[;,\n]/)
-    .map((part) => part.trim())
-    .filter(Boolean)
 }
 
 function toggleValue<T extends string>(list: T[], value: T): T[] {
@@ -53,7 +39,8 @@ export function StaffSubscriptionForm({ onCreated }: { onCreated?: () => void })
   const [onCall, setOnCall] = useState(true)
   const [days, setDays] = useState<string[]>([])
   const [slots, setSlots] = useState<("morning" | "noon" | "evening")[]>(["morning"])
-  const [restrictionsText, setRestrictionsText] = useState("")
+  const [restricted, setRestricted] = useState<IngredientRef[]>([])
+  const [restrictedCategories, setRestrictedCategories] = useState<string[]>([])
   const [totalAed, setTotalAed] = useState("")
   const [paidAed, setPaidAed] = useState("")
   const [payMethod, setPayMethod] = useState("bank-transfer")
@@ -114,15 +101,7 @@ export function StaffSubscriptionForm({ onCreated }: { onCreated?: () => void })
       return
     }
 
-    const restrictionNames: Record<string, string> = {}
-    const restrictions: string[] = []
-    for (const label of splitNames(restrictionsText)) {
-      let key = `csv:${slugify(label)}`
-      let n = 2
-      while (key in restrictionNames) key = `csv:${slugify(label)}-${n++}`
-      restrictions.push(key)
-      restrictionNames[key] = label
-    }
+    const restrictionPayload = restrictionDetailsPayload(restricted, restrictedCategories)
 
     let paymentStatus: "pending" | "partial" | "paid" = "pending"
     if (totalCents !== undefined) {
@@ -150,8 +129,7 @@ export function StaffSubscriptionForm({ onCreated }: { onCreated?: () => void })
             address: trimmedAddress,
             location: null,
             mode,
-            restrictions,
-            restrictionNames,
+            ...restrictionPayload,
             mealsPerDay: meals,
             breakfast,
             includedMeals: [],
@@ -305,15 +283,13 @@ export function StaffSubscriptionForm({ onCreated }: { onCreated?: () => void })
         )}
       </div>
 
-      <label className="block">
-        <span className="mb-1 block text-xs font-semibold text-neutral-500">Restrictions (comma-separated)</span>
-        <input
-          value={restrictionsText}
-          onChange={(e) => setRestrictionsText(e.target.value)}
-          placeholder="Peanuts, dairy"
-          className={fieldClass}
-        />
-      </label>
+      <RestrictionFields
+        variant="staff"
+        restricted={restricted}
+        onRestrictedChange={setRestricted}
+        restrictedCategories={restrictedCategories}
+        onCategoriesChange={setRestrictedCategories}
+      />
 
       <div className="grid grid-cols-2 gap-3 border-t border-neutral-100 pt-4">
         <label className="block">
