@@ -5,7 +5,29 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Button, Modal, Select, SubscriptionDialog, CsvImportDialog } from "@/components/ui"
 import type { CsvImportPreviewRow } from "@/components/ui/CsvImportDialog"
 import { PAYMENT_METHODS, SUBSCRIPTION_PLANS } from "@/constants"
-import { ChevronDown, Copy, FileDown, FileSpreadsheet, Link2, Plus, X } from "lucide-react"
+import {
+  Ban,
+  CheckCircle2,
+  ChevronDown,
+  Coffee,
+  Copy,
+  FileDown,
+  FileSpreadsheet,
+  Inbox,
+  Layers,
+  Link2,
+  Mail,
+  MapPin,
+  Phone,
+  PhoneCall,
+  Plus,
+  ReceiptText,
+  ShieldAlert,
+  Truck,
+  Utensils,
+  Wallet,
+  X,
+} from "lucide-react"
 import { StaffSubscriptionForm } from "@/components/subscription/StaffSubscriptionForm"
 import { downloadCsv, parseCsv } from "@/lib/meals/csv"
 import {
@@ -444,13 +466,15 @@ export default function EmployeeSubscriptionsPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="font-nunito text-[11px] font-semibold uppercase tracking-[0.3em] text-neutral-400">
-            Employee
-          </p>
-          <h1 className="font-playfair mt-2 text-3xl font-medium text-neutral-900 sm:text-4xl">Subscriptions</h1>
-          <p className="font-nunito mt-2 text-sm text-neutral-500">Review inquiries or manage existing subscriptions.</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-600 text-white shadow-lg">
+            <ReceiptText size={20} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Subscriptions</h1>
+            <p className="text-sm text-neutral-500">Review inquiries or manage existing subscriptions.</p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
           <div className="relative">
@@ -526,32 +550,27 @@ export default function EmployeeSubscriptionsPage() {
         </div>
       )}
 
-      <div>
-        <h2 className="font-playfair mb-3 text-xl font-medium text-neutral-900">Inquiries ({inquiries.length})</h2>
-        {inquiries.length === 0 ? (
-          <p className="font-nunito border border-dashed border-neutral-300 px-4 py-8 text-center text-sm text-neutral-400">
-            No subscription inquiries yet.
+      <div className="rounded-2xl border border-neutral-200/60 bg-white/80 p-6 backdrop-blur-sm">
+        <div className="mb-4">
+          <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-600">
+            <Inbox size={12} /> Pending
           </p>
+          <h2 className="mt-0.5 text-lg font-semibold text-neutral-900">Inquiries</h2>
+          <p className="mt-0.5 text-xs text-neutral-500">
+            {inquiries.length === 0 ? "None waiting for approval." : `${inquiries.length} waiting for approval`}
+          </p>
+        </div>
+        {inquiries.length === 0 ? (
+          <p className="text-sm text-neutral-500">No subscription inquiries yet.</p>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {inquiries.map((q) => (
-              <div key={q.id} className="border border-neutral-200 bg-white p-4">
-                <div className="flex items-center justify-between">
-                  <p className="font-nunito font-semibold text-neutral-900">{q.name}</p>
-                  <div className="flex items-center gap-1.5">
-                    {q.details?.breakfast && (
-                      <span className="bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-700">
-                        Breakfast
-                      </span>
-                    )}
-                    <span className="bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-neutral-500">
-                      {q.details?.mode ?? "normal"}
-                    </span>
-                  </div>
-                </div>
-                <p className="font-nunito mt-1 text-xs text-neutral-500">{q.plan_id} · {q.mobile_number}</p>
-                <p className="font-nunito mt-0.5 line-clamp-1 text-xs text-neutral-400">{q.address}</p>
+          <div className="divide-y divide-neutral-100">
+            {inquiries.map((q) => {
+              const parts = q.name.trim().split(/\s+/).filter(Boolean)
+              const letters = ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?"
+              return (
                 <button
+                  key={q.id}
+                  type="button"
                   onClick={() => {
                     setInquiryId(q.id)
                     const cents = q.details?.invite?.agreedPriceCents
@@ -559,12 +578,41 @@ export default function EmployeeSubscriptionsPage() {
                     setPayAmount("")
                     setPayRef("")
                   }}
-                  className="font-nunito mt-3 w-full border border-neutral-900 bg-neutral-900 py-2 text-xs font-semibold text-white transition-all hover:bg-neutral-800"
+                  className="flex w-full items-start gap-3 py-4 text-left first:pt-0 last:pb-0 hover:bg-neutral-50/80 sm:gap-4"
                 >
-                  View Details
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-xs font-bold text-white">
+                    {letters}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                      <p className="truncate text-base font-semibold leading-snug text-neutral-900">{q.name}</p>
+                      <div className="flex shrink-0 items-center gap-3">
+                        {q.details?.breakfast && (
+                          <span title="Breakfast extra" className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-800">
+                            <Coffee size={13} strokeWidth={2.25} />
+                            <span className="hidden sm:inline">Breakfast</span>
+                          </span>
+                        )}
+                        <span title={q.details?.onCall ? "On-call delivery" : "Scheduled delivery"} className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-800">
+                          {q.details?.onCall ? <PhoneCall size={13} strokeWidth={2.25} /> : <Truck size={13} strokeWidth={2.25} />}
+                          <span className="hidden sm:inline">{q.details?.onCall ? "On-call" : "Scheduled"}</span>
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm font-medium text-neutral-700">
+                      <span className="inline-flex min-w-0 items-center gap-1.5" title="Plan">
+                        <Utensils size={14} strokeWidth={2.25} className="shrink-0 text-neutral-800" />
+                        <span className="truncate">{q.plan_id}</span>
+                      </span>
+                      <span className="inline-flex min-w-0 items-center gap-1.5" title="Contact">
+                        <Phone size={14} strokeWidth={2.25} className="shrink-0 text-neutral-800" />
+                        <span className="truncate">{q.mobile_number}</span>
+                      </span>
+                    </div>
+                  </div>
                 </button>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
@@ -572,30 +620,33 @@ export default function EmployeeSubscriptionsPage() {
       <Modal open={!!selectedInquiry} onClose={() => { setInquiryId(null); setConfirmDecline(false) }} title={selectedInquiry ? `Inquiry — ${selectedInquiry.name}` : "Inquiry"}>
         {selectedInquiry && (
           <div className="space-y-3 text-sm">
-            <div className="flex justify-between"><span className="text-neutral-500">Plan</span><span className="font-semibold">{selectedInquiry.plan_id}</span></div>
+            <div className="flex justify-between gap-3"><span className="inline-flex items-center gap-1.5 font-medium text-neutral-700"><Utensils size={14} /> Plan</span><span className="font-semibold">{selectedInquiry.plan_id}</span></div>
             {agreedPriceLabel(selectedInquiry.details) && (
-              <div className="flex justify-between">
-                <span className="text-neutral-500">Agreed price</span>
+              <div className="flex justify-between gap-3">
+                <span className="inline-flex items-center gap-1.5 font-medium text-neutral-700"><Wallet size={14} /> Agreed price</span>
                 <span className="font-semibold">{agreedPriceLabel(selectedInquiry.details)}</span>
               </div>
             )}
-            <div className="flex justify-between"><span className="text-neutral-500">Mobile</span><span className="font-semibold">{selectedInquiry.mobile_number}</span></div>
-            {selectedInquiry.email && <div className="flex justify-between"><span className="text-neutral-500">Email</span><span className="font-semibold">{selectedInquiry.email}</span></div>}
-            <div><p className="text-neutral-500">Address</p><p className="font-medium">{selectedInquiry.address}</p></div>
-            <div className="flex justify-between"><span className="text-neutral-500">Mode</span><span className="font-semibold capitalize">{selectedInquiry.details?.mode}</span></div>
-            <div className="flex justify-between"><span className="text-neutral-500">Meals per day</span><span className="font-semibold">{selectedInquiry.details?.mealsPerDay ?? 1}</span></div>
+            <div className="flex justify-between gap-3"><span className="inline-flex items-center gap-1.5 font-medium text-neutral-700"><Phone size={14} /> Mobile</span><span className="font-semibold">{selectedInquiry.mobile_number}</span></div>
+            {selectedInquiry.email && <div className="flex justify-between gap-3"><span className="inline-flex items-center gap-1.5 font-medium text-neutral-700"><Mail size={14} /> Email</span><span className="font-semibold">{selectedInquiry.email}</span></div>}
+            <div>
+              <p className="inline-flex items-center gap-1.5 font-medium text-neutral-700"><MapPin size={14} /> Address</p>
+              <p className="font-medium">{selectedInquiry.address}</p>
+            </div>
+            <div className="flex justify-between gap-3"><span className="inline-flex items-center gap-1.5 font-medium text-neutral-700"><Layers size={14} /> Mode</span><span className="font-semibold capitalize">{selectedInquiry.details?.mode}</span></div>
+            <div className="flex justify-between gap-3"><span className="inline-flex items-center gap-1.5 font-medium text-neutral-700"><Utensils size={14} /> Meals per day</span><span className="font-semibold">{selectedInquiry.details?.mealsPerDay ?? 1}</span></div>
             {selectedInquiry.details?.breakfast && (
-              <div className="flex justify-between"><span className="text-neutral-500">Breakfast</span><span className="font-semibold">Included (extra)</span></div>
+              <div className="flex justify-between gap-3"><span className="inline-flex items-center gap-1.5 font-medium text-neutral-700"><Coffee size={14} /> Breakfast</span><span className="font-semibold">Included (extra)</span></div>
             )}
             {(selectedInquiry.details?.restrictions ?? []).length > 0 && (
               <div>
-                <p className="text-neutral-500">Restrictions</p>
+                <p className="inline-flex items-center gap-1.5 font-medium text-neutral-700"><ShieldAlert size={14} /> Restrictions</p>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   {(selectedInquiry.details.restrictions ?? []).map((id) => {
                     const label = selectedInquiry.details.restrictionNames?.[id] ?? ingNames[id]
                     if (!label) return null
                     return (
-                      <span key={id} className="rounded-full bg-red-50 px-2.5 py-1 text-xs text-red-600">{label}</span>
+                      <span key={id} className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs text-neutral-700">{label}</span>
                     )
                   })}
                 </div>
@@ -603,7 +654,7 @@ export default function EmployeeSubscriptionsPage() {
             )}
             {(selectedInquiry.details?.includedMeals ?? []).length > 0 && (
               <div>
-                <p className="text-neutral-500">Meals ({selectedInquiry.details.includedMeals?.length})</p>
+                <p className="inline-flex items-center gap-1.5 font-medium text-neutral-700"><Utensils size={14} /> Meals ({selectedInquiry.details.includedMeals?.length})</p>
                 <ul className="mt-1 list-disc pl-5 text-neutral-800">
                   {(selectedInquiry.details.includedMeals ?? []).map((id) => (
                     <li key={id}>{mealNames[id] ?? id}</li>
@@ -612,7 +663,9 @@ export default function EmployeeSubscriptionsPage() {
               </div>
             )}
             <div className="flex justify-between border-t border-neutral-100 pt-2">
-              <span className="text-neutral-500">Delivery</span>
+              <span className="inline-flex items-center gap-1.5 font-medium text-neutral-700">
+                {selectedInquiry.details?.onCall ? <PhoneCall size={14} /> : <Truck size={14} />} Delivery
+              </span>
               <span className="font-semibold">
                 {selectedInquiry.details?.onCall
                   ? "On-call only"
@@ -622,27 +675,29 @@ export default function EmployeeSubscriptionsPage() {
             {approveError && <p className="text-xs font-medium text-red-500">{approveError}</p>}
             <div className="grid grid-cols-2 gap-2 border-t border-neutral-100 pt-3">
               <div>
-                <label className="mb-1 block text-xs font-semibold text-neutral-500">Total price (AED)*</label>
+                <label className="mb-1 block text-xs font-semibold text-neutral-700">Total price (AED)*</label>
                 <input type="number" min={0} step={0.5} value={payTotal} onChange={(e) => setPayTotal(e.target.value)} className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-900" placeholder="0.00" />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold text-neutral-500">Paying now (AED)*</label>
+                <label className="mb-1 block text-xs font-semibold text-neutral-700">Paying now (AED)*</label>
                 <input type="number" min={0} step={0.5} value={payAmount} onChange={(e) => setPayAmount(e.target.value)} className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-900" placeholder="0.00" />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold text-neutral-500">Method</label>
+                <label className="mb-1 block text-xs font-semibold text-neutral-700">Method</label>
                 <Select options={PAYMENT_METHODS} value={payMethod} onChange={(e) => setPayMethod(e.target.value)} />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold text-neutral-500">Reference</label>
+                <label className="mb-1 block text-xs font-semibold text-neutral-700">Reference</label>
                 <input value={payRef} onChange={(e) => setPayRef(e.target.value)} className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-900" placeholder="Optional" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <Button variant="danger" onClick={handleDeclineInquiry} disabled={declining || approving}>
+                <Ban size={14} />
                 {declining ? "Declining..." : confirmDecline ? "Confirm decline?" : "Decline"}
               </Button>
               <Button onClick={handleApproveInquiry} disabled={approving || declining}>
+                <CheckCircle2 size={14} />
                 {approving ? "Approving..." : "Approve subscription"}
               </Button>
             </div>
@@ -769,8 +824,8 @@ export default function EmployeeSubscriptionsPage() {
             >
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <h2 className="font-playfair text-xl font-medium text-neutral-900">New Subscription</h2>
-                  <p className="font-nunito mt-0.5 text-xs text-neutral-500">Create a subscription for a customer without the public onboarding flow.</p>
+                  <h2 className="text-lg font-semibold text-neutral-900">New Subscription</h2>
+                  <p className="mt-0.5 text-xs text-neutral-500">Create a subscription for a customer without the public onboarding flow.</p>
                 </div>
                 <button onClick={() => setShowForm(false)} className="rounded-lg p-2 text-neutral-400 transition-colors hover:bg-neutral-200 hover:text-neutral-700">
                   <X size={18} />
