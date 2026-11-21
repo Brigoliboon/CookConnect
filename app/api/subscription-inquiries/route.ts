@@ -1,7 +1,9 @@
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
+import { after } from "next/server"
 import { createSubscriptionInquiry, listSubscriptionInquiries } from "@/lib/supabase/tables/subscription_inquiries"
 import { verifySubscriptionInviteToken } from "@/lib/subscription/invite-token"
+import { emailSubscriptionInquiryCreated } from "@/lib/notifications/email"
 
 export async function GET() {
   const cookieStore = await cookies()
@@ -103,6 +105,12 @@ export async function POST(request: Request) {
           : {}),
       },
     })
+    const baseUrl = new URL(request.url).origin
+    after(() =>
+      emailSubscriptionInquiryCreated(supabase, data, baseUrl).catch((err) =>
+        console.error("[API] POST /api/subscription-inquiries email failed:", err),
+      ),
+    )
     return Response.json(data, { status: 201 })
   } catch (err) {
     const message = err instanceof Error ? err.message : "Internal server error"

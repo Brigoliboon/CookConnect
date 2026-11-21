@@ -11,7 +11,7 @@ Tracks build progress by milestone. See `REQUIREMENTS.md` for what each item mea
 - `tests/`: manual test plans (markdown). There is no automated test runner in `package.json`.
 - `docs/`: older working notes (schema, menu population, push, campaign). `REQUIREMENTS.md` and this file are the source of truth.
 
-**Status (21 Nov 2026):** M1 to M8 are done on `main` at `e44d9de` (code audit of 2026-11-17; the app was not run). Remaining work is M9 to M15, in Boon's priority order: meals, ordering and subscribing, employee, rider, customer, then email and verification. The customer pages, `/employee/deliveries`, and `/employee/customers/[id]` are still mock. Open questions in `REQUIREMENTS.md`: Dubai delivery fee (code uses AED 200); FR-48 (whether 100 is AED or a count, and the drinks/cakes lists); FR-49 (which events send email, and who can enable it).
+**Status (21 Nov 2026):** M1 to M8 are done on `main` at `e44d9de` (code audit of 2026-11-17; the app was not run). Remaining work is M9 to M15, in Boon's priority order: meals, ordering and subscribing, employee, rider, customer, then email and verification. The customer pages, `/employee/deliveries`, and `/employee/customers/[id]` are still mock. Open questions in `REQUIREMENTS.md`: Dubai delivery fee (code uses AED 200); FR-48 (whether 100 is AED or a count, and the drinks/cakes lists). FR-49 is answered: emails go out on a new order and a new subscription inquiry, to staff who opt in.
 
 ---
 
@@ -124,11 +124,12 @@ In scope (confirmed 2026-11-21). Pages exist but read mock data.
 
 ## M14: Email notifications (FR-49)
 
-No email-sending code exists yet. The public site lists `cookconnectrestaurant@gmail.com` as the restaurant contact address. The staff invite email in M11 (FR-42) may reuse this Gmail setup.
+Sent from the restaurant Gmail account (`cookconnectrestaurant@gmail.com`) through Gmail SMTP with an App Password (`lib/notifications/email.ts`). The staff invite email in M11 (FR-42) may reuse this Gmail setup.
 
-- [ ] Email notifications from the restaurant's Gmail account to users who have email notifications enabled (FR-49)
-- [ ] Choose Gmail SMTP with an App Password, or the Gmail API, and add the needed env vars (names only, never commit values)
-- [ ] Resolve the open questions before building: which events send an email, and who can enable it?
+- [x] Email notifications from the restaurant's Gmail account to users who have email notifications enabled (FR-49)
+- [x] Choose Gmail SMTP with an App Password, or the Gmail API, and add the needed env vars (names only, never commit values): `GMAIL_USER`, `GMAIL_APP_PASSWORD`, optional `EMAIL_FROM_NAME`
+- [x] Resolve the open questions before building: which events send an email, and who can enable it? Answer: a new order and a new subscription inquiry; active employee accounts that turn on "Email notifications" (off by default)
+- [ ] Apply `20261121000000_accounts_email_notifications.sql` to the live Supabase project and set the Gmail env vars on Vercel
 
 ## M15: Verification
 
@@ -147,6 +148,7 @@ These were unverified in the 2026-11-17 audit. Do not tick them from memory; con
 
 Newest first. Times are Asia/Manila (UTC+8).
 
+- 2026-11-21 23:01: M14 email notifications built on `feat/m14-email-notifications`: Gmail SMTP emails to opted-in employees on a new order and a new subscription inquiry, plus an "Email notifications" toggle in the staff notifications menu. Needs the new migration applied and the Gmail env vars set on Vercel.
 - 2026-11-21 22:27: Boon reordered the open milestones by priority: M9 Meals, M10 Ordering and subscribing, M11 Employee, M12 Rider (re-test only), M13 Customer area, M14 Email notifications, M15 Verification.
 - 2026-11-21 22:01: Root docs drafted to match the SignalScape layout: `REQUIREMENTS.md` (FR-1 to FR-49, already approved in progress), this file, `AGENTS.md`, and `README.md`. Done work is grouped as M1 to M8 (ticked from the 2026-11-17 audit of `main` at `e44d9de`). Remaining work is M9 to M16. No references to `MOBILE_APP.md` or `FEATURES`. These drafts live in the vault until Boon approves putting them in the repo. [PR #4](https://github.com/Brigoliboon/CookConnect/pull/4) (`docs/root-cleanup`) is still open and is superseded by this draft.
 - 2026-11-21: Requirements updated from Boon's answers: Sharjah AED 100; customer dashboard (FR-37 to FR-39) stays in scope; no Tabby or card payment; staff dashboards stay English only. FR-32 revised (exclude on-call from suggestions). Added FR-48 (drinks and cakes add-ons) and FR-49 (Gmail email notifications).
