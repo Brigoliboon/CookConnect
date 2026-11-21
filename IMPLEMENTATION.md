@@ -1,156 +1,154 @@
-# Cook Connect — Implementation Status
+# Cook Connect Restaurant: Implementation checkpoints
 
-Source: code audit of `cook-connect-llc/restaurant` on 2026-11-17, against `main` at `e44d9de`. The app was not run. "Finished" means the UI exists and is wired to real API/DB code.
+Tracks build progress by milestone. See `REQUIREMENTS.md` for what each item means. Tick items as they're done, in the same pull request as the work.
 
-Auth and Supabase are wired. Employee, chef, and rider areas are API-backed. Only the customer pages, `/employee/deliveries`, and `/employee/customers/[id]` are mock. Quick-role login buttons are gone.
+**Repo layout**
 
-## Landing page
+- `app/`: Next.js App Router — public pages under `app/[locale]/`, staff dashboards under `app/(authenticated)/`, API routes under `app/api/`.
+- `components/`, `lib/`, `hooks/`, `utils/`, `constants/`, `types/`: UI, domain logic, and shared helpers.
+- `i18n/` and `messages/`: next-intl routing and English/Arabic copy.
+- `supabase/migrations/`: schema changes, applied to the live Supabase project (T-9).
+- `tests/`: manual test plans (markdown). There is no automated test runner in `package.json`.
+- `docs/`: older working notes (schema, menu population, push, campaign). `REQUIREMENTS.md` and this file are the source of truth.
 
-### Finished
+**Status (21 Nov 2026):** M1 to M8 are done on `main` at `e44d9de` (code audit of 2026-11-17; the app was not run). Remaining work is M9 to M15, in Boon's priority order: meals, ordering and subscribing, employee, rider, customer, then email and verification. The customer pages, `/employee/deliveries`, and `/employee/customers/[id]` are still mock. Open questions in `REQUIREMENTS.md`: Dubai delivery fee (code uses AED 200); FR-48 (whether 100 is AED or a count, and the drinks/cakes lists); FR-49 (which events send email, and who can enable it).
 
-- [x] Locale landing at `/` and `/ar` (next-intl, RTL, Cairo font, toggle in `components/landing/Nav.tsx`)
-- [x] Sections: hero, featured meals, healthy campaign, plan cards, about, contact map, footer (`app/[locale]/page.tsx`)
-- [x] Hero top sellers live from `GET /api/showcase` (`hooks/useShowcase.ts`, 2026-10-23); meal grids from `/api/recipe`
-- [x] SEO: `lib/seo.ts`, `app/sitemap.ts`, `app/robots.ts`, OG banners, Restaurant/WebSite JSON-LD, GA (`components/seo/GoogleTag.tsx`)
-- [x] AVIF/WebP, Supabase storage images; terms and privacy pages
+---
 
-### Not finished or unverified
+## M1: Foundation, auth, and hosting
 
-- Plan cards use hardcoded `constants/subscriptions.ts`, not `GET /api/subscription-plans`.
-- `components/landing/MealsDisplay.tsx` is unused static code.
-- H5 hero manual check pending. Authenticated dashboards are English-only.
+- [x] Next.js 16 App Router, TypeScript, Tailwind v4 (T-1)
+- [x] Supabase for database, auth, and storage (T-2)
+- [x] next-intl with English and Arabic, RTL on Arabic public pages (T-3)
+- [x] Mapbox for maps and delivery pins (T-4)
+- [x] Hosted on Vercel at https://cook-connect-omega.vercel.app (T-5)
+- [x] Email and password sign-in; roles employee, chef, rider, customer; inactive accounts blocked (FR-40)
+- [x] `proxy.ts` protects `/employee`, `/rider`, and `/customer`, and skips i18n on those routes (FR-41)
+- [x] Prices and VAT recalculated on the server (NFR-2, FR-9)
+- [x] Schema changes live in `supabase/migrations/` (T-9). Applying them on the live project is still unverified (see M15).
 
-## Menu & ordering
+## M2: Landing page and SEO (FR-1, FR-2, FR-3, FR-5)
 
-### Finished
+- [x] English and Arabic landing pages with RTL layout and a language toggle (FR-1)
+- [x] Hero with live top sellers, featured meals, healthy campaign, plan cards, about, contact map, and footer (FR-2)
+- [x] SEO: metadata, sitemap, robots, OG images, JSON-LD, Google Analytics (FR-3)
+- [x] Terms and privacy pages (FR-5)
+- [x] Optimized AVIF/WebP images and cached API responses on public pages (NFR-1)
 
-- [x] `/menu` SSR from Supabase (`listRecipes`), category pages `app/[locale]/menu/[category]/`
-- [x] Search, category/subcategory icons, sort, skeletons, category desktop grids (2026-11-10, 2026-11-13)
-- [x] Add-ons/sides: `CartSidePicker.tsx`, `MobileAddonSheet.tsx` (2026-11-10)
-- [x] Checkout in `CartDialog.tsx` -> `POST /api/orders` (VAT-inclusive, consent); Mapbox delivery Ajman-only, pickup supported
-- [x] Server recomputes prices/VAT (`app/api/orders/route.ts`)
-- [x] Public tracking `app/[locale]/order-tracking/[code]/page.tsx` + `POST /api/order-tracking/verify`
-- [x] `/catalog` 308-redirects to `/menu`
+## M3: Menu and ordering (FR-6 to FR-10)
 
-### Not finished or unverified
+- [x] Menu with categories, subcategories, search, and sort (FR-6)
+- [x] Add-ons and sides (FR-7)
+- [x] Cart and checkout for delivery (map pin, Ajman only) or pickup, with consent (FR-8)
+- [x] Server recalculates prices and VAT (VAT-inclusive) (FR-9, NFR-2)
+- [x] Public order tracking by code with verification (FR-10)
 
-- Arabic menu names via `AR_CONTENT` dictionary, not DB columns.
-- Sales sort pending check that delivered items carry `recipe_id`.
+## M4: Subscriptions (FR-12 to FR-21)
 
-## Subscriptions
+- [x] Six-step sign-up wizard: plan, details, preferences, meals, delivery, review (FR-12)
+- [x] Inquiries that staff approve or reject (FR-13)
+- [x] Signed invite links with a negotiated price, used by the WhatsApp bot (FR-14)
+- [x] Rates by duration (6/15/20/26/30/45 days) and meals per day (1 to 5) from the backend (FR-15)
+- [x] Delivery fees by area, charged per delivery: Ajman free, Sharjah AED 100 (confirmed 2026-11-21), Dubai AED 200 in code (still to confirm) (FR-16)
+- [x] Food restrictions (ingredients and skipped categories) respected in meal selection and chef auto-fill (FR-17)
+- [x] Staff can create a subscription for a customer (FR-18)
+- [x] Staff can pause, resume, cancel, edit contact details, and record payments (FR-19)
+- [x] CSV import of existing subscribers with preview (FR-20)
+- [x] Staff choose which meals are available to subscribers (FR-21)
 
-### Finished
+## M5: Employee dashboard (FR-23 to FR-27, FR-29)
 
-- [x] Wizard `app/[locale]/subscription-onboarding/page.tsx`: Plan, Details, Preferences, Meals, Delivery, Review
-- [x] Inquiries `POST /api/subscription-inquiries`; staff approve/reject
-- [x] Signed invite links with negotiated price (`/api/subscription-invites`, validate) (2026-10-26)
-- [x] Backend rates `GET /api/subscription-rates` (2026-10-26)
-- [x] Delivery areas: Ajman free, Sharjah 100 AED, Dubai 200 AED (2026-11-06)
-- [x] Food restrictions: ingredient search `/api/ingredients` + skip-category chips; meals and chef auto-fill respect them (2026-11-15, `RestrictionFields.tsx`)
-- [x] Staff create form `StaffSubscriptionForm.tsx` -> `/api/subscriptions` (2026-11-12)
-- [x] Employee list: pause/resume/cancel, contact edit, payments `/api/subscription-payments`, plate-style list (2026-11-12/15)
-- [x] CSV import `POST /api/subscriptions/import`: leftovers, pause, notes, remaining meals, lat/lng pins (2026-11-12/15)
-- [x] Opt-in subscription meals `is_subscription_included`, `/employee/meals/subscription` (2026-11-12)
+- [x] Overview: needs-attention counts, sales, order pipeline, delivery map (FR-23)
+- [x] Orders board with filters, status updates, and thermal receipt printing (FR-24, T-7)
+- [x] POS for dine-in, pickup, and delivery (FR-25)
+- [x] Staff account management (FR-26)
+- [x] Customer list (FR-27)
+- [x] Meal management with nutrition lookup and printed nutrition stickers (FR-29)
+- [x] Staff dashboards usable on phones and tablets (NFR-3). Dashboards stay English only (resolved 2026-11-21).
 
-### Not finished or unverified
+## M6: Chef planning (FR-31, FR-32 done part, FR-33)
 
-- Plan pickers use `SUBSCRIPTION_PLANS` constants; `GET /api/subscription-plans` unused by UI.
-- Pending: backend Postman/RLS run (`tests/SUBSCRIPTIONS_BACKEND_TESTCASE.md` referenced but missing), onboarding UI run, invite T5 + live bot checks, rates bot round-trip, delivery-area UI check.
-- Tabby is a label only. Staff form sends `location: null`.
+- [x] Daily cook schedules from subscriber entitlements: protein credits, remaining meals, paused or used-up subscriptions skipped, breakfast extras (FR-31)
+- [x] Shared kitchen batch suggestion, chicken-first with occasional seafood (FR-32, built part)
+- [x] Daily standards and plan protein credits (FR-33)
 
-## Employee dashboard
+The chef page already filters the day's subscribers with `activeOn()`, which returns false when `details.onCall` is true, before it runs Suggest meals. See M9 for the FR-32 revision.
 
-### Finished
+## M7: Rider (FR-34, FR-35, FR-36)
 
-- [x] `/employee`: needs-attention `/api/nav-counts`, sales `/api/sales`, pipeline `/api/dashboard/pipeline`, map `/api/dashboard/map`
-- [x] Orders board `/employee/orders`: filters, `PATCH /api/orders/[id]`, thermal print, POS link
-- [x] POS `/employee/orders/pos` (`PosTerminal.tsx`): dine-in/pickup/delivery via `/api/orders`
-- [x] Accounts CRUD `/employee/accounts` (`/api/accounts`). Customers list `/employee/customers` (`/api/customers`)
-- [x] Meals CRUD `/employee/meals`, FatSecret search, nutrition stickers, ESC/POS over Web Bluetooth (`lib/thermal/*`)
+- [x] List of orders ready for pickup and the rider's own deliveries (FR-34)
+- [x] Take an order and complete it with the customer's 6-digit code (FR-35)
+- [x] Share live GPS location (FR-36)
 
-### Not finished or unverified
+## M8: Notifications and WhatsApp bot API (FR-43 to FR-46)
 
-- `/employee/deliveries` is mock (constants, local state only).
-- `/employee/customers/[id]` is mock; list blanks phone/address; customers page not in nav.
+- [x] Notification bell with unread count and mark-all-read (FR-43)
+- [x] Web push to staff on new orders (FR-44, T-8)
+- [x] Bot can place orders, look up deliveries, create invites, and read rates, behind `x-bot-secret` (FR-45, T-6)
+- [x] Renewal reminder 3 days before expiry, and recording why a customer didn't renew (FR-46)
 
-## Chef
+---
 
-### Finished
+## M9: Meals (FR-11, FR-32)
 
-- [x] `/employee/chef`: recipes, subscriptions, `/api/chef-schedules`, `/api/daily-standards`, `/api/plan-protein-credits`
-- [x] Shared kitchen batch suggestion, `POST /api/chef-schedules/batch` (2026-11-12, `lib/chef/autoFill.ts`)
-- [x] Chicken-first, occasional seafood (2026-11-13, `lib/chef/categories.ts`)
-- [x] Protein credits, remaining meals, pause/depleted gating, breakfast extras (`20261112010000_chef_schedule_entitlement.sql`). Honors food restrictions.
+- [ ] Store Arabic meal names in the database instead of the `AR_CONTENT` dictionary in code (FR-11)
+- [ ] Confirm meal suggestions exclude on-call-only subscriptions (FR-32 revision). Code already does this through `activeOn()` in `lib/chef/day.ts` and the chef page. There is no on-call flag on meals; on-call is a subscription delivery mode. Confirm this matches the intent in `REQUIREMENTS.md` (which currently says "on-call-only meals"). If it does, tick this item and tighten that wording.
 
-### Not finished or unverified
+## M10: Ordering and subscribing (FR-4, FR-22, FR-48)
 
-- Migrations applied live.
-- `CHEF_SCHEDULES_TESTCASE.md` re-run after Nov 12-13.
+- [ ] Plan cards (and any other plan pickers still on constants) read live plans from `GET /api/subscription-plans` instead of hardcoded `SUBSCRIPTION_PLANS` (FR-4)
+- [ ] Staff subscription form saves the delivery location (it currently sends `location: null`) (FR-22)
+- [ ] Subscribers can choose add-on inclusions: drinks (100) and cakes (100), each from an item list (FR-48)
+- [ ] Resolve the open questions before building: is 100 a price in AED or an item count, and what is on each list?
 
-## Rider
+## M11: Employee (FR-28, FR-30, FR-42, FR-47)
 
-### Finished
+- [ ] Customer details page wired to the API (replace mock data), and a nav link to the customers page (FR-28)
+- [ ] Deliveries page wired to the API (replace mock data): change today's time and location, manage statuses (FR-30)
+- [ ] New staff accounts get a set-password or invite email instead of the fixed `temporary123` password in `POST /api/accounts` (FR-42)
+- [ ] Staff view of the reminder and renewal queue (FR-47)
 
-- [x] `/rider`: open orders `GET /api/orders?status=ready_for_pickup`, mine `GET /api/deliveries/mine`
-- [x] Take `POST /api/orders/[id]/assign`; complete with 6-digit code `PATCH /api/orders/[id]/assign`
-- [x] GPS to `/api/riders/location` (`RiderMap`). Role guard in layout.
+## M12: Rider
 
-## Auth & roles
+No open rider requirements; FR-34 to FR-36 are done in M7.
 
-### Finished
+- [ ] Re-test the rider flow end to end (take an order, complete with the 6-digit code, live GPS) after M9 to M11 land
 
-- [x] Supabase Auth (`hooks/AuthProvider.tsx`, `lib/auth.ts`), role + `is_active` from `accounts`
-- [x] `proxy.ts` protects `/employee`, `/rider`, `/customer`. Email/password login, redirect to `/${role}`
+## M13: Customer area (FR-37, FR-38, FR-39)
 
-### Not finished or unverified
+In scope (confirmed 2026-11-21). Pages exist but read mock data.
 
-- `POST /api/accounts` uses hardcoded password `temporary123`.
-- `admin` used in APIs but not a nav role.
-- RLS not verified.
+- [ ] Customer dashboard: remaining meals and protein credits, delivery schedule, and today's meals (FR-37)
+- [ ] Edit profile and save it (Save currently does nothing) (FR-38)
+- [ ] Change today's delivery time or location before the cutoff (FR-39)
 
-## Customer area
+## M14: Email notifications (FR-49)
 
-### Not finished or unverified
+No email-sending code exists yet. The public site lists `cookconnectrestaurant@gmail.com` as the restaurant contact address. The staff invite email in M11 (FR-42) may reuse this Gmail setup.
 
-- `/customer` and `/customer/profile` read mock constants; Save calls no API.
-- FEATURES items (credits, weekly edits, cutoffs, self-serve schedule) not built.
+- [ ] Email notifications from the restaurant's Gmail account to users who have email notifications enabled (FR-49)
+- [ ] Choose Gmail SMTP with an App Password, or the Gmail API, and add the needed env vars (names only, never commit values)
+- [ ] Resolve the open questions before building: which events send an email, and who can enable it?
 
-## Notifications
+## M15: Verification
 
-### Finished
+These were unverified in the 2026-11-17 audit. Do not tick them from memory; confirm on the live project or by re-running the plan.
 
-- [x] Navbar bell `GET/PATCH /api/notifications`, unread badge, mark-all-read; nav-count badges
-- [x] Web push (`public/sw.js`, VAPID, `lib/notifications/push.ts`) on new orders
+- [ ] Confirm every migration in `supabase/migrations/` is applied on the live Supabase project, especially `20261023000000_order_origin_delivered_at.sql` and `20261025000000_notifications_mark_read.sql`
+- [ ] Check row-level security on Supabase tables so each role sees only its data
+- [ ] Re-run the manual test plans in `tests/` that have not been run since the November changes, including chef schedules, navbar notifications, subscription onboarding, invites, and rates
+- [ ] Restore or rewrite `tests/SUBSCRIPTIONS_BACKEND_TESTCASE.md` if it is still needed (referenced in older notes, missing from the repo), then run it
+- [ ] Confirm production env vars on Vercel, including VAPID keys for web push
+- [ ] Record the Dubai subscription delivery fee once Boon confirms AED 150 or AED 200 (code and FR-16 currently use 200)
 
-### Not finished or unverified
+---
 
-- `20261025000000_notifications_mark_read.sql` applied.
-- `NAVBAR_NOTIFICATIONS_TESTCASE.md` run.
-- VAPID env.
+## Progress log
 
-## WhatsApp bot endpoints
+Newest first. Times are Asia/Manila (UTC+8).
 
-### Finished
-
-- [x] Reminders `/api/whatsapp-reminder`
-- [x] Delivery lookup `/api/delivery/[id]`
-- [x] Bot orders `POST /api/orders` with `x-bot-secret`
-- [x] Invites, rates, renewals `/api/subscription-renewals`, `POST /api/subscription-non-renewal`
-
-### Not finished or unverified
-
-- No staff UI for the reminder queue.
-- Live bot round-trips pending.
-
-## Infra
-
-### Finished
-
-- [x] Next.js 16.2.10, TypeScript, Tailwind v4, Supabase SSR, next-intl, Mapbox, SWR
-- [x] `app/manifest.ts`
-- [x] Migrations 2026-09-04 to 2026-11-12 in repo
-
-### Not finished or unverified
-
-- Migrations applied on live Supabase (`order_origin_delivered_at`, `notifications_mark_read` were pending).
-- Capacitor app in `MOBILE_APP.md` is plan only.
+- 2026-11-21 22:27: Boon reordered the open milestones by priority: M9 Meals, M10 Ordering and subscribing, M11 Employee, M12 Rider (re-test only), M13 Customer area, M14 Email notifications, M15 Verification.
+- 2026-11-21 22:01: Root docs drafted to match the SignalScape layout: `REQUIREMENTS.md` (FR-1 to FR-49, already approved in progress), this file, `AGENTS.md`, and `README.md`. Done work is grouped as M1 to M8 (ticked from the 2026-11-17 audit of `main` at `e44d9de`). Remaining work is M9 to M16. No references to `MOBILE_APP.md` or `FEATURES`. These drafts live in the vault until Boon approves putting them in the repo. [PR #4](https://github.com/Brigoliboon/CookConnect/pull/4) (`docs/root-cleanup`) is still open and is superseded by this draft.
+- 2026-11-21: Requirements updated from Boon's answers: Sharjah AED 100; customer dashboard (FR-37 to FR-39) stays in scope; no Tabby or card payment; staff dashboards stay English only. FR-32 revised (exclude on-call from suggestions). Added FR-48 (drinks and cakes add-ons) and FR-49 (Gmail email notifications).
+- 2026-11-17: Read-only code audit of `main` at `e44d9de`. Auth and Supabase are wired. Employee, chef, and rider areas are API-backed. Only the customer pages, `/employee/deliveries`, and `/employee/customers/[id]` are mock.
+- 2026-11-15: Food restrictions landed on `main` (`e44d9de`) (FR-17).
