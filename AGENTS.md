@@ -60,7 +60,7 @@ There is no `test` or `typecheck` script. `npm run build` is the typecheck. Manu
 
 ## Environment variables
 
-Names only. Never commit values. There is no `.env.example` in the repo today; `.gitignore` ignores `.env*`. Use `.env.local` locally and Vercel project env vars in production.
+Names only. Never commit values. `.env.example` lists the email env var names; `.gitignore` ignores every other `.env*` file. Use `.env.local` locally and Vercel project env vars in production.
 
 Required by the running app (referenced in source):
 
@@ -78,6 +78,9 @@ Required by the running app (referenced in source):
 | `PUSH_VAPID_SUBJECT` | Web push |
 | `WHATSAPP_BOT_SECRET` | Shared secret compared to the `x-bot-secret` header |
 | `POS_SECRET` | Optional POS origin header on `POST /api/orders` |
+| `GMAIL_USER` | Restaurant Gmail address that sends email notifications (server only). Emails are skipped if unset. |
+| `GMAIL_APP_PASSWORD` | Gmail App Password for `GMAIL_USER` (server only). Emails are skipped if unset. |
+| `EMAIL_FROM_NAME` | Optional sender display name for email notifications (defaults to "Cook Connect") |
 
 Optional (have defaults or fallbacks in code):
 

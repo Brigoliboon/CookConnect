@@ -9,7 +9,7 @@ import { useNotifications } from "@/hooks/useNotifications"
 import { useNavCounts } from "@/hooks/useNavCounts"
 import { NAV_ITEMS } from "@/constants"
 import { Button } from "@/components/ui"
-import { Menu, X, LayoutDashboard, Users, ClipboardList, Truck, UserPlus, MapPin, UserCircle, Utensils, Receipt, Bell, BellOff, BellRing, CheckCheck, Inbox, ChefHat } from "lucide-react"
+import { Menu, X, LayoutDashboard, Users, ClipboardList, Truck, UserPlus, MapPin, UserCircle, Utensils, Receipt, Bell, BellOff, BellRing, CheckCheck, Inbox, ChefHat, Mail, MailX } from "lucide-react"
 import { enablePush, disablePush } from "@/lib/notifications/client"
 import type { AppNotification } from "@/lib/supabase/models"
 
@@ -56,6 +56,8 @@ export function Navbar({ visible }: { visible?: boolean }) {
   const [scrolled, setScrolled] = useState(false)
   const [pushOn, setPushOn] = useState(false)
   const [pushLoading, setPushLoading] = useState(false)
+  const [emailOn, setEmailOn] = useState(false)
+  const [emailLoading, setEmailLoading] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const notifRef = useRef<HTMLDivElement>(null)
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications(user?.role === "employee")
@@ -74,6 +76,10 @@ export function Navbar({ visible }: { visible?: boolean }) {
       const sub = await reg?.pushManager.getSubscription()
       setPushOn(!!sub)
     }).catch(() => {})
+    fetch("/api/notifications/email")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setEmailOn(Boolean(d?.enabled)))
+      .catch(() => {})
   }, [user?.role])
 
   useEffect(() => {
@@ -98,6 +104,20 @@ export function Navbar({ visible }: { visible?: boolean }) {
       setPushOn(pushOn ? !(await disablePush()) : await enablePush())
     } finally {
       setPushLoading(false)
+    }
+  }
+
+  const toggleEmail = async () => {
+    setEmailLoading(true)
+    try {
+      const res = await fetch("/api/notifications/email", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: !emailOn }),
+      })
+      if (res.ok) setEmailOn(Boolean((await res.json()).enabled))
+    } finally {
+      setEmailLoading(false)
     }
   }
 
@@ -254,6 +274,32 @@ export function Navbar({ visible }: { visible?: boolean }) {
                     >
                       <span className={`absolute top-0.5 size-4 rounded-full bg-white shadow transition-all ${
                         pushOn ? "left-[18px]" : "left-0.5"
+                      }`} />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-neutral-100 bg-neutral-50 px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      {emailOn ? <Mail size={14} className="text-brand-900" /> : <MailX size={14} className="text-neutral-500" />}
+                      <div>
+                        <p className="text-xs font-semibold text-neutral-800">Email notifications</p>
+                        <p className="text-[10px] text-neutral-500">
+                          {emailOn ? "New orders and subscription inquiries" : "Disabled"}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={toggleEmail}
+                      disabled={emailLoading}
+                      role="switch"
+                      aria-checked={emailOn}
+                      aria-label="Toggle email notifications"
+                      className={`relative h-5 w-9 rounded-full transition-colors disabled:opacity-50 ${
+                        emailOn ? "bg-brand-900" : "bg-neutral-300"
+                      }`}
+                    >
+                      <span className={`absolute top-0.5 size-4 rounded-full bg-white shadow transition-all ${
+                        emailOn ? "left-[18px]" : "left-0.5"
                       }`} />
                     </button>
                   </div>
