@@ -207,13 +207,34 @@ export function EmployeeShell({ children }: { children: React.ReactNode }) {
   const counts = useNavCounts(true)
   const fullBleed = FULL_BLEED_PATHS.some((re) => re.test(pathname))
 
+  useEffect(() => {
+    const html = document.documentElement
+    const { body } = document
+    const previous = {
+      htmlOverflow: html.style.overflow,
+      bodyOverflow: body.style.overflow,
+      htmlOverscroll: html.style.overscrollBehavior,
+      bodyOverscroll: body.style.overscrollBehavior,
+    }
+    html.style.overflow = "hidden"
+    body.style.overflow = "hidden"
+    html.style.overscrollBehavior = "none"
+    body.style.overscrollBehavior = "none"
+    return () => {
+      html.style.overflow = previous.htmlOverflow
+      body.style.overflow = previous.bodyOverflow
+      html.style.overscrollBehavior = previous.htmlOverscroll
+      body.style.overscrollBehavior = previous.bodyOverscroll
+    }
+  }, [])
+
   return (
     <div
-      className="flex h-dvh min-h-0 w-full flex-1 overflow-hidden bg-[#F8FAFC] text-[#1E293B]"
+      className="fixed inset-0 flex h-dvh w-full overflow-hidden overscroll-none bg-[#F8FAFC] text-[#1E293B]"
       style={{ fontFamily: "var(--font-inter), ui-sans-serif, system-ui, sans-serif" }}
     >
       <aside
-        className="hidden w-24 shrink-0 flex-col items-stretch bg-[#F8FAFC] px-2.5 py-5 md:flex"
+        className="hidden h-full w-24 shrink-0 flex-col items-stretch bg-[#F8FAFC] px-2.5 py-5 md:flex"
         aria-label="Staff navigation"
       >
         <div className="mb-6 flex h-12 items-center justify-center">
@@ -231,7 +252,7 @@ export function EmployeeShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
         <header className="flex h-14 shrink-0 items-center gap-3 border-b border-[#E2E8F0] bg-[#F8FAFC] px-4 md:h-16 md:gap-4 md:px-8">
           <Link href="/employee" className="flex items-center gap-2 md:hidden" aria-label="CookConnect dashboard">
             <BrandMark size="sm" />
@@ -245,8 +266,8 @@ export function EmployeeShell({ children }: { children: React.ReactNode }) {
         <main
           className={
             fullBleed
-              ? "min-h-0 flex-1 overflow-y-auto"
-              : "min-h-0 flex-1 overflow-y-auto p-6"
+              ? "min-h-0 flex-1 overflow-y-auto overscroll-contain"
+              : "min-h-0 flex-1 overflow-y-auto overscroll-contain p-6"
           }
         >
           {children}
