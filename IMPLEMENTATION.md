@@ -148,6 +148,7 @@ These were unverified in the 2026-11-17 audit. Do not tick them from memory; con
 
 Newest first. Times are Asia/Manila (UTC+8).
 
+- 2026-11-22 17:20: Employee Orders redesign on `feat/employee-orders`: status tabs Inquiry, Confirmed, Preparing, Ready, Completed and Cancelled with counts; no All tab; `out_for_delivery` orders are hidden (Deliveries owns them); Completed defaults to the last 7 days; cards use one next-step button plus a ⋯ menu; details open in a side panel (bottom sheet on phone). Existing fetch and status-update APIs are unchanged aside from optional `counts` and `since` query params.
 - 2026-11-22 16:55: Employee navigation shell on `feat/employee-shell`: icon rail on tablet/desktop, bottom tabs on phone, and a More page (Deliveries, Customers, Meals, Subscription plans, and Accounts are live; Renewals and Settings are Coming soon). Meals is also listed under More so phone users can reach the catalog. Existing employee pages render inside the new shell unchanged. Customer and rider chrome are unchanged.
 - 2026-11-21 23:01: M14 email notifications built on `feat/m14-email-notifications`: Gmail SMTP emails to opted-in employees on a new order and a new subscription inquiry, plus an "Email notifications" toggle in the staff notifications menu. Needs the new migration applied and the Gmail env vars set on Vercel.
 - 2026-11-21 22:27: Boon reordered the open milestones by priority: M9 Meals, M10 Ordering and subscribing, M11 Employee, M12 Rider (re-test only), M13 Customer area, M14 Email notifications, M15 Verification.
