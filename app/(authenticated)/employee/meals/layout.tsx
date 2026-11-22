@@ -1,9 +1,19 @@
-import { MealsSectionNav } from "./MealsSectionNav"
+"use client"
 
-export default function MealsLayout({ children }: { children: React.ReactNode }) {
+import { usePathname } from "next/navigation"
+import type { ReactNode } from "react"
+import { MealsSectionNav } from "@/components/meals/MealsSectionNav"
+
+export default function MealsLayout({ children }: { children: ReactNode }) {
+  const pathname = usePathname()
+  // The Menu page renders the tabs under its own heading.
+  if (pathname === "/employee/meals") return children
+
   return (
-    <div className="space-y-4">
-      <MealsSectionNav />
+    <div>
+      <div className="mb-4">
+        <MealsSectionNav />
+      </div>
       {children}
     </div>
   )
