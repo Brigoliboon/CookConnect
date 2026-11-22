@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   BadgeCheck,
@@ -12,7 +12,6 @@ import {
   CircleAlert,
   CircleDollarSign,
   CircleOff,
-  Inbox,
   ListFilter,
   Mail,
   MapPin,
@@ -25,60 +24,28 @@ import {
   StickyNote,
   Truck,
   User,
+  Users,
   Utensils,
   Wallet,
   X,
   type LucideIcon,
 } from "lucide-react"
+import { DetailSheet } from "@/components/subscriptions/DetailSheet"
+import {
+  displayContact,
+  displayName,
+  lifecycleOf,
+  planLabel,
+  type Lifecycle,
+  type SubscriptionListItem,
+} from "@/components/subscriptions/helpers"
+import { SubscriptionRow } from "@/components/subscriptions/SubscriptionRow"
 import { isIngredientUuid, restrictionDisplayItems, restrictionMatchFromDetails } from "@/lib/subscription/restrictions"
 import { Button } from "./Button"
 import { ConfirmDialog } from "./ConfirmDialog"
 import { Modal } from "./Modal"
-import type { SubscriptionStatus } from "@/lib/supabase/models"
 
-type Lifecycle = "active" | "paused" | "depleted" | "cancelled"
 type PayState = "paid" | "partial" | "unpaid" | "unknown"
-
-interface SubscriptionRow {
-  id: string
-  customer_name?: string
-  customer_email?: string
-  details: Record<string, unknown>
-  status: SubscriptionStatus
-  paused_at?: string | null
-  remaining_meal_count?: number | null
-  created_at: string
-  expires_at?: string
-  plan?: { id: string; name: string; validity_days: number } | null
-}
-
-function displayName(s: SubscriptionRow) {
-  return s.customer_name ?? (s.details?.name as string | undefined) ?? "Guest"
-}
-
-function displayContact(s: SubscriptionRow) {
-  return (
-    (s.details?.mobile_number as string | undefined)
-    ?? s.customer_email
-    ?? (s.details?.email as string | undefined)
-    ?? ""
-  )
-}
-
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-  const letters = ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase()
-  return letters || "?"
-}
-
-function lifecycleOf(s: SubscriptionRow): Lifecycle {
-  if (s.status === "cancelled") return "cancelled"
-  if (s.paused_at) return "paused"
-  if (s.remaining_meal_count !== undefined && s.remaining_meal_count !== null && s.remaining_meal_count <= 0) {
-    return "depleted"
-  }
-  return "active"
-}
 
 function payStateOf(paid: number | undefined, total: number | null | undefined): PayState {
   if (total === undefined || total === null) return "unknown"
@@ -87,21 +54,11 @@ function payStateOf(paid: number | undefined, total: number | null | undefined):
   return "paid"
 }
 
-function planLabel(s: SubscriptionRow) {
-  return String(s.details?.planName ?? s.plan?.name ?? s.details?.planId ?? "—")
-}
-
-function mealsPerDay(s: SubscriptionRow) {
+function mealsPerDay(s: SubscriptionListItem) {
   const value = s.details?.mealsPerDay
   return typeof value === "number" ? value : 1
 }
 
-function statusClass(life: Lifecycle) {
-  if (life === "paused") return "bg-neutral-200 text-neutral-800"
-  if (life === "depleted") return "bg-neutral-200 text-neutral-700"
-  if (life === "cancelled") return "bg-neutral-100 text-neutral-700"
-  return "bg-neutral-100 text-neutral-800"
-}
 
 const STATUS_ICON: Record<Lifecycle, LucideIcon> = {
   active: CheckCircle2,
@@ -117,27 +74,10 @@ const PAY_ICON: Record<PayState, LucideIcon> = {
   unknown: Wallet,
 }
 
-function Meta({
-  icon: Icon,
-  title,
-  children,
-}: {
-  icon: LucideIcon
-  title: string
-  children: ReactNode
-}) {
-  return (
-    <span title={title} className="inline-flex min-w-0 items-center gap-1.5 text-sm font-medium text-neutral-700">
-      <Icon size={14} strokeWidth={2.25} className="shrink-0 text-neutral-800" />
-      <span className="truncate">{children}</span>
-    </span>
-  )
-}
-
 interface SubscriptionDialogProps {
   open?: boolean
   onClose?: () => void
-  subscriptions: SubscriptionRow[]
+  subscriptions: SubscriptionListItem[]
   loading?: boolean
   onCancel: (id: string) => Promise<void>
   onPause?: (id: string) => Promise<void>
@@ -197,7 +137,7 @@ export function SubscriptionDialog({
   onUpdated,
 }: SubscriptionDialogProps) {
   const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState<"all" | Lifecycle>("all")
+  const [statusFilter, setStatusFilter] = useState<"all" | Lifecycle>(inline ? "active" : "all")
   const [payFilter, setPayFilter] = useState<"all" | Exclude<PayState, "unknown">>("all")
   const [planFilter, setPlanFilter] = useState("all")
   const [deliveryFilter, setDeliveryFilter] = useState<"all" | "on-call" | "scheduled">("all")
@@ -237,10 +177,10 @@ export function SubscriptionDialog({
     return { status, pay }
   }, [subscriptions, payments])
 
-  function openDetails(sub: SubscriptionRow) {
+  function openDetails(sub: SubscriptionListItem) {
     const d = sub.details ?? {}
     setEditName(String(d.name ?? displayName(sub)))
-    setEditEmail(String(d.email ?? sub.customer_email ?? ""))
+    setEditEmail(String(d.email ?? sub.customer_email ?? sub.customer?.email ?? ""))
     setEditMobile(String(d.mobile_number ?? ""))
     setEditAddress(String(d.address ?? ""))
     setSaveError("")
@@ -524,114 +464,25 @@ export function SubscriptionDialog({
     </div>
   )
 
-  const listBody = loading ? (
-    <div className="divide-y divide-neutral-100">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-3 py-3">
-          <div className="size-9 shrink-0 animate-pulse rounded-full bg-neutral-200" />
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="h-3.5 w-40 animate-pulse rounded bg-neutral-200" />
-            <div className="h-3 w-64 animate-pulse rounded bg-neutral-100" />
-          </div>
-        </div>
-      ))}
-    </div>
+  const listBody = loading && subscriptions.length === 0 ? (
+    <p className="py-12 text-center text-sm text-[#475569]">Loading subscriptions...</p>
   ) : filtered.length === 0 ? (
-    <div className="py-16 text-center">
-      <BadgeX size={28} className="mx-auto mb-3 text-neutral-300" />
-      <p className="text-sm font-medium text-neutral-500">No subscriptions match these filters</p>
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#E2E8F0] bg-white py-20">
+      <BadgeX size={40} className="mb-3 text-[#CBD5E1]" />
+      <p className="text-sm font-medium text-[#475569]">No subscriptions match these filters</p>
     </div>
   ) : (
-    <div className="divide-y divide-neutral-100">
-      {filtered.map((sub) => {
-        const life = lifecycleOf(sub)
-        const name = displayName(sub)
-        const StatusIcon = STATUS_ICON[life]
-        const payment = payments?.[sub.id]
-        const pay = payStateOf(payment?.paid, payment?.total)
-        const PayIcon = PAY_ICON[pay]
-        const remaining = sub.remaining_meal_count
-        const onCall = Boolean(sub.details?.onCall)
-        const contact = displayContact(sub)
-        const payShort = pay === "paid" ? "Paid" : pay === "partial" ? "Partial" : pay === "unpaid" ? "Unpaid" : null
-
-        return (
-          <div
-            key={sub.id}
-            onClick={() => openDetails(sub)}
-            className={`-mx-6 cursor-pointer px-4 py-4 sm:px-6 ${
-              life === "cancelled" ? "opacity-60" : "hover:bg-neutral-50/80"
-            }`}
-          >
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-xs font-bold text-white">
-                {initials(name)}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-                  <p className="truncate text-base font-semibold leading-snug text-neutral-900">{name}</p>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <span
-                      title={life}
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${statusClass(life)}`}
-                    >
-                      <StatusIcon size={13} strokeWidth={2.25} />
-                      {life}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 text-sm font-semibold tabular-nums text-neutral-900" title="Meals remaining">
-                      <Utensils size={14} strokeWidth={2.25} />
-                      {remaining === undefined || remaining === null ? "—" : remaining}
-                    </span>
-                  </div>
-                </div>
-                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5">
-                  <Meta icon={Utensils} title="Plan">{planLabel(sub)}</Meta>
-                  {contact && <Meta icon={Phone} title="Contact">{contact}</Meta>}
-                  {payShort && <Meta icon={PayIcon} title="Payment">{payShort}</Meta>}
-                  {onCall && <Meta icon={PhoneCall} title="Delivery">On-call</Meta>}
-                </div>
-              </div>
-              {sub.status === "active" && (
-                <div className="flex shrink-0 items-center gap-2 self-center" onClick={(e) => e.stopPropagation()}>
-                  {!sub.paused_at && onPause && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setPauseTarget({ id: sub.id, action: "pause" })}
-                      aria-label="Pause"
-                      title="Pause"
-                    >
-                      <Pause size={14} />
-                      <span className="hidden sm:inline">Pause</span>
-                    </Button>
-                  )}
-                  {sub.paused_at && onResume && (
-                    <Button
-                      size="sm"
-                      onClick={() => setPauseTarget({ id: sub.id, action: "resume" })}
-                      aria-label="Resume"
-                      title="Resume"
-                    >
-                      <Play size={14} />
-                      <span className="hidden sm:inline">Resume</span>
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="danger"
-                    onClick={() => setCancelTarget(sub.id)}
-                    aria-label="Cancel"
-                    title="Cancel"
-                  >
-                    <Ban size={14} />
-                    <span className="hidden sm:inline">Cancel</span>
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-        )
-      })}
+    <div className="rounded-2xl border border-[#E2E8F0] bg-white px-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.06)] md:px-6">
+      {filtered.map((sub) => (
+        <SubscriptionRow
+          key={sub.id}
+          sub={sub}
+          onOpen={openDetails}
+          onPause={onPause ? (id) => setPauseTarget({ id, action: "pause" }) : undefined}
+          onResume={onResume ? (id) => setPauseTarget({ id, action: "resume" }) : undefined}
+          onCancel={(id) => setCancelTarget(id)}
+        />
+      ))}
     </div>
   )
 
@@ -668,10 +519,8 @@ export function SubscriptionDialog({
     label: ingNames[item.key] ?? item.label,
   }))
 
-  const detailDialog = (
-    <Modal open={!!detail} onClose={() => setDetailId(null)} title={detail ? displayName(detail) : "Subscription"}>
-      {detail && (
-        <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1 text-sm">
+  const detailBody = detail ? (
+        <div className="space-y-4 text-sm">
           <div className="flex items-center justify-between gap-3 rounded-xl bg-neutral-900 p-4 text-white">
             <div className="min-w-0">
               <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/60">
@@ -816,50 +665,72 @@ export function SubscriptionDialog({
             </div>
           ) : null}
         </div>
+  ) : null
+
+  const detailFooter = detail && detail.status === "active" ? (
+    <div className="flex flex-wrap gap-2">
+      {!detail.paused_at && onPause && (
+        <Button
+          variant="outline"
+          className="flex-1"
+          onClick={() => setPauseTarget({ id: detail.id, action: "pause" })}
+        >
+          <Pause size={14} />
+          Pause
+        </Button>
       )}
+      {detail.paused_at && onResume && (
+        <Button
+          className="flex-1"
+          onClick={() => setPauseTarget({ id: detail.id, action: "resume" })}
+        >
+          <Play size={14} />
+          Resume
+        </Button>
+      )}
+      <Button
+        variant="danger"
+        className="flex-1"
+        onClick={() => setCancelTarget(detail.id)}
+      >
+        <Ban size={14} />
+        Cancel
+      </Button>
+    </div>
+  ) : null
+
+  const detailDialog = inline ? (
+    detail ? (
+      <DetailSheet
+        title={displayName(detail)}
+        titleId="subscription-detail-title"
+        onClose={() => setDetailId(null)}
+        footer={detailFooter}
+      >
+        {detailBody}
+      </DetailSheet>
+    ) : null
+  ) : (
+    <Modal open={!!detail} onClose={() => setDetailId(null)} title={detail ? displayName(detail) : "Subscription"}>
+      {detailBody ? <div className="max-h-[70vh] overflow-y-auto pr-1">{detailBody}</div> : null}
     </Modal>
   )
 
-  const stats = (
-    <div className="grid grid-cols-3 gap-3">
-      {[
-        { label: "Active", value: counts.status.active, icon: CheckCircle2 },
-        { label: "Paused", value: counts.status.paused, icon: Pause },
-        { label: "Unpaid", value: counts.pay.unpaid, icon: CircleAlert },
-      ].map((s) => (
-        <div key={s.label} className="rounded-2xl border border-neutral-200/60 bg-white/80 p-4 text-center backdrop-blur-sm">
-          <p className="text-2xl font-bold tabular-nums text-neutral-900">{s.value}</p>
-          <p className="mt-1 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-neutral-700">
-            <s.icon size={12} />
-            {s.label}
-          </p>
-        </div>
-      ))}
-    </div>
+  const listFooter = (
+    <p className="mt-4 flex items-center gap-2 text-xs text-[#475569]">
+      <Users size={18} strokeWidth={1.75} />
+      {filtered.length === subscriptions.length
+        ? `${filtered.length} subscription${filtered.length === 1 ? "" : "s"}`
+        : `${filtered.length} of ${subscriptions.length} subscriptions`}
+    </p>
   )
 
   if (inline) {
     return (
       <>
-        {stats}
-        <div className="-mx-6 bg-white">
-          <div className="flex flex-wrap items-end justify-between gap-3 px-6 py-4">
-            <div>
-              <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-600">
-                <Inbox size={12} /> Directory
-              </p>
-              <h2 className="mt-0.5 text-2xl font-bold tracking-tight text-neutral-900">Subscriptions</h2>
-              <p className="mt-1 text-sm text-neutral-500">
-                <span className="font-semibold text-neutral-900">{filtered.length}</span>
-                {filtered.length === 1 ? " match" : " matches"}
-                <span className="mx-1.5 text-neutral-300">·</span>
-                <span className="font-semibold text-neutral-900">{subscriptions.length}</span> total
-              </p>
-            </div>
-          </div>
-          <div className="px-6 pb-4">{filters}</div>
-          <div className="px-6 pb-6">{listBody}</div>
-        </div>
+        <div className="mb-4">{filters}</div>
+        {listBody}
+        {!(loading && subscriptions.length === 0) && filtered.length > 0 ? listFooter : null}
         {confirmDialog}
         {detailDialog}
       </>

@@ -148,6 +148,7 @@ These were unverified in the 2026-11-17 audit. Do not tick them from memory; con
 
 Newest first. Times are Asia/Manila (UTC+8).
 
+- 2026-11-22 18:36: Employee Subscriptions redesign on `feat/employee-subscriptions`: Active and Inquiries tabs with counts; one row per subscription (plan, days left, Renewal due soon from `expires_at`); details open in a side panel (bottom sheet on phone); pause, resume, cancel, payments, invite, CSV, and approve/decline kept. No new APIs or migrations.
 - 2026-11-22 18:10: Employee Meals redesign on `feat/employee-meals`: one row per meal with an enable switch and a ⋯ menu (view, edit, delete); category chips, search, and CSV tools kept; New Meal and existing recipe APIs unchanged (`is_active` already backed the toggle).
 - 2026-11-22 17:45: Fix employee shell scrolling on `fix/shell-scroll`: the icon rail, header and phone tab bar stay locked to the viewport (`fixed inset-0 h-dvh overflow-hidden`); only the main content area scrolls.
 - 2026-11-22 17:20: Employee Orders redesign on `feat/employee-orders`: status tabs Inquiry, Confirmed, Preparing, Ready, Completed and Cancelled with counts; no All tab; `out_for_delivery` orders are hidden (Deliveries owns them); Completed defaults to the last 7 days; cards use one next-step button plus a ⋯ menu; details open in a side panel (bottom sheet on phone). Existing fetch and status-update APIs are unchanged aside from optional `counts` and `since` query params.
