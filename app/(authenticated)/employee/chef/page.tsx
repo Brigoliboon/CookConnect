@@ -1,9 +1,20 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
+import { createPortal } from "react-dom"
 import Image from "next/image"
-import { motion } from "framer-motion"
 import { Button } from "@/components/ui"
+import {
+  avatarTone,
+  foodTone,
+  formatLongDate,
+  formatMonthYear,
+  initials,
+  parseISODate,
+  slotLabel,
+  weekDates,
+  weekdayShort,
+} from "@/components/chef/helpers"
 import { imageThumb } from "@/lib/images"
 import { proteinBuckets, type ProteinAllowance } from "@/lib/chef/credits"
 import { autoFillDay, type AutoFillResult, type SuggestedStandard } from "@/lib/chef/autoFill"
@@ -25,20 +36,7 @@ import {
   weekdayOf,
 } from "@/lib/chef/day"
 import type { DailyStandard } from "@/lib/supabase/models"
-import { CalendarDays, Check, CheckCircle2, ChefHat, ChevronDown, ChevronLeft, ChevronRight, Clock, Flame, Search, Sun, Sunrise, Sunset, X } from "lucide-react"
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08 },
-  },
-}
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: { opacity: 1, y: 0 },
-}
+import { CalendarDays, Check, ChefHat, ChevronDown, ChevronLeft, ChevronRight, Clock, CookingPot, Search, Sun, Sunrise, Sunset, TriangleAlert, Users, Utensils, UtensilsCrossed, X } from "lucide-react"
 
 const RECIPE_PAGE = 100
 const SUB_RECIPE_QS = "is_active=true&is_subscription_included=true"
@@ -148,11 +146,6 @@ function aggregateCookList(
   })
 }
 
-function weekdayLabel(iso: string): string {
-  const w = weekdayOf(iso)
-  return w.charAt(0).toUpperCase() + w.slice(1)
-}
-
 function CookListGrid({ dishes }: { dishes: CookDish[] }) {
   if (dishes.length === 0) return null
   return (
@@ -219,6 +212,7 @@ export default function EmployeeChefPage() {
   const [autofilling, setAutofilling] = useState(false)
   const [applying, setApplying] = useState(false)
   const [doneBusy, setDoneBusy] = useState<Set<string>>(new Set())
+  const [showAllUnpicked, setShowAllUnpicked] = useState(false)
 
   function fetchRecipes() {
     setMealsLoading(true)
@@ -291,11 +285,6 @@ export default function EmployeeChefPage() {
         recipeById,
       ),
     [picks, recipeById],
-  )
-
-  const assignedCount = useMemo(
-    () => daySubs.filter((s) => (picksBySub.get(s.id)?.size ?? 0) > 0).length,
-    [daySubs, picksBySub],
   )
 
   const reviewBatch = useMemo(() => {
@@ -482,6 +471,9 @@ export default function EmployeeChefPage() {
         rows.filter((p) => p.subscription_id === subId && p.counts_toward_entitlement !== false).length
       const prevCount = entitlementOf(picks)
       setPicks((prev) => [...prev.filter((p) => p.subscription_id !== subId), ...data])
+      if (selected === today) {
+        setTodayPicks((prev) => [...prev.filter((p) => p.subscription_id !== subId), ...data])
+      }
       setSubs((prev) =>
         prev.map((s) =>
           s.id === subId && s.remaining_meal_count !== null
@@ -663,6 +655,9 @@ export default function EmployeeChefPage() {
       const countEntitlement = (rows: PickRow[], subId: string) =>
         rows.filter((p) => p.subscription_id === subId && p.counts_toward_entitlement !== false).length
       setPicks((prev) => [...prev.filter((p) => !ids.has(p.subscription_id)), ...data])
+      if (selected === today) {
+        setTodayPicks((prev) => [...prev.filter((p) => !ids.has(p.subscription_id)), ...data])
+      }
       setSubs((prev) =>
         prev.map((s) => {
           if (!ids.has(s.id) || s.remaining_meal_count === null) return s
@@ -680,383 +675,464 @@ export default function EmployeeChefPage() {
     }
   }
 
-  const firstDay = new Date(month.y, month.m, 1).getDay()
-  const daysInMonth = new Date(month.y, month.m + 1, 0).getDate()
-  const cells: (number | null)[] = [...Array(firstDay).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)]
+  const week = weekDates(selected)
 
-  function shiftMonth(delta: number) {
-    setMonth((p) => {
-      const d = new Date(p.y, p.m + delta, 1)
-      return { y: d.getFullYear(), m: d.getMonth() }
-    })
+  function selectDate(iso: string) {
+    setSelected(iso)
+    const date = parseISODate(iso)
+    setMonth({ y: date.getFullYear(), m: date.getMonth() })
   }
 
+  function shiftWeek(delta: number) {
+    selectDate(addCalendarDays(selected, delta * 7))
+  }
+
+  function onMonthChange(value: string) {
+    if (!value) return
+    const [year, monthNumber] = value.split("-").map(Number)
+    const currentDay = parseISODate(selected).getDate()
+    const lastDay = new Date(year, monthNumber, 0).getDate()
+    selectDate(toISODate(new Date(year, monthNumber - 1, Math.min(currentDay, lastDay))))
+  }
+
+  const unpickedVisible = showAllUnpicked ? todayUnpicked : todayUnpicked.slice(0, 5)
+
   return (
-    <motion.div className="space-y-8" variants={containerVariants} initial="hidden" animate="visible">
-      <motion.div variants={itemVariants}>
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-600 text-white shadow-lg">
-              {tab === "today" ? <Flame size={20} /> : <ChefHat size={20} />}
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-neutral-900">
-                {tab === "today" ? "To Cook Today" : "Chef Schedule"}
-              </h1>
-              <p className="text-sm text-neutral-500">
-                {tab === "today" ? "Everything the kitchen must cook today" : "Pick a day, suggest meals, review, then apply"}
-              </p>
-            </div>
-          </div>
-          <div className="grid w-full grid-cols-2 gap-1 rounded-2xl bg-neutral-100 p-1 sm:w-auto">
-            <button
-              onClick={() => setTab("schedule")}
-              className={`flex items-center justify-center gap-1.5 rounded-xl px-5 py-2 text-sm font-semibold transition-all ${tab === "schedule" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-800"}`}
-            >
-              <CalendarDays size={14} /> Schedule
-            </button>
-            <button
-              onClick={() => setTab("today")}
-              className={`flex items-center justify-center gap-1.5 rounded-xl px-5 py-2 text-sm font-semibold transition-all ${tab === "today" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-800"}`}
-            >
-              <Flame size={14} /> To Cook Today
-            </button>
-          </div>
+    <div>
+      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <h1 className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-[#0F172A] md:text-2xl">
+            <ChefHat size={22} className="text-[#475569]" />
+            Chef
+          </h1>
+          <p className="mt-2 text-sm text-[#475569] md:text-base">
+            {tab === "today" ? "Today's cook list, by time of day" : "Pick a day, suggest meals, review, then apply"}
+          </p>
         </div>
-      </motion.div>
+        <div className="flex rounded-full bg-[#F1F5F9] p-1" role="tablist" aria-label="Chef views">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "schedule"}
+            onClick={() => setTab("schedule")}
+            className={`inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-full px-4 text-sm whitespace-nowrap transition-colors md:flex-none ${
+              tab === "schedule" ? "bg-[#1E293B] font-semibold text-[#F8FAFC]" : "font-medium text-[#475569]"
+            }`}
+          >
+            <CalendarDays size={16} />
+            Schedule
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "today"}
+            onClick={() => setTab("today")}
+            className={`inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-full px-4 text-sm whitespace-nowrap transition-colors md:flex-none ${
+              tab === "today" ? "bg-[#1E293B] font-semibold text-[#F8FAFC]" : "font-medium text-[#475569]"
+            }`}
+          >
+            <UtensilsCrossed size={16} />
+            To Cook Today
+          </button>
+        </div>
+      </div>
+
+      {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
 
       {tab === "schedule" ? (
-      <>
-      <motion.div variants={itemVariants}>
-        <div className="rounded-2xl border border-neutral-200/60 bg-white/80 p-6 backdrop-blur-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <Button variant="outline" onClick={() => shiftMonth(-1)} aria-label="Previous month">
-              <ChevronLeft size={16} />
-            </Button>
-            <p className="font-semibold text-neutral-900">
-              {new Date(month.y, month.m, 1).toLocaleString("default", { month: "long", year: "numeric" })}
+        <>
+          <div className="mb-4">
+            <div className="mb-2 flex items-center gap-2">
+              <button type="button" aria-label="Previous week" onClick={() => shiftWeek(-1)} className="flex size-11 items-center justify-center rounded-xl text-[#475569] transition-colors hover:bg-[#F1F5F9]">
+                <ChevronLeft size={20} />
+              </button>
+              <label className="relative inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl px-3 font-semibold text-[#0F172A] hover:bg-[#F1F5F9]">
+                <CalendarDays size={18} className="text-[#475569]" />
+                <span>{formatMonthYear(selected)}</span>
+                <ChevronDown size={16} className="text-[#475569]" />
+                <input
+                  type="month"
+                  aria-label="Open full calendar"
+                  value={`${month.y}-${String(month.m + 1).padStart(2, "0")}`}
+                  onChange={(event) => onMonthChange(event.target.value)}
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                />
+              </label>
+              <div className="flex-1" />
+              <button
+                type="button"
+                onClick={() => selectDate(today)}
+                className="h-11 rounded-full bg-[#F1F5F9] px-3.5 text-sm font-semibold text-[#1E293B] transition-colors hover:bg-[#E2E8F0]"
+              >
+                Today
+              </button>
+              <button type="button" aria-label="Next week" onClick={() => shiftWeek(1)} className="flex size-11 items-center justify-center rounded-xl text-[#475569] transition-colors hover:bg-[#F1F5F9]">
+                <ChevronRight size={20} />
+              </button>
+            </div>
+            <div className="flex gap-1.5 md:gap-2">
+              {week.map((iso) => {
+                const selectedDay = iso === selected
+                const isToday = iso === today
+                return (
+                  <button
+                    key={iso}
+                    type="button"
+                    aria-pressed={selectedDay}
+                    aria-label={`${weekdayShort(iso)} ${parseISODate(iso).getDate()}${isToday ? ", today" : ""}${selectedDay ? ", selected" : ""}`}
+                    onClick={() => selectDate(iso)}
+                    className={`flex h-14 min-w-0 flex-1 flex-col items-center justify-center rounded-xl border py-1 ${
+                      selectedDay
+                        ? "border-[#DCFCE7] bg-[#DCFCE7] text-[#14532D]"
+                        : "border-[#E2E8F0] bg-white text-[#0F172A] hover:bg-[#F8FAFC]"
+                    }`}
+                  >
+                    <span className="text-[11px] font-medium leading-none">{weekdayShort(iso)}</span>
+                    <span className="mt-1 text-base font-semibold leading-none tabular-nums">{parseISODate(iso).getDate()}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.06)] md:flex-row md:items-center md:justify-between md:p-5">
+            <div className="min-w-0">
+              <p className="text-lg font-semibold tracking-tight text-[#0F172A]">{formatLongDate(selected)}</p>
+              <p className="mt-1.5 flex items-center gap-2 text-[15px] text-[#475569]">
+                <Users size={16} />
+                {daySubs.length} customer{daySubs.length !== 1 ? "s" : ""} scheduled
+              </p>
+              <p className="mt-2 flex flex-wrap items-center gap-1.5 text-sm text-[#475569]">
+                <span className="inline-flex size-5 items-center justify-center rounded-full bg-[#F1F5F9] text-[11px] font-semibold text-[#334155]">1</span>
+                Suggest
+                <ChevronRight size={14} className="text-[#CBD5E1]" />
+                <span className="inline-flex size-5 items-center justify-center rounded-full bg-[#F1F5F9] text-[11px] font-semibold text-[#334155]">2</span>
+                Review
+                <ChevronRight size={14} className="text-[#CBD5E1]" />
+                <span className="inline-flex size-5 items-center justify-center rounded-full bg-[#F1F5F9] text-[11px] font-semibold text-[#334155]">3</span>
+                Apply
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={runAutoFill}
+              disabled={autofilling || daySubs.length === 0}
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#15803D] px-5 text-base font-semibold text-white transition-colors hover:bg-[#166534] disabled:opacity-50"
+            >
+              <Utensils size={18} />
+              {autofilling ? "Suggesting..." : dayBatch.length > 0 ? "Resuggest" : "Suggest meals"}
+            </button>
+          </div>
+
+          {daySubs.length === 0 ? (
+            <p className="text-sm text-[#475569]">
+              {weekdayOf(selected) === "friday"
+                ? "Closed on Fridays — Friday deliveries are prepared Thursday."
+                : "No subscribed customers for this day."}
             </p>
-            <Button variant="outline" onClick={() => shiftMonth(1)} aria-label="Next month">
-              <ChevronRight size={16} />
-            </Button>
-          </div>
-          <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
-            {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
-              <span key={d} className="py-1">{d}</span>
-            ))}
-          </div>
-          <div className="grid grid-cols-7 gap-1">
-            {cells.map((day, i) => {
-              if (!day) return <span key={`e-${i}`} />
-              const iso = toISODate(new Date(month.y, month.m, day))
-              const isActive = iso === selected
-              const isToday = iso === today
+          ) : (
+            <div>
+              <h2 className="flex items-center gap-2 text-sm font-semibold tracking-wide text-[#475569] uppercase">
+                <Utensils size={16} />
+                Plates
+              </h2>
+              <p className="mt-1 mb-3 text-sm text-[#475569]">
+                Each customer gets a slice of the batch. Edit only when a plate needs a swap.
+              </p>
+              <div className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.06)]">
+                {daySubs.map((sub) => {
+                  const picked = picksBySub.get(sub.id) ?? new Set<string>()
+                  const details = (sub.details ?? {}) as Record<string, unknown>
+                  const need = assignmentNeed(sub, selected)
+                  const target = need.totalCount
+                  const done = picked.size
+                  const complete = target > 0 ? done >= target : done > 0
+                  const restrictions = restrictionLabels(sub.details)
+                  const remaining = sub.remaining_meal_count ?? null
+                  const depleted = remaining !== null && remaining <= 0
+                  const name = customerName(sub)
+                  const tone = avatarTone(sub.id)
+                  const planName = (details.planName as string) ?? (sub.plan?.validity_days ? `${sub.plan.validity_days}-Day Meal Plan` : "Subscription")
+                  const extras = [
+                    preferredRecipeIds(sub.details).length > 0 ? "flexible" : "",
+                    need.breakfastCount > 0 ? "breakfast extra" : "",
+                    isDoubleThursday(sub, selected) ? "Thu+Fri" : isFridayDelivery(sub, selected) ? "Fri on Thu" : "",
+                  ].filter(Boolean)
+                  return (
+                    <div key={sub.id} className={`flex items-center gap-3 border-t border-[#F1F5F9] px-3 py-2 first:border-t-0 md:min-h-16 md:px-4 ${depleted ? "opacity-60" : ""}`}>
+                      <span className={`flex size-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${tone.bg} ${tone.text}`}>
+                        {initials(name)}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-base font-semibold text-[#0F172A]">{name}</p>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs font-medium text-[#475569]">
+                          <span className="inline-flex items-center gap-1">
+                            <CalendarDays size={12} />
+                            {planName}
+                          </span>
+                          {need.mealsPerDay > 0 && (
+                            <span className="inline-flex items-center gap-1">
+                              <Utensils size={12} />
+                              {need.mealsPerDay}/day
+                            </span>
+                          )}
+                          {remaining !== null && (
+                            <span className="inline-flex items-center gap-1">
+                              <Clock size={12} />
+                              {remaining} left
+                            </span>
+                          )}
+                          {extras.map((extra) => (
+                            <span key={extra} className="text-[#64748B]">{extra}</span>
+                          ))}
+                          {restrictions.length > 0 && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[#FEF3C7] px-2 py-0.5 font-medium text-[#92400E]">
+                              <TriangleAlert size={12} />
+                              Avoids: {restrictions.slice(0, 2).join(", ")}
+                              {restrictions.length > 2 ? ` +${restrictions.length - 2}` : ""}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span className={`inline-flex h-7 shrink-0 items-center rounded-full px-2.5 text-xs font-semibold ${
+                        depleted ? "bg-[#E2E8F0] text-[#64748B]"
+                        : complete ? "bg-[#DCFCE7] text-[#14532D]"
+                        : done > 0 ? "bg-[#FEF3C7] text-[#92400E]"
+                        : "bg-[#F1F5F9] text-[#334155]"
+                      }`}>
+                        {depleted ? "Depleted" : target > 0 ? `${Math.min(done, target)}/${target} set` : done > 0 ? `${done} set` : "0 set"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => openPicker(sub.id)}
+                        disabled={depleted}
+                        className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-[#DCFCE7] px-4 text-sm font-semibold text-[#14532D] transition-colors hover:bg-[#BBF7D0] disabled:opacity-40"
+                      >
+                        {depleted ? "None" : done > 0 ? "Edit" : "Set"}
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+              <p className="mt-2 flex items-center gap-2 text-sm text-[#475569]">
+                <Users size={16} />
+                {daySubs.length} plate{daySubs.length !== 1 ? "s" : ""}
+              </p>
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <div className="mb-4 grid grid-cols-3 gap-2 md:gap-3">
+            {[
+              { label: "Portions", value: filteredTodayPicks.length, icon: UtensilsCrossed },
+              { label: "Meals", value: todayByMeal.length, icon: Utensils },
+              { label: "Customers", value: todayCustomerIds.size, icon: Users },
+            ].map((stat) => {
+              const Icon = stat.icon
               return (
-                <button
-                  key={iso}
-                  onClick={() => setSelected(iso)}
-                  className={`relative rounded-lg py-2 text-sm font-medium transition-all ${
-                    isActive
-                      ? "bg-neutral-900 text-white"
-                      : isToday
-                        ? "bg-neutral-100 text-neutral-900 ring-1 ring-neutral-900"
-                        : "text-neutral-700 hover:bg-neutral-100"
-                  }`}
-                >
-                  {day}
-                  {isToday && !isActive && (
-                    <span className="absolute bottom-1 left-1/2 size-1 -translate-x-1/2 rounded-full bg-neutral-900" />
-                  )}
-                </button>
+                <div key={stat.label} className="rounded-2xl border border-[#E2E8F0] bg-white px-2 py-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)] md:px-4 md:py-4">
+                  <p className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-[#475569] uppercase">
+                    <Icon size={14} />
+                    {stat.label}
+                  </p>
+                  <p className="mt-1.5 text-xl font-semibold tracking-tight text-[#0F172A] tabular-nums md:text-[28px] md:leading-none">{stat.value}</p>
+                </div>
               )
             })}
           </div>
-          <div className="mt-4 flex items-center justify-between">
-            <p className="text-sm text-neutral-500">Selected: <span className="font-semibold text-neutral-900">{selected}</span></p>
-            <Button variant="outline" onClick={() => { setSelected(today); const n = new Date(); setMonth({ y: n.getFullYear(), m: n.getMonth() }) }}>
-              Today
-            </Button>
-          </div>
-        </div>
-      </motion.div>
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
-
-      <motion.div variants={itemVariants} className="-mx-6 -mb-6 bg-white">
-        <div className="flex flex-wrap items-end justify-between gap-3 px-6 py-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">Kitchen batch</p>
-            <h2 className="mt-0.5 text-2xl font-bold tracking-tight text-neutral-900">{weekdayLabel(selected)}</h2>
-            {dayBatch.length > 0 && (
-              <p className="mt-1 text-sm text-neutral-500">
-                <span className="font-semibold text-neutral-900">{dayBatch.length}</span> dish{dayBatch.length !== 1 ? "es" : ""}
-                <span className="mx-1.5 text-neutral-300">·</span>
-                <span className="font-semibold text-neutral-900">{picks.length}</span> portion{picks.length !== 1 ? "s" : ""}
-                <span className="mx-1.5 text-neutral-300">·</span>
-                <span className="font-semibold text-neutral-900">{assignedCount}</span>/{daySubs.length} assigned
-              </p>
-            )}
+          <div className="mb-4 flex rounded-full bg-[#F1F5F9] p-1" role="tablist" aria-label="Time of day">
+            {([
+              { id: "morning", icon: Sunrise },
+              { id: "noon", icon: Sun },
+              { id: "evening", icon: Sunset },
+            ] as const).map(({ id, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={slotFilter === id}
+                onClick={() => {
+                  setSlotFilter(id)
+                  setShowAllUnpicked(false)
+                }}
+                className={`inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-sm whitespace-nowrap transition-colors ${
+                  slotFilter === id ? "bg-[#1E293B] font-semibold text-[#F8FAFC]" : "font-medium text-[#475569]"
+                }`}
+              >
+                <Icon size={16} />
+                {slotLabel(id)}
+              </button>
+            ))}
           </div>
-          <Button onClick={runAutoFill} disabled={autofilling || daySubs.length === 0}>
-            {autofilling ? "Suggesting..." : dayBatch.length > 0 ? "Resuggest" : "Suggest meals"}
-          </Button>
-        </div>
-        {daySubs.length === 0 ? (
-          <p className="px-6 pb-4 text-sm text-neutral-500">
-            {weekdayOf(selected) === "friday"
-              ? "Closed on Fridays — Friday deliveries are prepared Thursday."
-              : "No subscribed customers for this day."}
-          </p>
-        ) : dayBatch.length === 0 ? (
-          <p className="px-6 pb-4 text-sm text-neutral-500">
-            {daySubs.length} customer{daySubs.length !== 1 ? "s" : ""} scheduled. Suggest meals to fill one batch.
-          </p>
-        ) : (
-          <div className="px-6 pb-4">
-            <CookListGrid dishes={dayBatch} />
-          </div>
-        )}
 
-      {daySubs.length > 0 && (
-        <>
-        <div className="px-6 pt-2">
-          <h2 className="text-lg font-semibold text-neutral-900">Plates</h2>
-          <p className="mt-0.5 text-xs text-neutral-500">Each customer gets a slice of the batch. Edit only when a plate needs a swap.</p>
-        </div>
-        <div className="mt-2 max-h-[min(22rem,50vh)] overflow-y-auto overscroll-contain px-6">
-          <div className="divide-y divide-neutral-100">
-          {daySubs.map((sub) => {
-            const picked = picksBySub.get(sub.id) ?? new Set<string>()
-            const details = (sub.details ?? {}) as Record<string, unknown>
-            const need = assignmentNeed(sub, selected)
-            const target = need.totalCount
-            const done = picked.size
-            const complete = target > 0 ? done >= target : done > 0
-            const partial = done > 0 && !complete
-            const restrictions = restrictionLabels(sub.details)
-            const remaining = sub.remaining_meal_count ?? null
-            const depleted = remaining !== null && remaining <= 0
-            const pickedRecipes = [...picked].map((rid) => recipeById.get(rid)).filter((r): r is RecipeRow => !!r)
-            const extras = [
-              preferredRecipeIds(sub.details).length > 0 ? "flexible" : "",
-              need.breakfastCount > 0 ? "breakfast extra" : "",
-              isDoubleThursday(sub, selected) ? "Thu+Fri" : isFridayDelivery(sub, selected) ? "Fri on Thu" : "",
-            ].filter(Boolean)
-            return (
-              <div key={sub.id} className={`flex items-center gap-3 py-3 first:pt-0 last:pb-0 ${depleted ? "opacity-60" : ""}`}>
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-xs font-bold text-white">
-                  {customerName(sub).slice(0, 1).toUpperCase()}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-neutral-900">{customerName(sub)}</p>
-                  <p className="mt-0.5 truncate text-xs text-neutral-500">
-                    {(details.planName as string) ?? "Subscription"}
-                    {need.mealsPerDay > 0 ? ` · ${need.mealsPerDay}/day` : ""}
-                    {extras.length > 0 ? ` · ${extras.join(" · ")}` : ""}
-                    {remaining !== null ? ` · ${remaining} left` : ""}
-                    {restrictions.length > 0 ? ` · avoids ${restrictions.slice(0, 2).join(", ")}${restrictions.length > 2 ? ` +${restrictions.length - 2}` : ""}` : ""}
+          <div className={todayUnpicked.length > 0 ? "md:grid md:grid-cols-[1.2fr_0.8fr] md:items-start md:gap-4" : ""}>
+            <div className="mb-6 md:mb-0">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="flex items-center gap-2 text-sm font-semibold tracking-wide text-[#475569] uppercase">
+                    <UtensilsCrossed size={16} />
+                    Meals to cook
+                  </h2>
+                  <p className="mt-1 text-sm text-[#64748B]">
+                    {formatLongDate(today)} · {slotLabel(slotFilter)}
                   </p>
                 </div>
-                {pickedRecipes.length > 0 && (
-                  <div className="hidden shrink-0 items-center sm:flex">
-                    {pickedRecipes.slice(0, 5).map((r, i) => (
-                      <div
-                        key={r.id}
-                        title={r.name}
-                        className="relative size-8 overflow-hidden rounded-full bg-neutral-200 ring-2 ring-white"
-                        style={{ marginLeft: i === 0 ? 0 : -8, zIndex: pickedRecipes.length - i }}
-                      >
-                        {r.image_path ? (
-                          <Image src={imageThumb(r.image_path)} alt={r.name} fill unoptimized sizes="32px" className="object-cover" loading="lazy" />
-                        ) : (
-                          <div className="flex size-full items-center justify-center text-neutral-400"><ChefHat size={12} /></div>
-                        )}
-                      </div>
-                    ))}
-                    {pickedRecipes.length > 5 && (
-                      <span className="ml-1 text-[11px] font-medium text-neutral-500">+{pickedRecipes.length - 5}</span>
-                    )}
-                  </div>
+                {filteredTodayPicks.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const allDone = filteredTodayPicks.every((p) => p.done_at)
+                      void setPicksDone(filteredTodayPicks.map((p) => p.id), !allDone)
+                    }}
+                    disabled={filteredTodayPicks.some((p) => doneBusy.has(p.id))}
+                    className="h-10 shrink-0 rounded-xl px-3 text-sm font-semibold text-[#166534] transition-colors hover:bg-[#DCFCE7] disabled:opacity-50"
+                  >
+                    {filteredTodayPicks.every((p) => p.done_at) ? "Reopen all" : "Mark all done"}
+                  </button>
                 )}
-                <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                  depleted ? "bg-neutral-200 text-neutral-500"
-                  : complete ? "bg-emerald-50 text-emerald-700"
-                  : partial ? "bg-amber-50 text-amber-700"
-                  : "bg-neutral-100 text-neutral-500"
-                }`}>
-                  {depleted ? "Depleted" : complete ? <CheckCircle2 size={12} /> : <Clock size={12} />}
-                  {!depleted && (target > 0 ? `${Math.min(done, target)}/${target}` : done > 0 ? `${done}` : "—")}
-                </span>
-                <Button size="sm" variant="outline" onClick={() => openPicker(sub.id)} disabled={depleted}>
-                  {depleted ? "None" : done > 0 ? "Edit" : "Set"}
-                </Button>
               </div>
-            )
-          })}
+              {todayByMeal.length > 0 ? (
+                <div className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.06)]">
+                  {todayByMeal.map(({ recipe, recipeId, count, done, customers, pickIds }) => {
+                    const allDone = done >= count
+                    const busy = pickIds.some((id) => doneBusy.has(id))
+                    const tone = foodTone(recipe?.category)
+                    return (
+                      <div key={recipeId} className="flex items-center gap-3 border-t border-[#F1F5F9] px-3 py-2 first:border-t-0 md:min-h-14 md:px-4">
+                        <div className={`relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl ${tone.bg} ${tone.text}`}>
+                          {recipe?.image_path ? (
+                            <Image src={imageThumb(recipe.image_path)} alt={recipe.name} fill unoptimized sizes="48px" className="object-cover" loading="lazy" />
+                          ) : (
+                            <Utensils size={20} />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-base font-semibold text-[#0F172A]">{recipe?.name ?? "Unknown meal"}</p>
+                          {customers.length > 0 && (
+                            <p className="truncate text-xs text-[#64748B]">{customers.join(", ")}</p>
+                          )}
+                        </div>
+                        <span className="shrink-0 text-base font-semibold tabular-nums text-[#0F172A]">×{count}</span>
+                        <button
+                          type="button"
+                          onClick={() => void setPicksDone(pickIds, !allDone)}
+                          disabled={busy}
+                          aria-label={allDone ? "Reopen meal" : "Mark meal done"}
+                          className={`inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl px-3.5 text-sm font-semibold transition-colors disabled:opacity-50 ${
+                            allDone ? "bg-[#DCFCE7] text-[#14532D]" : "bg-[#F1F5F9] text-[#334155] hover:bg-[#E2E8F0]"
+                          }`}
+                        >
+                          {busy ? (
+                            <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                          ) : (
+                            <>
+                              <Check size={16} />
+                              <span className="hidden sm:inline">{allDone ? "Done" : "Done"}</span>
+                              {allDone || done === 0 ? null : <span className="text-xs font-medium opacity-80">{done}/{count}</span>}
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-[#CBD5E1] bg-white px-4 py-8 text-center text-[#475569]">
+                  <CookingPot size={36} className="text-[#94A3B8]" />
+                  <p>Nothing scheduled to cook today</p>
+                  <button
+                    type="button"
+                    onClick={() => setTab("schedule")}
+                    className="inline-flex h-10 items-center gap-1.5 text-sm font-semibold text-[#166534]"
+                  >
+                    <CalendarDays size={16} />
+                    Open schedule
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {todayUnpicked.length > 0 && (
+              <div>
+                <h2 className="flex items-center gap-2 text-sm font-semibold tracking-wide text-[#475569] uppercase">
+                  <Clock size={16} />
+                  Still to pick ({todayUnpicked.length})
+                </h2>
+                <p className="mt-1 mb-3 text-sm text-[#64748B]">Customers without a plate for today</p>
+                <div className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.06)]">
+                  {unpickedVisible.map((sub) => {
+                    const name = customerName(sub)
+                    const tone = avatarTone(sub.id)
+                    return (
+                      <div key={sub.id} className="flex items-center gap-3 border-t border-[#F1F5F9] px-3 py-2 first:border-t-0 md:min-h-14 md:px-4">
+                        <span className={`flex size-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${tone.bg} ${tone.text}`}>
+                          {initials(name)}
+                        </span>
+                        <p className="min-w-0 flex-1 truncate text-base font-semibold text-[#0F172A]">{name}</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            selectDate(today)
+                            openPicker(sub.id)
+                          }}
+                          className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-[#DCFCE7] px-4 text-sm font-semibold text-[#14532D] hover:bg-[#BBF7D0]"
+                        >
+                          Set meals
+                        </button>
+                      </div>
+                    )
+                  })}
+                  {todayUnpicked.length > 5 && !showAllUnpicked && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllUnpicked(true)}
+                      className="flex h-11 w-full items-center justify-center gap-1.5 text-sm font-semibold text-[#166534]"
+                    >
+                      Show all {todayUnpicked.length}
+                      <ChevronRight size={16} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
         </>
       )}
-      </motion.div>
-      </>
-      ) : (
-      <>
-      <motion.div variants={itemVariants}>
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: "Portions", value: filteredTodayPicks.length },
-            { label: "Meals", value: todayByMeal.length },
-            { label: "Customers", value: todayCustomerIds.size },
-          ].map((s) => (
-            <div key={s.label} className="rounded-2xl border border-neutral-200/60 bg-white/80 p-4 text-center backdrop-blur-sm">
-              <p className="text-2xl font-bold text-neutral-900">{s.value}</p>
-              <p className="mt-0.5 text-xs font-medium uppercase tracking-wider text-neutral-500">{s.label}</p>
-            </div>
-          ))}
-        </div>
-        <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-          {([
-            { id: "morning", icon: Sunrise },
-            { id: "noon", icon: Sun },
-            { id: "evening", icon: Sunset },
-          ] as const).map(({ id, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setSlotFilter(id)}
-              className={`flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-1.5 text-xs font-semibold capitalize transition-all ${slotFilter === id ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400"}`}
-            >
-              <Icon size={14} />
-              {id}
-            </button>
-          ))}
-        </div>
-      </motion.div>
 
-      <motion.div variants={itemVariants}>
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-neutral-900">Meals to cook — {today}</h2>
-          {filteredTodayPicks.length > 0 && (
-            <Button
-              variant="outline"
-              onClick={() => {
-                const allDone = filteredTodayPicks.every((p) => p.done_at)
-                setPicksDone(
-                  filteredTodayPicks.map((p) => p.id),
-                  !allDone,
-                )
-              }}
-              disabled={filteredTodayPicks.some((p) => doneBusy.has(p.id))}
-            >
-              {filteredTodayPicks.every((p) => p.done_at) ? "Reopen all" : "Mark all done"}
-            </Button>
-          )}
-        </div>
-        {todayByMeal.length > 0 ? (
-          <div className="space-y-3">
-            {todayByMeal.map(({ recipe, recipeId, count, done, customers, pickIds }) => {
-              const allDone = done >= count
-              const busy = pickIds.some((id) => doneBusy.has(id))
-              return (
-              <div key={recipeId} className={`flex items-center gap-3 rounded-2xl border p-3 backdrop-blur-sm transition-colors ${allDone ? "border-emerald-200/70 bg-emerald-50/50" : "border-neutral-200/60 bg-white/80"}`}>
-                <div className="relative size-14 shrink-0 overflow-hidden rounded-xl bg-neutral-100">
-                  {recipe?.image_path ? (
-                    <Image src={imageThumb(recipe.image_path)} alt={recipe.name} fill unoptimized sizes="56px" className="object-cover" loading="lazy" />
-                  ) : (
-                    <div className="flex size-full items-center justify-center text-neutral-300"><ChefHat size={20} /></div>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-neutral-900">{recipe?.name ?? "Unknown meal"}</p>
-                  <p className="mt-0.5 truncate text-xs text-neutral-500">{customers.join(", ")}</p>
-                  <div className="mt-1.5 h-1 w-24 overflow-hidden rounded-full bg-neutral-200/70">
-                    <div
-                      className={`h-full rounded-full transition-all ${allDone ? "bg-emerald-500" : "bg-neutral-900"}`}
-                      style={{ width: `${Math.min(100, (done / Math.max(1, count)) * 100)}%` }}
-                    />
-                  </div>
-                </div>
-                <span className="shrink-0 rounded-full bg-neutral-900 px-3 py-1 text-xs font-bold text-white">×{count}</span>
-                <span className={`shrink-0 text-xs font-semibold ${allDone ? "text-emerald-700" : "text-neutral-500"}`}>{done}/{count}</span>
-                <button
-                  onClick={() => setPicksDone(pickIds, !allDone)}
-                  disabled={busy}
-                  aria-label={allDone ? "Reopen meal" : "Mark meal done"}
-                  className={`flex size-9 shrink-0 items-center justify-center rounded-full border transition-all disabled:opacity-50 ${allDone ? "border-emerald-500 bg-emerald-500 text-white" : "border-neutral-300 text-neutral-400 hover:border-neutral-900 hover:text-neutral-900"}`}
-                >
-                  {busy ? (
-                    <span className="size-4 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-900" />
-                  ) : (
-                    <Check size={16} />
-                  )}
-                </button>
-              </div>
-              )
-            })}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-4 rounded-2xl border-2 border-dashed border-neutral-200 py-20">
-            <Flame size={40} className="text-neutral-300" />
-            <p className="text-sm font-medium text-neutral-500">Nothing scheduled to cook today.</p>
-            <Button variant="outline" onClick={() => setTab("schedule")}>Open schedule</Button>
-          </div>
-        )}
-      </motion.div>
-
-      {todayUnpicked.length > 0 && (
-        <motion.div variants={itemVariants}>
-          <h2 className="mb-4 text-lg font-semibold text-neutral-900">Still to pick ({todayUnpicked.length})</h2>
-          <div className="space-y-2">
-            {todayUnpicked.map((sub) => (
-              <div key={sub.id} className="flex items-center justify-between gap-3 rounded-2xl border border-amber-200/60 bg-amber-50/50 p-4">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">
-                    {customerName(sub).slice(0, 1).toUpperCase()}
-                  </div>
-                  <p className="truncate text-sm font-medium text-neutral-900">{customerName(sub)}</p>
-                </div>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSelected(today)
-                    const n = new Date()
-                    setMonth({ y: n.getFullYear(), m: n.getMonth() })
-                    setTab("schedule")
-                  }}
-                >
-                  Set meals
-                </Button>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      )}
-      </>
-      )}
-
-      {review && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4" onClick={() => setReview(null)}>
-          <div
-            className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+      {review && createPortal(
+        <div className="fixed inset-0 z-[70]">
+          <button type="button" className="absolute inset-0 bg-black/40" aria-label="Close review" onClick={() => setReview(null)} />
+          <aside
+            role="dialog"
+            aria-label="Review batch"
+            className="absolute inset-x-0 bottom-0 flex max-h-[90dvh] flex-col overflow-hidden rounded-t-2xl bg-white shadow-[0_-8px_32px_rgba(15,23,42,0.16)] md:inset-y-0 md:left-auto md:right-0 md:w-[420px] md:max-h-none md:rounded-none md:rounded-l-2xl md:shadow-[-8px_0_32px_rgba(15,23,42,0.12)]"
           >
-            <div className="flex items-start justify-between gap-3 border-b border-neutral-100 p-5">
+            <div className="mx-auto mt-2 h-1 w-12 shrink-0 rounded-full bg-[#E2E8F0] md:hidden" />
+            <div className="flex items-start justify-between gap-3 px-5 py-4">
               <div>
-                <h2 className="text-lg font-bold text-neutral-900">Review kitchen batch — {selected}</h2>
-                <p className="mt-0.5 text-xs text-neutral-500">
-                  {reviewBatch.length} dish{reviewBatch.length !== 1 ? "es" : ""} for {reviewReadyCount} of {review.length} customers. Apply, then edit a plate if needed.
+                <h2 className="text-lg font-semibold tracking-tight text-[#0F172A]">Review batch</h2>
+                <p className="mt-1 flex items-center gap-2 text-sm text-[#475569]">
+                  <CalendarDays size={16} />
+                  {formatLongDate(selected)}
+                </p>
+                <p className="mt-1 flex items-center gap-2 text-sm text-[#475569]">
+                  <UtensilsCrossed size={16} />
+                  {reviewBatch.length} dish{reviewBatch.length !== 1 ? "es" : ""} for {reviewReadyCount} of {review.length} customers
                 </p>
               </div>
               <button
                 onClick={() => setReview(null)}
                 aria-label="Close review"
-                className="flex size-8 shrink-0 items-center justify-center rounded-full text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+                className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#F1F5F9] text-[#334155] hover:bg-[#E2E8F0]"
               >
-                <X size={16} />
+                <X size={20} />
               </button>
             </div>
             <div className="flex-1 space-y-5 overflow-y-auto p-5">
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">Cook these</p>
+                <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold tracking-wide text-[#475569] uppercase"><Utensils size={16} />Cook these</h3>
                 {reviewBatch.length > 0 ? (
                   <CookListGrid dishes={reviewBatch} />
                 ) : (
@@ -1111,35 +1187,47 @@ export default function EmployeeChefPage() {
                 </div>
               </div>
             </div>
-            <div className="flex gap-2 border-t border-neutral-100 p-4">
-              <Button onClick={confirmApply} disabled={applying || reviewReadyCount === 0}>
+            <div className="shrink-0 border-t border-[#F1F5F9] bg-white px-4 py-3 md:px-6">
+              <button
+                type="button"
+                onClick={confirmApply}
+                disabled={applying || reviewReadyCount === 0}
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#15803D] text-base font-semibold text-white hover:bg-[#166534] disabled:opacity-50"
+              >
+                <Check size={18} />
                 {applying ? "Applying..." : `Apply batch (${reviewReadyCount})`}
-              </Button>
-              <Button variant="outline" onClick={() => setReview(null)}>Close</Button>
+              </button>
+              <button type="button" onClick={() => setReview(null)} className="mt-1 h-12 w-full text-base font-medium text-[#334155]">
+                Close
+              </button>
             </div>
-          </div>
-        </div>
+          </aside>
+        </div>,
+        document.body,
       )}
 
-      {activeSub && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4" onClick={() => setExpanded(null)}>
-          <div
-            className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+      {activeSub && createPortal(
+        <div className="fixed inset-0 z-[70]">
+          <button type="button" className="absolute inset-0 bg-black/40" aria-label="Close meal picker" onClick={() => setExpanded(null)} />
+          <aside
+            role="dialog"
+            aria-label="Set meals"
+            className="absolute inset-x-0 bottom-0 flex max-h-[90dvh] flex-col overflow-hidden rounded-t-2xl bg-white shadow-[0_-8px_32px_rgba(15,23,42,0.16)] md:inset-y-0 md:left-auto md:right-0 md:w-[420px] md:max-h-none md:rounded-none md:rounded-l-2xl md:shadow-[-8px_0_32px_rgba(15,23,42,0.12)]"
           >
-            <div className="flex items-start justify-between gap-3 border-b border-neutral-100 p-5">
+            <div className="mx-auto mt-2 h-1 w-12 shrink-0 rounded-full bg-[#E2E8F0] md:hidden" />
+            <div className="flex items-start justify-between gap-3 px-5 py-4">
               <div>
-                <h2 className="text-lg font-bold text-neutral-900">{customerName(activeSub)}</h2>
-                <p className="mt-0.5 text-xs text-neutral-500">
-                  {selected}{activeTarget > 0 ? ` · pick ${activeTarget}` : ""}
+                <h2 className="text-lg font-semibold tracking-tight text-[#0F172A]">{customerName(activeSub)}</h2>
+                <p className="mt-1 text-sm text-[#475569]">
+                  {formatLongDate(selected)}{activeTarget > 0 ? ` · pick ${activeTarget}` : ""}
                 </p>
               </div>
               <button
                 onClick={() => setExpanded(null)}
                 aria-label="Close meal picker"
-                className="flex size-8 shrink-0 items-center justify-center rounded-full text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+                className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#F1F5F9] text-[#334155] hover:bg-[#E2E8F0]"
               >
-                <X size={16} />
+                <X size={20} />
               </button>
             </div>
 
@@ -1373,15 +1461,23 @@ export default function EmployeeChefPage() {
               )}
             </div>
 
-            <div className="flex gap-2 border-t border-neutral-100 p-4">
-              <Button onClick={() => save(activeSub.id)} disabled={saving}>
+            <div className="shrink-0 border-t border-[#F1F5F9] bg-white px-4 py-3 md:px-6">
+              <button
+                type="button"
+                onClick={() => void save(activeSub.id)}
+                disabled={saving}
+                className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#15803D] text-base font-semibold text-white hover:bg-[#166534] disabled:opacity-50"
+              >
                 {saving ? "Saving..." : `Save (${draft.length}${activeTarget > 0 ? `/${activeTarget}` : ""})`}
-              </Button>
-              <Button variant="outline" onClick={() => setExpanded(null)}>Cancel</Button>
+              </button>
+              <button type="button" onClick={() => setExpanded(null)} className="mt-1 h-12 w-full text-base font-medium text-[#334155]">
+                Cancel
+              </button>
             </div>
-          </div>
-        </div>
+          </aside>
+        </div>,
+        document.body,
       )}
-    </motion.div>
+    </div>
   )
 }
