@@ -1,7 +1,9 @@
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
+import { after } from "next/server"
 import { listOrders, createOrder, OrderInputError, type CreateOrderItemInput } from "@/lib/supabase/tables/orders"
 import { notifyOrderCreated } from "@/lib/notifications/orders"
+import { emailOrderCreated } from "@/lib/notifications/email"
 import { inferOrderOrigin } from "@/lib/orders/origin"
 import type { OrderOrigin, OrderStatus } from "@/lib/supabase/models"
 
@@ -148,6 +150,12 @@ export async function POST(request: Request) {
     )
     void notifyOrderCreated(supabase, data, body.items.length).catch((err) =>
       console.error("[API] POST /api/orders push failed:", err),
+    )
+    const baseUrl = new URL(request.url).origin
+    after(() =>
+      emailOrderCreated(supabase, data, baseUrl).catch((err) =>
+        console.error("[API] POST /api/orders email failed:", err),
+      ),
     )
     return Response.json(data, { status: 201 })
   } catch (err) {

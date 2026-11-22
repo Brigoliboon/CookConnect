@@ -104,7 +104,7 @@ One system where customers order and subscribe, and staff handle orders, subscri
 ### 6.9 Notifications
 - FR-43 [Done]: Notification bell with unread count and mark-all-read.
 - FR-44 [Done]: Web push to staff on new orders.
-- FR-49 [Todo]: Email notifications sent from the restaurant's Gmail account (Gmail SMTP with an App Password, or the Gmail API) to users who have email notifications enabled.
+- FR-49 [Done]: Email notifications sent from the restaurant's Gmail account (Gmail SMTP with an App Password) to staff who have email notifications enabled. Triggers: a new order and a new subscription inquiry. Recipients: active employee accounts that turned on "Email notifications" in the notifications menu (off by default).
 
 ### 6.10 WhatsApp bot API
 - FR-45 [Done]: Bot can place orders, look up deliveries, create invites and read rates (bot secret).
@@ -155,15 +155,15 @@ Chef: cook schedule. Rider: deliveries. Customer: dashboard, profile.
 
 - Dubai delivery fee: AED 150 or AED 200 (code uses 200)?
 - FR-48: is 100 the price in AED or the item count, and what are the drinks and cakes lists?
-- FR-49: which events send an email, and who can enable them?
 
-Resolved 2026-11-21: Sharjah AED 100; customer dashboard (FR-37 to FR-39) stays in scope; no Tabby or card payment; staff dashboards stay English only.
+Resolved 2026-11-21: Sharjah AED 100; customer dashboard (FR-37 to FR-39) stays in scope; no Tabby or card payment; staff dashboards stay English only; FR-49 emails go out on a new order and a new subscription inquiry, to staff who opt in.
 
 ## 13. Change log
 
 Newest first. Times are Asia/Manila (UTC+8).
 
 ### 2026-11-21
+- FR-49 answered and built: emails on a new order and a new subscription inquiry, sent to opted-in staff.
 - Boon's answers: Sharjah AED 100, customer dashboard in scope, no Tabby, dashboards English only.
 - Revised FR-32 to exclude on-call-only meals. Added FR-48 (drinks and cakes add-ons) and FR-49 (Gmail email notifications).
 
