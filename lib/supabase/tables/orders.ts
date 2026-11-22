@@ -50,6 +50,7 @@ export async function listOrders(
   origin?: OrderOrigin,
   phone?: string,
   limit?: number,
+  since?: string,
 ): Promise<OrderWithItems[]> {
   let query = supabase
     .from("orders")
@@ -57,6 +58,9 @@ export async function listOrders(
 
   if (status) {
     query = query.eq("status", status)
+  }
+  if (since) {
+    query = query.gte("delivered_at", since)
   }
   if (locationOnly) {
     query = query.not("location", "is", null)
@@ -231,11 +235,18 @@ export async function createOrder(
 export async function countOrdersByStatus(
   supabase: import("@supabase/supabase-js").SupabaseClient,
   status: OrderStatus,
+  since?: string,
 ): Promise<number> {
-  const { count, error } = await supabase
+  let query = supabase
     .from("orders")
     .select("id", { count: "exact", head: true })
     .eq("status", status)
+
+  if (since) {
+    query = query.gte("delivered_at", since)
+  }
+
+  const { count, error } = await query
 
   if (error) throw error
   return count ?? 0
