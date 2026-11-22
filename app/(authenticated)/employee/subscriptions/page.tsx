@@ -1,19 +1,20 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, type ReactNode } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button, Modal, Select, SubscriptionDialog, CsvImportDialog } from "@/components/ui"
 import type { CsvImportPreviewRow } from "@/components/ui/CsvImportDialog"
 import { PAYMENT_METHODS, SUBSCRIPTION_PLANS } from "@/constants"
 import {
   Ban,
+  Bell,
   CheckCircle2,
-  ChevronDown,
+  ChevronRight,
   Coffee,
   Copy,
+  Ellipsis,
   FileDown,
   FileSpreadsheet,
-  Inbox,
   Layers,
   Link2,
   Mail,
@@ -21,13 +22,16 @@ import {
   Phone,
   PhoneCall,
   Plus,
-  ReceiptText,
+  RefreshCcw,
   ShieldAlert,
   Truck,
+  Users,
   Utensils,
   Wallet,
   X,
 } from "lucide-react"
+import { DetailSheet } from "@/components/subscriptions/DetailSheet"
+import { avatarTone, initials, lifecycleOf } from "@/components/subscriptions/helpers"
 import { StaffSubscriptionForm } from "@/components/subscription/StaffSubscriptionForm"
 import { downloadCsv, parseCsv } from "@/lib/meals/csv"
 import {
@@ -39,13 +43,16 @@ import { restrictionDisplayItems } from "@/lib/subscription/restrictions"
 
 interface SubscriptionRow {
   id: string
-  customer_name: string
-  customer_email: string
+  customer_name?: string
+  customer_email?: string
+  customer?: { name?: string | null; email?: string | null } | null
   details: Record<string, unknown>
   status: "active" | "cancelled"
   paused_at?: string | null
   remaining_meal_count?: number | null
   created_at: string
+  expires_at?: string
+  plan?: { id: string; name: string; validity_days: number } | null
 }
 
 interface InquiryRow {
@@ -120,6 +127,8 @@ export default function EmployeeSubscriptionsPage() {
   const [pendingImport, setPendingImport] = useState<{ line: number; values: Record<string, string> }[]>([])
   const [importResult, setImportResult] = useState<{ created: number; failed: number; errors: string[] } | null>(null)
   const csvFileRef = useRef<HTMLInputElement>(null)
+  const csvMenuRef = useRef<HTMLDivElement>(null)
+  const [tab, setTab] = useState<"active" | "inquiries">("active")
 
   async function handleGenerateInvite() {
     setInviteLoading(true)
@@ -465,52 +474,63 @@ export default function EmployeeSubscriptionsPage() {
   const selectedInquiry = inquiryId ? inquiries.find((q) => q.id === inquiryId) ?? null : null
   const selectedSlots: string[] = selectedInquiry?.details?.slots
     ?? (selectedInquiry?.details?.slot ? [selectedInquiry.details.slot as string] : [])
+  const activeCount = subscriptions.filter((s) => lifecycleOf(s) === "active").length
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-600 text-white shadow-lg">
-            <ReceiptText size={20} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Subscriptions</h1>
-            <p className="text-sm text-neutral-500">Review inquiries or manage existing subscriptions.</p>
-          </div>
+    <div>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-[#0F172A] md:text-2xl">
+            <RefreshCcw size={22} className="text-[#475569]" />
+            Subscriptions
+          </h1>
+          <p className="mt-2 text-sm text-[#475569] md:text-base">Active plans and upcoming renewals</p>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <div className="relative">
-            <Button variant="outline" className="gap-1.5" onClick={() => setCsvMenuOpen((open) => !open)} disabled={importing}>
-              <FileSpreadsheet size={16} />
-              <span className="hidden sm:inline">{importing ? "Importing..." : "CSV"}</span>
-              <ChevronDown size={14} />
-            </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <div ref={csvMenuRef} className="relative">
+            <button
+              type="button"
+              aria-label="More subscription tools"
+              aria-expanded={csvMenuOpen}
+              disabled={importing}
+              onClick={() => setCsvMenuOpen((open) => !open)}
+              className="flex size-12 items-center justify-center rounded-xl bg-[#F1F5F9] text-[#334155] transition-colors hover:bg-[#E2E8F0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15803D] disabled:opacity-50"
+            >
+              <Ellipsis size={20} />
+            </button>
             {csvMenuOpen && (
               <>
-                <div className="fixed inset-0 z-10" onClick={() => setCsvMenuOpen(false)} />
-                <div className="absolute right-0 z-20 mt-2 w-72 rounded-xl border border-neutral-200 bg-white p-1.5 shadow-xl">
-                  <button
-                    type="button"
+                <button type="button" className="fixed inset-0 z-10 cursor-default" aria-label="Close menu" onClick={() => setCsvMenuOpen(false)} />
+                <div className="absolute right-0 top-full z-20 mt-2 w-72 overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white p-1.5 shadow-[0_8px_24px_rgba(15,23,42,0.12)]">
+                  <MenuItem
+                    icon={<Link2 size={18} className="mt-0.5 shrink-0 text-[#475569]" />}
+                    title="Invite link"
+                    hint="Create a signed onboarding link"
+                    onClick={() => {
+                      setCsvMenuOpen(false)
+                      setShowInvite(true)
+                      setInviteLink("")
+                      setInvitePrice("")
+                      setInviteMealsPerDay("")
+                      setInviteError("")
+                      setInviteCopied(false)
+                    }}
+                  />
+                  <MenuItem
+                    icon={<FileDown size={18} className="mt-0.5 shrink-0 text-[#475569]" />}
+                    title="Download CSV template"
+                    hint="Blank file with the subscription columns"
                     onClick={handleDownloadTemplate}
-                    className="flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-neutral-50"
-                  >
-                    <FileDown size={18} className="mt-0.5 shrink-0 text-neutral-500" />
-                    <span>
-                      <span className="block text-sm font-semibold text-neutral-900">Download CSV template</span>
-                      <span className="block text-xs text-neutral-500">Blank file with the subscription columns</span>
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setCsvMenuOpen(false); csvFileRef.current?.click() }}
-                    className="flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-neutral-50"
-                  >
-                    <FileSpreadsheet size={18} className="mt-0.5 shrink-0 text-neutral-500" />
-                    <span>
-                      <span className="block text-sm font-semibold text-neutral-900">Import CSV</span>
-                      <span className="block text-xs text-neutral-500">Create subscriptions from a spreadsheet</span>
-                    </span>
-                  </button>
+                  />
+                  <MenuItem
+                    icon={<FileSpreadsheet size={18} className="mt-0.5 shrink-0 text-[#475569]" />}
+                    title="Import CSV"
+                    hint="Create subscriptions from a spreadsheet"
+                    onClick={() => {
+                      setCsvMenuOpen(false)
+                      csvFileRef.current?.click()
+                    }}
+                  />
                 </div>
               </>
             )}
@@ -526,19 +546,58 @@ export default function EmployeeSubscriptionsPage() {
               }}
             />
           </div>
-          <Button variant="outline" onClick={() => { setShowInvite(true); setInviteLink(""); setInvitePrice(""); setInviteMealsPerDay(""); setInviteError(""); setInviteCopied(false) }}>
-            <Link2 size={16} />
-            Invite link
-          </Button>
-          <Button onClick={() => { resetForm(); setShowForm(true) }}>
-            <Plus size={16} />
-            New Subscription
-          </Button>
+          <button
+            type="button"
+            onClick={() => { resetForm(); setShowForm(true) }}
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#15803D] px-5 text-base font-semibold text-white transition-colors hover:bg-[#166534] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15803D]"
+          >
+            <Plus size={18} />
+            <span className="hidden sm:inline">New Subscription</span>
+            <span className="sm:hidden">New</span>
+          </button>
         </div>
       </div>
 
+      <div className="mb-6 flex items-center gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Subscription sections">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "active"}
+          onClick={() => { setTab("active"); setInquiryId(null); setConfirmDecline(false) }}
+          className={`inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm leading-none whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15803D] ${
+            tab === "active"
+              ? "bg-[#1E293B] font-semibold text-[#F8FAFC]"
+              : "font-medium text-[#475569] hover:bg-[rgba(15,23,42,0.04)]"
+          }`}
+        >
+          <Users size={16} />
+          <span>Active</span>
+          <span className="font-semibold tabular-nums">{activeCount}</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "inquiries"}
+          onClick={() => setTab("inquiries")}
+          className={`inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm leading-none whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15803D] ${
+            tab === "inquiries"
+              ? "bg-[#FEF3C7] font-semibold text-[#92400E]"
+              : "font-medium text-[#92400E] hover:bg-[rgba(15,23,42,0.04)]"
+          }`}
+        >
+          <Bell size={16} />
+          <span>Inquiries</span>
+          <span className="font-semibold tabular-nums">{inquiries.length}</span>
+        </button>
+      </div>
+
+      {importing && (
+        <p className="mb-4 rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#475569]">
+          Importing subscriptions from CSV...
+        </p>
+      )}
       {importResult && !importing && (
-        <div className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${importResult.failed > 0 ? "border-amber-200 bg-amber-50 text-amber-800" : "border-neutral-200 bg-neutral-50 text-neutral-800"}`}>
+        <div className={`mb-4 flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${importResult.failed > 0 ? "border-amber-200 bg-amber-50 text-amber-800" : "border-green-200 bg-green-50 text-green-800"}`}>
           <p className="flex-1">
             Imported {importResult.created} subscription{importResult.created === 1 ? "" : "s"}
             {importResult.failed > 0 && `, ${importResult.failed} failed`}
@@ -546,81 +605,100 @@ export default function EmployeeSubscriptionsPage() {
               <span key={i} className="mt-1 block text-xs opacity-80">{err}</span>
             ))}
           </p>
-          <button onClick={() => setImportResult(null)} className="shrink-0 rounded-lg p-1 transition-colors hover:bg-black/5" title="Dismiss">
+          <button type="button" onClick={() => setImportResult(null)} className="shrink-0 rounded-lg p-1 transition-colors hover:bg-black/5" title="Dismiss">
             <X size={14} />
           </button>
         </div>
       )}
 
-      <div className="rounded-2xl border border-neutral-200/60 bg-white/80 p-6 backdrop-blur-sm">
-        <div className="mb-4">
-          <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-600">
-            <Inbox size={12} /> Pending
-          </p>
-          <h2 className="mt-0.5 text-lg font-semibold text-neutral-900">Inquiries</h2>
-          <p className="mt-0.5 text-xs text-neutral-500">
-            {inquiries.length === 0 ? "None waiting for approval." : `${inquiries.length} waiting for approval`}
-          </p>
+      {tab === "active" ? (
+        <SubscriptionDialog
+          inline
+          subscriptions={subscriptions}
+          loading={loading}
+          onCancel={handleCancel}
+          onPause={(id) => handlePauseResume(id, "pause")}
+          onResume={(id) => handlePauseResume(id, "resume")}
+          payments={payMap}
+          onPaymentsChanged={refreshPayMap}
+          onUpdated={fetchSubscriptions}
+        />
+      ) : loading && inquiries.length === 0 && subscriptions.length === 0 ? (
+        <p className="py-12 text-center text-sm text-[#475569]">Loading inquiries...</p>
+      ) : inquiries.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#E2E8F0] bg-white py-20">
+          <Bell size={40} className="mb-3 text-[#CBD5E1]" />
+          <p className="text-sm font-medium text-[#475569]">No subscription inquiries yet.</p>
         </div>
-        {inquiries.length === 0 ? (
-          <p className="text-sm text-neutral-500">No subscription inquiries yet.</p>
-        ) : (
-          <div className="divide-y divide-neutral-100">
-            {inquiries.map((q) => {
-              const parts = q.name.trim().split(/\s+/).filter(Boolean)
-              const letters = ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?"
-              return (
-                <button
-                  key={q.id}
-                  type="button"
-                  onClick={() => {
-                    setInquiryId(q.id)
-                    const cents = q.details?.invite?.agreedPriceCents
-                    setPayTotal(typeof cents === "number" ? (cents / 100).toFixed(2) : "")
-                    setPayAmount("")
-                    setPayRef("")
-                  }}
-                  className="flex w-full items-start gap-3 py-4 text-left first:pt-0 last:pb-0 hover:bg-neutral-50/80 sm:gap-4"
-                >
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-xs font-bold text-white">
-                    {letters}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-                      <p className="truncate text-base font-semibold leading-snug text-neutral-900">{q.name}</p>
-                      <div className="flex shrink-0 items-center gap-3">
-                        {q.details?.breakfast && (
-                          <span title="Breakfast extra" className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-800">
-                            <Coffee size={13} strokeWidth={2.25} />
-                            <span className="hidden sm:inline">Breakfast</span>
-                          </span>
-                        )}
-                        <span title={q.details?.onCall ? "On-call delivery" : "Scheduled delivery"} className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-800">
-                          {q.details?.onCall ? <PhoneCall size={13} strokeWidth={2.25} /> : <Truck size={13} strokeWidth={2.25} />}
-                          <span className="hidden sm:inline">{q.details?.onCall ? "On-call" : "Scheduled"}</span>
-                        </span>
-                      </div>
-                    </div>
-                    <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm font-medium text-neutral-700">
-                      <span className="inline-flex min-w-0 items-center gap-1.5" title="Plan">
-                        <Utensils size={14} strokeWidth={2.25} className="shrink-0 text-neutral-800" />
-                        <span className="truncate">{q.plan_id}</span>
+      ) : (
+        <>
+          <div className="rounded-2xl border border-[#E2E8F0] bg-white px-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.06)] md:px-6">
+            {inquiries.map((q) => (
+              <button
+                key={q.id}
+                type="button"
+                onClick={() => {
+                  setInquiryId(q.id)
+                  const cents = q.details?.invite?.agreedPriceCents
+                  setPayTotal(typeof cents === "number" ? (cents / 100).toFixed(2) : "")
+                  setPayAmount("")
+                  setPayRef("")
+                  setApproveError("")
+                  setConfirmDecline(false)
+                }}
+                className="flex w-full items-center gap-3 border-t border-[#F1F5F9] py-3 text-left first:border-t-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#15803D] md:min-h-[72px]"
+              >
+                <span className={`flex size-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${avatarTone(q.id)}`}>
+                  {initials(q.name)}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-base font-semibold tracking-tight text-[#0F172A]">{q.name}</span>
+                  <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[#475569]">
+                    <span className="inline-flex min-w-0 items-center gap-1.5">
+                      <RefreshCcw size={14} strokeWidth={1.75} className="shrink-0" />
+                      <span className="truncate">{q.plan_id}</span>
+                    </span>
+                    {q.details?.breakfast && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#F1F5F9] px-2 py-0.5 text-xs font-semibold text-[#334155]">
+                        <Coffee size={12} strokeWidth={1.75} />
+                        Breakfast
                       </span>
-                      <span className="inline-flex min-w-0 items-center gap-1.5" title="Contact">
-                        <Phone size={14} strokeWidth={2.25} className="shrink-0 text-neutral-800" />
-                        <span className="truncate">{q.mobile_number}</span>
-                      </span>
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
+                    )}
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#F1F5F9] px-2 py-0.5 text-xs font-semibold text-[#334155]">
+                      {q.details?.onCall ? <PhoneCall size={12} strokeWidth={1.75} /> : <Truck size={12} strokeWidth={1.75} />}
+                      {q.details?.onCall ? "On-call" : "Scheduled"}
+                    </span>
+                  </span>
+                </span>
+                <ChevronRight size={20} className="shrink-0 text-[#94A3B8]" />
+              </button>
+            ))}
           </div>
-        )}
-      </div>
+          <p className="mt-4 flex items-center gap-2 text-xs text-[#475569]">
+            <Bell size={18} strokeWidth={1.75} />
+            {inquiries.length} inquir{inquiries.length === 1 ? "y" : "ies"}
+          </p>
+        </>
+      )}
 
-      <Modal open={!!selectedInquiry} onClose={() => { setInquiryId(null); setConfirmDecline(false) }} title={selectedInquiry ? `Inquiry — ${selectedInquiry.name}` : "Inquiry"}>
-        {selectedInquiry && (
+      {selectedInquiry && (
+        <DetailSheet
+          title={`Inquiry — ${selectedInquiry.name}`}
+          titleId="inquiry-detail-title"
+          onClose={() => { setInquiryId(null); setConfirmDecline(false) }}
+          footer={
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="danger" onClick={handleDeclineInquiry} disabled={declining || approving}>
+                <Ban size={14} />
+                {declining ? "Declining..." : confirmDecline ? "Confirm decline?" : "Decline"}
+              </Button>
+              <Button onClick={handleApproveInquiry} disabled={approving || declining}>
+                <CheckCircle2 size={14} />
+                {approving ? "Approving..." : "Approve subscription"}
+              </Button>
+            </div>
+          }
+        >
           <div className="space-y-3 text-sm">
             <div className="flex justify-between gap-3"><span className="inline-flex items-center gap-1.5 font-medium text-neutral-700"><Utensils size={14} /> Plan</span><span className="font-semibold">{selectedInquiry.plan_id}</span></div>
             {agreedPriceLabel(selectedInquiry.details) && (
@@ -691,19 +769,9 @@ export default function EmployeeSubscriptionsPage() {
                 <input value={payRef} onChange={(e) => setPayRef(e.target.value)} className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-900" placeholder="Optional" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="danger" onClick={handleDeclineInquiry} disabled={declining || approving}>
-                <Ban size={14} />
-                {declining ? "Declining..." : confirmDecline ? "Confirm decline?" : "Decline"}
-              </Button>
-              <Button onClick={handleApproveInquiry} disabled={approving || declining}>
-                <CheckCircle2 size={14} />
-                {approving ? "Approving..." : "Approve subscription"}
-              </Button>
-            </div>
           </div>
-        )}
-      </Modal>
+        </DetailSheet>
+      )}
 
       <CsvImportDialog
         open={importPreviewOpen}
@@ -717,17 +785,6 @@ export default function EmployeeSubscriptionsPage() {
         onConfirm={handleConfirmImport}
       />
 
-      <SubscriptionDialog
-        inline
-        subscriptions={subscriptions}
-        loading={loading}
-        onCancel={handleCancel}
-        onPause={(id) => handlePauseResume(id, "pause")}
-        onResume={(id) => handlePauseResume(id, "resume")}
-        payments={payMap}
-        onPaymentsChanged={refreshPayMap}
-        onUpdated={fetchSubscriptions}
-      />
 
       <Modal
         open={showInvite}
@@ -843,5 +900,31 @@ export default function EmployeeSubscriptionsPage() {
       </AnimatePresence>
 
     </div>
+  )
+}
+
+function MenuItem({
+  icon,
+  title,
+  hint,
+  onClick,
+}: {
+  icon: ReactNode
+  title: string
+  hint: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-[#F8FAFC]"
+    >
+      {icon}
+      <span>
+        <span className="block text-sm font-semibold text-[#0F172A]">{title}</span>
+        <span className="block text-xs text-[#475569]">{hint}</span>
+      </span>
+    </button>
   )
 }
