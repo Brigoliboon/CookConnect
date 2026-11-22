@@ -1,4 +1,4 @@
-import { Geist, Geist_Mono, Playfair_Display, Nunito_Sans, Open_Sans, Cairo } from "next/font/google"
+import { Geist, Geist_Mono, Playfair_Display, Nunito_Sans, Open_Sans, Cairo, Inter } from "next/font/google"
 
 const geist = Geist({ variable: "--font-geist-sans", subsets: ["latin"] })
 const mono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] })
@@ -6,6 +6,7 @@ const playfair = Playfair_Display({ variable: "--font-playfair", subsets: ["lati
 const nunito = Nunito_Sans({ variable: "--font-nunito", subsets: ["latin"] })
 const openSans = Open_Sans({ variable: "--font-open-sans", subsets: ["latin"] })
 const cairo = Cairo({ variable: "--font-cairo", subsets: ["arabic", "latin"] })
+const inter = Inter({ variable: "--font-inter", subsets: ["latin"] })
 
 export const fontVariables = [
   geist.variable,
@@ -14,4 +15,5 @@ export const fontVariables = [
   nunito.variable,
   openSans.variable,
   cairo.variable,
+  inter.variable,
 ].join(" ")

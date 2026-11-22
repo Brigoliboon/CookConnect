@@ -1,9 +1,16 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { isNavbarHidden } from "@/components/layout/Navbar"
 
+const HIDDEN_PATHS = [/^\/(ar\/)?rider(\/|$)/]
 const FULL_BLEED_PATHS = [/^\/employee\/orders\/pos(\/|$)/]
+
+export const RIDER_NAV_VISIBLE = false
+
+export function isNavbarHidden(pathname: string): boolean {
+  if (RIDER_NAV_VISIBLE) return false
+  return HIDDEN_PATHS.some((re) => re.test(pathname))
+}
 
 export function AuthMain({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()

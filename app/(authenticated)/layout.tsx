@@ -2,8 +2,7 @@ import type { Metadata } from "next"
 import { NextIntlClientProvider } from "next-intl"
 import { fontVariables } from "@/lib/fonts"
 import { Providers } from "../providers"
-import { Navbar } from "@/components/layout/Navbar"
-import { AuthMain } from "@/components/layout/AuthMain"
+import { AuthChrome } from "@/components/layout/AuthChrome"
 import { GoogleTag } from "@/components/seo/GoogleTag"
 import messages from "@/messages/en.json"
 import "../globals.css"
@@ -18,8 +17,7 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
       <body className="min-h-full flex flex-col">
         <Providers>
           <NextIntlClientProvider locale="en" messages={messages}>
-            <Navbar />
-            <AuthMain>{children}</AuthMain>
+            <AuthChrome>{children}</AuthChrome>
           </NextIntlClientProvider>
         </Providers>
         <GoogleTag />

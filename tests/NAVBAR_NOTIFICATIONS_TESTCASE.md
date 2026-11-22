@@ -1,6 +1,6 @@
 # Navbar Notification Badge — Testcase
 
-Scope: `GET /api/notifications`, `PATCH /api/notifications`, and the employee Navbar bell/badge.
+Scope: `GET /api/notifications`, `PATCH /api/notifications`, and the employee shell bell/badge.
 
 ## N1 — Authentication
 - `GET /api/notifications` without a session → `401`.
@@ -24,7 +24,7 @@ Scope: `GET /api/notifications`, `PATCH /api/notifications`, and the employee Na
 - `unreadCount` is `0` on the next `GET`.
 
 ## N5 — Navbar badge
-- Employee with unread notifications sees a red count bubble on the bell.
+- Employee with unread notifications sees a red count bubble on the bell in the employee shell header.
 - Count above 99 renders `99+`.
 - No bubble when `unreadCount` is `0`.
 - Badge refreshes within 30s, on window focus, and on tab visibility.
@@ -44,7 +44,7 @@ Scope: `GET /api/notifications`, `PATCH /api/notifications`, and the employee Na
 - `GET /api/nav-counts` unauthenticated → `401`; non-staff → `403`.
 - `orders` equals the number of `orders.status = inquiry` rows.
 - `subscriptions` equals the number of unapproved `subscription_inquiries` rows.
-- Employee Navbar shows a red badge next to Orders and Subscriptions only when each count is above 0.
+- The employee shell shows a red badge on Orders and Subs (icon rail and phone tab bar) only when each count is above 0.
 - Counts above 99 render `99+`.
 - Badges refresh within 30s, on window focus, and on tab visibility.
-- Badges are shown in both the desktop nav and the mobile menu.
+- Badges are shown in both the tablet/desktop icon rail and the phone bottom tab bar.
