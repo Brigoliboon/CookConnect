@@ -1,7 +1,7 @@
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
 import { after } from "next/server"
-import { listOrders, createOrder, OrderInputError, type CreateOrderItemInput } from "@/lib/supabase/tables/orders"
+import { listOrders, createOrder, countOrdersByStatus, OrderInputError, type CreateOrderItemInput } from "@/lib/supabase/tables/orders"
 import { notifyOrderCreated } from "@/lib/notifications/orders"
 import { emailOrderCreated } from "@/lib/notifications/email"
 import { inferOrderOrigin } from "@/lib/orders/origin"
@@ -28,6 +28,8 @@ export async function GET(request: Request) {
   const locationOnly = searchParams.get("location_only") === "true"
   const origin = searchParams.get("origin")
   const phone = searchParams.get("phone")?.trim() || undefined
+  const since = searchParams.get("since")?.trim() || undefined
+  const countsOnly = searchParams.get("counts") === "true"
   const limitParam = searchParams.get("limit")
   let limit: number | undefined
   if (limitParam) {
@@ -52,7 +54,31 @@ export async function GET(request: Request) {
     )
   }
 
+  if (since && Number.isNaN(Date.parse(since))) {
+    return Response.json({ error: "since must be a valid ISO timestamp" }, { status: 400 })
+  }
+
   try {
+    if (countsOnly) {
+      const deliveredSince = since
+      const [inquiry, confirmed, preparing, ready_for_pickup, delivered, cancelled] = await Promise.all([
+        countOrdersByStatus(supabase, "inquiry"),
+        countOrdersByStatus(supabase, "confirmed"),
+        countOrdersByStatus(supabase, "preparing"),
+        countOrdersByStatus(supabase, "ready_for_pickup"),
+        countOrdersByStatus(supabase, "delivered", deliveredSince),
+        countOrdersByStatus(supabase, "cancelled"),
+      ])
+      return Response.json({
+        inquiry,
+        confirmed,
+        preparing,
+        ready_for_pickup,
+        delivered,
+        cancelled,
+      })
+    }
+
     const data = await listOrders(
       supabase,
       (status as OrderStatus) ?? undefined,
@@ -60,6 +86,7 @@ export async function GET(request: Request) {
       (origin as OrderOrigin) ?? undefined,
       phone,
       limit,
+      since,
     )
     return Response.json(data)
   } catch (err) {
