@@ -5,7 +5,7 @@ import Image from "next/image"
 import { motion } from "framer-motion"
 import { ShoppingCart, Check, Flame, ChevronDown, Beef, Wheat, Bubbles } from "lucide-react"
 import { useTranslations } from "next-intl"
-import { getCart, setCart } from "@/utils/cart"
+import { useAddMealToCart } from "@/components/modifiers/ModifierPickerProvider"
 import { imageVariant } from "@/lib/images"
 import type { MealServingOption } from "@/constants"
 
@@ -80,18 +80,17 @@ export function MealCard({
   }, [])
 
   const shrunk = revealed && !imageHovered
+  const addMealToCart = useAddMealToCart()
 
-  function handleAdd() {
-    const cart = getCart()
+  async function handleAdd() {
     const key = activeServing ? `${name} (${activeServing.name ?? t("servingFallback", { index: servingIndex + 1 })})` : name
-    const existing = cart.find((item) => item.name === key)
-    if (existing) {
-      existing.qty += 1
-    } else {
-      cart.push({ name: key, price: displayPrice, qty: 1, image, recipeId: id, basePrice: displayPrice })
-    }
-    setCart(cart)
-    window.dispatchEvent(new Event("cart-changed"))
+    const addedOk = await addMealToCart({
+      recipeId: id ?? "",
+      name: key,
+      price: displayPrice,
+      image,
+    })
+    if (!addedOk) return
     setAdded(true)
     setTimeout(() => setAdded(false), 1500)
   }

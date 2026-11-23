@@ -1,7 +1,7 @@
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
 import { after } from "next/server"
-import { listOrders, createOrder, countOrdersByStatus, OrderInputError, type CreateOrderItemInput } from "@/lib/supabase/tables/orders"
+import { listOrders, createCheckoutOrder, countOrdersByStatus, OrderInputError, type CreateOrderItemInput } from "@/lib/supabase/tables/orders"
 import { notifyOrderCreated } from "@/lib/notifications/orders"
 import { emailOrderCreated } from "@/lib/notifications/email"
 import { inferOrderOrigin } from "@/lib/orders/origin"
@@ -161,7 +161,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const data = await createOrder(
+    const data = await createCheckoutOrder(
       supabase,
       {
         name,

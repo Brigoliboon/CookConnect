@@ -203,7 +203,9 @@
     "pickupNote": "طلب استلام — لا حاجة لعنوان التوصيل.",
     "orderCode": "رمز التحقق الخاص بك",
     "trackLink": "تتبع طلبك",
-    "codeHint": "اعرض هذا الرمز عند استلام طلبك."
+    "codeHint": "اعرض هذا الرمز عند استلام طلبك.",
+    "modifiersTitle": "خياراتك",
+    "changeModifiers": "تغيير"
   },
   "gallery": {
     "morning": "صباحاً",

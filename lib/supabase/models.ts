@@ -278,6 +278,20 @@ export interface AppNotification {
   created_at: string;
 }
 
+export interface OrderItemModifier {
+  id: UUID;
+  order_item_id: UUID;
+  group_id: UUID | null;
+  option_id: UUID | null;
+  group_name: string;
+  group_name_ar: string | null;
+  option_name: string;
+  option_name_ar: string | null;
+  recipe_id: UUID | null;
+  price_cents: number;
+  created_at: string;
+}
+
 export interface MealModifierGroup {
   id: UUID;
   name: string;

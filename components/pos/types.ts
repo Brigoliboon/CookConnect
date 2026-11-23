@@ -29,6 +29,7 @@ export interface PosCartLine {
   addonRecipeId: string | null
   addonName: string | null
   addonExtra: number
+  modifiers?: import("@/lib/modifiers").CartModifier[]
 }
 
 export type OrderType = "dine_in" | "pickup" | "delivery"

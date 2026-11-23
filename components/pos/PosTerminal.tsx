@@ -14,6 +14,16 @@ import { imageThumb } from "@/lib/images"
 import { Modal } from "@/components/ui/Modal"
 import { LocationPicker, type Coordinates } from "@/components/ui/LocationPicker"
 import { CartSidePicker } from "@/components/landing/CartSidePicker"
+import { IsolatedModifierPicker } from "@/components/modifiers/ModifierPickerProvider"
+import { ModifierPicks } from "@/components/modifiers/ModifierPicks"
+import {
+  activeModifierGroups,
+  fetchMealModifierGroups,
+  modifierOptionKey,
+  modifiersExtraCents,
+  type CartModifier,
+  type MealAddTarget,
+} from "@/lib/modifiers"
 import { PosMealCard } from "./PosMealCard"
 import { CATEGORY_FILTERS, mapRecipe } from "./catalog"
 import type { OrderType, PosCartLine, PosItem } from "./types"
@@ -24,6 +34,10 @@ function sanitizeUaLocal(value: string) {
   else if (d.startsWith("0971")) d = d.slice(4)
   else if (d.startsWith("0")) d = d.slice(1)
   return d.slice(0, 9)
+}
+
+function lineExtraCents(line: PosCartLine): number {
+  return modifiersExtraCents(line.modifiers) + (line.addonExtra ?? 0)
 }
 
 export function PosTerminal() {
@@ -50,6 +64,7 @@ export function PosTerminal() {
   const [placing, setPlacing] = useState(false)
   const [placeError, setPlaceError] = useState("")
   const [placedOrder, setPlacedOrder] = useState<{ id: string; total: string } | null>(null)
+  const [pickerTarget, setPickerTarget] = useState<(MealAddTarget & { servingId: string | null; servingName: string | null }) | null>(null)
 
   useEffect(() => {
     fetch("/api/recipe?is_active=true&sort=name")
@@ -81,11 +96,14 @@ export function PosTerminal() {
     return map
   }, [cart])
 
-  function addToCart(item: PosItem, servingIdx: number) {
-    const serving = item.servings[Math.min(servingIdx, item.servings.length - 1)] ?? null
-    const unitPrice = Number(serving?.price ?? item.price) || 0
-    const label = serving?.name ? `${item.name} (${serving.name})` : item.name
-    const key = `${item.id}::${serving?.id ?? "base"}`
+  function appendLine(
+    item: PosItem,
+    serving: { id?: string | null; name?: string | null; price?: number | null } | null,
+    unitPrice: number,
+    label: string,
+    modifiers?: CartModifier[],
+  ) {
+    const key = `${item.id}::${serving?.id ?? "base"}::${modifierOptionKey(modifiers)}`
     setCart((prev) => {
       const existing = prev.find((l) => l.key === key)
       if (existing) return prev.map((l) => (l.key === key ? { ...l, qty: l.qty + 1 } : l))
@@ -93,8 +111,43 @@ export function PosTerminal() {
         key, recipeId: item.id, servingId: serving?.id ?? null, servingName: serving?.name ?? null,
         name: label, image: item.image, unitPrice, qty: 1, note: "",
         addonRecipeId: null, addonName: null, addonExtra: 0,
+        modifiers,
       }]
     })
+  }
+
+  async function addToCart(item: PosItem, servingIdx: number) {
+    const serving = item.servings[Math.min(servingIdx, item.servings.length - 1)] ?? null
+    const unitPrice = Number(serving?.price ?? item.price) || 0
+    const label = serving?.name ? `${item.name} (${serving.name})` : item.name
+    const groups = activeModifierGroups(await fetchMealModifierGroups(item.id))
+    if (groups.length > 0) {
+      setPickerTarget({
+        recipeId: item.id,
+        name: label,
+        price: unitPrice,
+        image: item.image,
+        servingId: serving?.id ?? null,
+        servingName: serving?.name ?? null,
+      })
+      return
+    }
+    appendLine(item, serving, unitPrice, label)
+  }
+
+  function confirmPicker(picks: CartModifier[]) {
+    if (!pickerTarget) return
+    const serving = pickerTarget.servingId
+      ? { id: pickerTarget.servingId, name: pickerTarget.servingName }
+      : null
+    appendLine(
+      { id: pickerTarget.recipeId, image: pickerTarget.image ?? "", name: pickerTarget.name, category: "", description: "", price: pickerTarget.price, calories: 0, servings: [] },
+      serving,
+      pickerTarget.price,
+      pickerTarget.name,
+      picks,
+    )
+    setPickerTarget(null)
   }
 
   function bumpRecipe(item: PosItem, delta: number) {
@@ -174,7 +227,7 @@ export function PosTerminal() {
 
   const itemCount = cart.reduce((s, l) => s + l.qty, 0)
   const subtotalCents = cart.reduce(
-    (s, l) => s + (Math.round(l.unitPrice * 100) + (l.addonExtra ?? 0)) * l.qty, 0,
+    (s, l) => s + (Math.round(l.unitPrice * 100) + lineExtraCents(l)) * l.qty, 0,
   )
   const vatCents = Math.round(subtotalCents * 0.05)
   const shipCents = orderType === "delivery" && feeCents !== null ? feeCents : 0
@@ -209,6 +262,7 @@ export function PosTerminal() {
           items: cart.map((l) => ({
             recipe_id: l.recipeId,
             addon_recipe_id: l.addonRecipeId,
+            option_ids: (l.modifiers ?? []).map((pick) => pick.optionId),
             qty: l.qty,
             note: (l.note?.trim() ? `[${orderType.replace("_", " ")}] ${l.note.trim()}` : `[${orderType.replace("_", " ")}]`) || null,
           })),
@@ -359,7 +413,8 @@ export function PosTerminal() {
           <div className="space-y-2 pr-1">
             <AnimatePresence initial={false}>
               {cart.map((line) => {
-                const lineTotal = (Math.round(line.unitPrice * 100) + (line.addonExtra ?? 0)) * line.qty
+                const extra = lineExtraCents(line)
+                const lineTotal = (Math.round(line.unitPrice * 100) + extra) * line.qty
                 return (
                   <motion.div
                     key={line.key}
@@ -384,9 +439,12 @@ export function PosTerminal() {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-semibold text-neutral-900">{line.name}</p>
                         <p className="text-[11px] text-neutral-500">
-                          {formatPrice(Math.round(line.unitPrice * 100) + (line.addonExtra ?? 0))}
-                          {line.addonName && <span className="text-brand-900"> · +{line.addonName}</span>}
+                          {formatPrice(Math.round(line.unitPrice * 100) + extra)}
+                          {line.addonName && !line.modifiers?.length && <span className="text-brand-900"> · +{line.addonName}</span>}
                         </p>
+                        {line.modifiers && line.modifiers.length > 0 && (
+                          <ModifierPicks modifiers={line.modifiers} locale="en" className="mt-0.5" />
+                        )}
                       </div>
                       <button onClick={() => removeLine(line.key)} className="shrink-0 p-1 text-neutral-300 hover:text-red-500" aria-label="Remove item">
                         <Trash2 size={14} />
@@ -405,11 +463,13 @@ export function PosTerminal() {
                       <span className="text-xs font-bold text-neutral-900">{formatPrice(lineTotal)}</span>
                     </div>
                     <div className="mt-2 border-t border-neutral-50 pt-2">
-                      <CartSidePicker
-                        mealRecipeId={line.recipeId}
-                        selectedId={line.addonRecipeId}
-                        onSelect={(opt) => setLineSide(line.key, opt)}
-                      />
+                      {(!line.modifiers || line.modifiers.length === 0) && (
+                        <CartSidePicker
+                          mealRecipeId={line.recipeId}
+                          selectedId={line.addonRecipeId}
+                          onSelect={(opt) => setLineSide(line.key, opt)}
+                        />
+                      )}
                       <input
                         value={line.note}
                         onChange={(e) => setLineNote(line.key, e.target.value)}
@@ -643,6 +703,13 @@ export function PosTerminal() {
           </div>
         )}
       </Modal>
+
+      <IsolatedModifierPicker
+        target={pickerTarget}
+        locale="en"
+        onClose={() => setPickerTarget(null)}
+        onConfirm={confirmPicker}
+      />
     </div>
   )
 }

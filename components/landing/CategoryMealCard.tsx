@@ -4,7 +4,7 @@ import { useState } from "react"
 import Image from "next/image"
 import { Flame, ShoppingCart, Check } from "lucide-react"
 import { useTranslations } from "next-intl"
-import { getCart, setCart } from "@/utils/cart"
+import { useAddMealToCart } from "@/components/modifiers/ModifierPickerProvider"
 import { imageVariant } from "@/lib/images"
 
 interface CategoryMealCardProps {
@@ -18,18 +18,12 @@ interface CategoryMealCardProps {
 
 export function CategoryMealCard({ id, name, image, price = 0, calories = 0, onClick }: CategoryMealCardProps) {
   const t = useTranslations("meals")
+  const addMealToCart = useAddMealToCart()
   const [added, setAdded] = useState(false)
 
-  function handleAdd() {
-    const cart = getCart()
-    const existing = cart.find((item) => item.name === name)
-    if (existing) {
-      existing.qty += 1
-    } else {
-      cart.push({ name, price, qty: 1, image, recipeId: id, basePrice: price })
-    }
-    setCart(cart)
-    window.dispatchEvent(new Event("cart-changed"))
+  async function handleAdd() {
+    const addedOk = await addMealToCart({ recipeId: id, name, price, image })
+    if (!addedOk) return
     setAdded(true)
     setTimeout(() => setAdded(false), 1500)
   }

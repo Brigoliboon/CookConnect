@@ -10,13 +10,12 @@ import { useTranslations, useLocale } from "next-intl"
 import { translateContent } from "@/constants/translations"
 import { Nav } from "@/components/landing/Nav"
 import { Footer } from "@/components/landing/Footer"
-import { MobileAddonSheet, type AddonOption } from "@/components/landing/MobileAddonSheet"
 import { toDialogMeal } from "@/lib/meal-detail"
 import type { MenuItem as DialogMeal } from "@/constants"
-import { MenuCardsSkeleton, MenuMealCard, menuCardGridClass, type AddonTargetState } from "./MenuMealCard"
+import { MenuCardsSkeleton, MenuMealCard, menuCardGridClass } from "./MenuMealCard"
 import { decodeRecipeIds } from "@/utils/catalogShare"
 import { fetchRecipeList, recipeListUrl, type RecipeListResponse } from "@/hooks/useRecipes"
-import { addCartItem, getCart, setCart } from "@/utils/cart"
+import { getCart, setCart } from "@/utils/cart"
 import type { MealServingOption } from "@/constants"
 import {
   categories,
@@ -164,7 +163,6 @@ function CatalogContent({
   const [searchInput, setSearchInput] = useState("")
   const [sort, setSort] = useState("default")
   const [selected, setSelected] = useState<DialogMeal | null>(null)
-  const [addonTarget, setAddonTarget] = useState<AddonTargetState | null>(null)
   const [isSwitching, setIsSwitching] = useState(false)
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false)
   const sortDropdownRef = useRef<HTMLDivElement | null>(null)
@@ -311,35 +309,6 @@ function CatalogContent({
     if (sub === activeSub) return
     setIsSwitching(true)
     setActiveSub(sub)
-  }
-
-  /**
-   * On mobile, meals with addons open a bottom sheet so a side can be chosen
-   * before the item is added. Returning `true` tells the card to skip its own
-   * add. Desktop keeps the direct add for now.
-   */
-  function handleCardAdd(target: AddonTargetState, hasAddons: boolean): boolean {
-    const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches
-    if (isMobile && hasAddons) {
-      setAddonTarget(target)
-      return true
-    }
-    return false
-  }
-
-  function handleAddonConfirm(addon: AddonOption | null) {
-    if (!addonTarget) return
-
-    addCartItem({
-      name: addonTarget.name,
-      price: addonTarget.price,
-      image: addonTarget.image,
-      recipeId: addonTarget.recipeId,
-      addonRecipeId: addon?.addon_recipe_id ?? null,
-      addonName: addon?.addon_name ?? null,
-      addonExtra: addon?.extra_cents ?? 0,
-    })
-    setAddonTarget(null)
   }
 
   return (
@@ -518,8 +487,6 @@ function CatalogContent({
                       variant={cardVariant}
                       name={translateContent(item.name, locale)}
                       description={translateContent(item.description, locale)}
-                      hasAddons={item.has_addons}
-                      onAdd={handleCardAdd}
                       onClick={() =>
                         setSelected(
                           toDialogMeal({
@@ -564,12 +531,6 @@ function CatalogContent({
       )}
 
       {selected && <MealDetailDialog item={selected} onClose={() => setSelected(null)} />}
-
-      <MobileAddonSheet
-        target={addonTarget}
-        onClose={() => setAddonTarget(null)}
-        onConfirm={handleAddonConfirm}
-      />
 
       <Footer />
     </>

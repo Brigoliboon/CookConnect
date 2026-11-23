@@ -1,5 +1,6 @@
-import type { Order, OrderItem, OrderItemAddon, OrderOrigin, OrderStatus } from "../models"
+import type { Order, OrderItem, OrderItemAddon, OrderItemModifier, OrderOrigin, OrderStatus } from "../models"
 import { resolveMealPrice } from "./recipe_addons"
+import { listModifierGroupsForMeal } from "./meal_modifiers"
 
 export interface CreateOrderInput {
   customer_id?: string | null
@@ -22,6 +23,8 @@ export interface CreateOrderItemInput {
   addon_recipe_id?: string | null
   qty: number
   note?: string | null
+  option_ids?: string[]
+  modifiers?: { option_id?: string }[]
 }
 
 /** Client-supplied order input that failed validation — maps to HTTP 400. */
@@ -37,6 +40,7 @@ const MAX_ITEM_QTY = 100
 
 export interface OrderItemWithAddons extends OrderItem {
   addons: OrderItemAddon[]
+  modifiers?: OrderItemModifier[]
 }
 
 export interface OrderWithItems extends Order {
@@ -266,4 +270,109 @@ export async function updateOrderStatus(
 
   if (error) throw error
   return data as Order
+}
+
+export function itemOptionIds(item: CreateOrderItemInput): string[] {
+  if (item.option_ids && item.option_ids.length > 0) {
+    return item.option_ids.filter((id) => typeof id === "string" && id.length > 0)
+  }
+  return (item.modifiers ?? [])
+    .map((row) => row.option_id)
+    .filter((id): id is string => typeof id === "string" && id.length > 0)
+}
+
+function isModifierInputError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false
+  const code = (err as { code?: string }).code
+  const message = String((err as { message?: string }).message ?? "")
+  return code === "22023" || /pick exactly one option|cannot be ordered|unknown recipe|no active serving|at least one item|name, email, and mobile_number|shipping_cents|qty must/i.test(message)
+}
+
+/**
+ * Uses create_order_with_modifiers when any item has attached modifier groups
+ * or submitted option ids. Meals with no new groups still go through
+ * createOrder (legacy recipe_addons). Mixed carts use the RPC for the whole
+ * order; legacy add-on extras on those mixed carts are not applied.
+ */
+export async function createCheckoutOrder(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  input: CreateOrderInput,
+  items: CreateOrderItemInput[],
+): Promise<OrderWithItems> {
+  if (!items || items.length === 0) throw new OrderInputError("At least one item is required")
+
+  let useRpc = items.some((item) => itemOptionIds(item).length > 0)
+  if (!useRpc) {
+    for (const item of items) {
+      if (!item.recipe_id) continue
+      const groups = await listModifierGroupsForMeal(supabase, item.recipe_id, false)
+      if (groups.some((group) => group.is_active && group.options.some((option) => option.is_active))) {
+        useRpc = true
+        break
+      }
+    }
+  }
+
+  if (!useRpc) {
+    return createOrder(supabase, input, items)
+  }
+
+  const p_order = {
+    customer_id: input.customer_id ?? null,
+    name: (input.name || "Walk-in").trim() || "Walk-in",
+    email: (input.email || "").trim() || "-",
+    mobile_number: (input.mobile_number || "").trim() || "-",
+    address: input.address ?? null,
+    status: input.status ?? "inquiry",
+    origin: input.origin ?? "web",
+    shipping_cents: input.shipping_cents ?? 0,
+    currency: input.currency ?? "AED",
+    details: input.details ?? {},
+  }
+
+  const p_items = items.map((item) => ({
+    recipe_id: item.recipe_id,
+    qty: item.qty,
+    note: item.note ?? null,
+    option_ids: itemOptionIds(item),
+  }))
+
+  const { data, error } = await supabase.rpc("create_order_with_modifiers", { p_order, p_items })
+  if (error) {
+    if (isModifierInputError(error)) {
+      throw new OrderInputError(error.message)
+    }
+    throw error
+  }
+
+  const payload = data as Record<string, unknown>
+  const order = payload as unknown as Order
+
+  if (input.location) {
+    const { error: locError } = await supabase.rpc("set_order_location", {
+      order_id: order.id,
+      lat: input.location.lat,
+      lng: input.location.lng,
+    })
+    if (locError) throw locError
+  }
+
+  const rawItems = (payload.items as Record<string, unknown>[] | undefined) ?? []
+  const itemsWithAddons: OrderItemWithAddons[] = rawItems.map((row) => {
+    const modifiers = (row.modifiers as OrderItemModifier[] | undefined) ?? []
+    return {
+      id: row.id as string,
+      order_id: order.id,
+      recipe_id: (row.recipe_id as string | null) ?? null,
+      name: String(row.name ?? ""),
+      unit_price_cents: Number(row.unit_price_cents ?? 0),
+      qty: Number(row.qty ?? 1),
+      note: (row.note as string | null) ?? null,
+      image_path: (row.image_path as string | null) ?? null,
+      addons: [],
+      modifiers,
+    }
+  })
+
+  return { ...order, items: itemsWithAddons }
 }
