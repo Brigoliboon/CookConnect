@@ -142,12 +142,26 @@ These were unverified in the 2026-11-17 audit. Do not tick them from memory; con
 - [ ] Confirm production env vars on Vercel, including VAPID keys for web push
 - [ ] Record the Dubai subscription delivery fee once Boon confirms AED 150 or AED 200 (code and FR-16 currently use 200)
 
+## M16: Meal modifiers (FR-50)
+
+Added 2026-11-24 at Boon's request. Reusable single-select required groups replace the experimental per-meal `recipe_addons` sides for regular orders, the cart, and POS. Subscriptions, Chef, macros, and meal CSV are out of v1 (no groups on `is_subscription_included` meals). FR-48 stays a separate open item.
+
+Boon confirmed 2026-11-24: v1 is pick-one and required only; subscriptions are left out for now; the order snapshot also stores the side recipe id and its Arabic name.
+
+- [ ] Migration `20261124000000_meal_modifiers.sql`: tables, RLS, default-option swap trigger, `create_order_with_modifiers` RPC (server-priced, VAT 5% of subtotal in AED cents), and a block on attaching groups to subscription meals. Boon applies this on the live Supabase project.
+- [ ] Server model and API: public read of active groups/options; employee-only writes (including inactive rows); checkout and POS call the RPC; client prices are ignored
+- [ ] Employee meal editor: manage groups/options and attach groups to meals (not to subscription meals)
+- [ ] Customer menu, landing cart, and POS use one modifier picker; cart line key includes the chosen options
+- [ ] Order details, staff email, thermal receipt, and public tracking show snapshotted modifier labels, plus a compatibility read of existing `order_item_addons` rows. The old add-on tables stay until a later follow-up migrates historical rows and drops them.
+- [ ] Run `tests/MEAL_MODIFIERS_TESTCASE.md` and tick this milestone
+
 ---
 
 ## Progress log
 
 Newest first. Times are Asia/Manila (UTC+8).
 
+- 2026-11-24 02:13: Meal-modifier schema on `feat/meal-modifiers-schema`: FR-50, M16, the migration and the testcase aligned to Boon's v1 decisions (single-select required groups; subscriptions out of v1; snapshots include side `recipe_id` and `name_ar`). Adds `create_order_with_modifiers`, tighter RLS, and leaves `recipe_addons` in place. Docs and SQL only.
 - 2026-11-23 23:43: Landing plan cards on `feat/landing-subscription-gallery`: on phones the plans are a snap gallery with the centered card at full scale, a peek of the neighbouring cards, invisible tap zones on both sides that slide to the previous/next plan, and dot navigation underneath; the Healthy plan is the initial focus (centered on load); the desktop grid is unchanged. `SUBSCRIPTION_PLANS` still backs the section (FR-2); FR-4 live plans remain open.
 - 2026-11-22 18:36: Employee Subscriptions redesign on `feat/employee-subscriptions`: Active and Inquiries tabs with counts; one row per subscription (plan, days left, Renewal due soon from `expires_at`); details open in a side panel (bottom sheet on phone); pause, resume, cancel, payments, invite, CSV, and approve/decline kept. No new APIs or migrations.
 - 2026-11-22 18:30: Employee Chef redesign on `feat/employee-chef`: week strip, To Cook Today stats and time-of-day tabs, amber Avoids chips, Still to pick shows 5 names plus Show all, and Done / Reopen all still use `chef_schedules.done_at` through `PATCH /api/chef-schedules`. No migration.
