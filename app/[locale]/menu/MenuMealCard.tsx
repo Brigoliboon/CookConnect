@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl"
 import { imageSrcSet, imageVariant } from "@/lib/images"
 import { DirhamSign } from "@/components/ui/DirhamSign"
 import { useAddMealToCart } from "@/components/modifiers/ModifierPickerProvider"
+import { useModifierPrefetch } from "@/hooks/useModifierPrefetch"
 import type { MenuItem } from "./MenuClient"
 
 export type MenuCardVariant = "list" | "compact"
@@ -78,6 +79,7 @@ export function MenuMealCard({
 }) {
   const mt = useTranslations("meals")
   const addMealToCart = useAddMealToCart()
+  const { elementRef, prefetch } = useModifierPrefetch<HTMLElement>(item.id, Boolean(item.has_modifiers))
   const [servingIndex, setServingIndex] = useState(0)
   const [servingOpen, setServingOpen] = useState(false)
   const [added, setAdded] = useState(false)
@@ -101,6 +103,8 @@ export function MenuMealCard({
       name: key,
       price: displayPrice,
       image: imgSrc,
+      hasModifiers: item.has_modifiers,
+      hasAddons: item.has_addons,
     })
     if (!addedOk) return
     setAdded(true)
@@ -109,7 +113,10 @@ export function MenuMealCard({
 
   return (
     <article
+      ref={elementRef}
       onClick={onClick}
+      onMouseEnter={prefetch}
+      onTouchStart={prefetch}
       className={`group flex cursor-pointer overflow-hidden rounded-2xl border border-neutral-200 bg-white transition-colors hover:border-neutral-300 hover:shadow-sm ${
         compact ? "md:flex-col" : ""
       }`}

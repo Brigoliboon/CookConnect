@@ -4,16 +4,9 @@ import { useEffect, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { Check, X } from "lucide-react"
 import { useTranslations } from "next-intl"
+import { fetchRecipeAddons, peekRecipeAddons, type RecipeAddonOption } from "@/lib/modifiers"
 
-export interface AddonOption {
-  id: string
-  meal_recipe_id: string
-  addon_recipe_id: string
-  extra_cents: number
-  is_default: boolean
-  addon_name: string
-  addon_image_path: string | null
-}
+export type AddonOption = RecipeAddonOption
 
 export interface AddonTarget {
   recipeId: string
@@ -89,18 +82,22 @@ function AddonSheetBody({
 }) {
   const t = useTranslations("cart")
   const mt = useTranslations("meals")
-  const [options, setOptions] = useState<AddonOption[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const cached = peekRecipeAddons(target.recipeId)
+  const [options, setOptions] = useState<AddonOption[]>(cached ?? [])
+  const [loading, setLoading] = useState(cached === undefined)
+  const [selectedId, setSelectedId] = useState<string | null>(() => {
+    if (!cached?.length) return null
+    const preferred = cached.find((opt) => opt.is_default) ?? cached[0]
+    return preferred?.addon_recipe_id ?? null
+  })
 
   useEffect(() => {
+    if (cached) return
     let cancelled = false
 
-    fetch(`/api/recipe-addons?meal_id=${target.recipeId}`)
-      .then(async (res) => (res.ok ? res.json() : { data: [] }))
-      .then(({ data }: { data?: AddonOption[] }) => {
+    fetchRecipeAddons(target.recipeId)
+      .then((list) => {
         if (cancelled) return
-        const list = data ?? []
         setOptions(list)
         const preferred = list.find((opt) => opt.is_default) ?? list[0]
         setSelectedId(preferred?.addon_recipe_id ?? null)
@@ -115,7 +112,7 @@ function AddonSheetBody({
     return () => {
       cancelled = true
     }
-  }, [target.recipeId])
+  }, [cached, target.recipeId])
 
   const selected = options.find((opt) => opt.addon_recipe_id === selectedId) ?? null
   const total = target.price + (selected?.extra_cents ?? 0) / 100

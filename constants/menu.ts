@@ -28,6 +28,8 @@ export interface MenuItem {
   }[]
   image_path: string | null
   servings?: MealServingOption[]
+  has_addons?: boolean
+  has_modifiers?: boolean
 }
 
 export interface MealServingOption {

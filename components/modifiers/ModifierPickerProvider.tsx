@@ -4,8 +4,7 @@ import { createContext, useCallback, useContext, useMemo, useState } from "react
 import { useLocale } from "next-intl"
 import { addCartItem, type AddCartItemInput } from "@/utils/cart"
 import {
-  activeModifierGroups,
-  fetchMealModifierGroups,
+  fetchRecipeAddons,
   type CartModifier,
   type MealAddTarget,
 } from "@/lib/modifiers"
@@ -40,13 +39,6 @@ function isMobileViewport() {
   return typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches
 }
 
-async function fetchOldAddons(mealId: string): Promise<AddonOption[]> {
-  const res = await fetch(`/api/recipe-addons?meal_id=${encodeURIComponent(mealId)}`)
-  if (!res.ok) return []
-  const body = (await res.json()) as { data?: AddonOption[] }
-  return body.data ?? []
-}
-
 export function ModifierPickerProvider({ children }: { children: React.ReactNode }) {
   const locale = useLocale()
   const [session, setSession] = useState<PickerSession | null>(null)
@@ -72,8 +64,7 @@ export function ModifierPickerProvider({ children }: { children: React.ReactNode
       return true
     }
 
-    const groups = activeModifierGroups(await fetchMealModifierGroups(target.recipeId))
-    if (groups.length > 0) {
+    if (target.hasModifiers) {
       const picks = await new Promise<CartModifier[] | null>((resolve) => {
         setSession({ target, destination: "cart", resolve })
       })
@@ -89,8 +80,8 @@ export function ModifierPickerProvider({ children }: { children: React.ReactNode
       return true
     }
 
-    if (isMobileViewport()) {
-      const addons = await fetchOldAddons(target.recipeId)
+    if (isMobileViewport() && target.hasAddons) {
+      const addons = await fetchRecipeAddons(target.recipeId)
       if (addons.length > 0) {
         const addon = await new Promise<AddonOption | null | undefined>((resolve) => {
           setAddonSession({ target, resolve })

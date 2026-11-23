@@ -54,6 +54,7 @@ export interface MenuItem {
   carbs: number
   fats: number
   has_addons: boolean
+  has_modifiers: boolean
   servings: MealServingOption[]
 }
 
@@ -107,6 +108,7 @@ function mapRecipe(r: Record<string, unknown>): MenuItem {
     carbs: first?.nutrition?.carbs_g ?? 0,
     fats: first?.nutrition?.fats_g ?? 0,
     has_addons: (r.has_addons as boolean) ?? false,
+    has_modifiers: (r.has_modifiers as boolean) ?? false,
     servings,
   }
 }

@@ -6,6 +6,7 @@ import { Check, ChevronDown, Flame, Minus, Plus, Trash2 } from "lucide-react"
 import { imageVariant } from "@/lib/images"
 import { fallbackImages } from "./catalog"
 import type { PosItem } from "./types"
+import { useModifierPrefetch } from "@/hooks/useModifierPrefetch"
 
 export function PosMealCard({
   item,
@@ -26,6 +27,7 @@ export function PosMealCard({
   const active = item.servings.length > 0 ? item.servings[Math.min(servingIdx, item.servings.length - 1)] : null
   const displayPrice = active?.price ?? item.price
   const displayCalories = active?.calories ?? item.calories
+  const { elementRef, prefetch } = useModifierPrefetch<HTMLLIElement>(item.id, item.has_modifiers)
 
   function handleAdd() {
     onAdd(servingIdx)
@@ -35,10 +37,13 @@ export function PosMealCard({
 
   return (
     <li
+      ref={elementRef}
       role="button"
       tabIndex={0}
       aria-label={`Add ${item.name} to order`}
       onClick={handleAdd}
+      onMouseEnter={prefetch}
+      onTouchStart={prefetch}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault()

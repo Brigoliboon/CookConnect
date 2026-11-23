@@ -3,16 +3,9 @@
 import { useEffect, useState } from "react"
 import { Check } from "lucide-react"
 import { imageThumb } from "@/lib/images"
+import { fetchRecipeAddons, peekRecipeAddons, type RecipeAddonOption } from "@/lib/modifiers"
 
-interface SideOption {
-  id: string
-  meal_recipe_id: string
-  addon_recipe_id: string
-  extra_cents: number
-  is_default: boolean
-  addon_name: string
-  addon_image_path: string | null
-}
+type SideOption = RecipeAddonOption
 
 export function CartSidePicker({
   mealRecipeId,
@@ -23,20 +16,17 @@ export function CartSidePicker({
   selectedId?: string | null
   onSelect: (opt: SideOption | null) => void
 }) {
-  const [options, setOptions] = useState<SideOption[]>([])
-  const [loading, setLoading] = useState(true)
+  const cached = peekRecipeAddons(mealRecipeId)
+  const [options, setOptions] = useState<SideOption[]>(cached ?? [])
+  const [loading, setLoading] = useState(cached === undefined)
   const [expanded, setExpanded] = useState(!selectedId)
 
   useEffect(() => {
+    if (cached) return
     let cancelled = false
-    setLoading(true)
-    fetch(`/api/recipe-addons?meal_id=${mealRecipeId}`)
-      .then(async (res) => {
-        if (!res.ok) return { data: [] }
-        return res.json()
-      })
-      .then(({ data }) => {
-        if (!cancelled) setOptions(data ?? [])
+    fetchRecipeAddons(mealRecipeId)
+      .then((data) => {
+        if (!cancelled) setOptions(data)
       })
       .catch(() => {})
       .finally(() => {
@@ -45,7 +35,7 @@ export function CartSidePicker({
     return () => {
       cancelled = true
     }
-  }, [mealRecipeId])
+  }, [cached, mealRecipeId])
 
   if (loading) {
     return (

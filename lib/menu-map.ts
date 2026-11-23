@@ -51,6 +51,7 @@ export function toMenuItem(r: RecipeWithServings, locale: string): MenuItem {
     carbs: nutrition?.carbs_g ?? 0,
     fats: nutrition?.fats_g ?? 0,
     has_addons: r.has_addons ?? false,
+    has_modifiers: r.has_modifiers ?? false,
     servings,
   };
 }

@@ -36,9 +36,24 @@ export interface MealAddTarget {
   /** Unit price of the meal/serving, in AED (not including add-ons). */
   price: number
   image?: string
+  hasModifiers?: boolean
+  hasAddons?: boolean
 }
 
 const groupsCache = new Map<string, ModifierGroupView[]>()
+const groupsInflight = new Map<string, Promise<ModifierGroupView[]>>()
+const addonsCache = new Map<string, RecipeAddonOption[]>()
+const addonsInflight = new Map<string, Promise<RecipeAddonOption[]>>()
+
+export interface RecipeAddonOption {
+  id: string
+  meal_recipe_id: string
+  addon_recipe_id: string
+  extra_cents: number
+  is_default: boolean
+  addon_name: string
+  addon_image_path: string | null
+}
 
 /** Active groups that still have at least one active option. */
 export function activeModifierGroups(groups: ModifierGroupView[]): ModifierGroupView[] {
@@ -52,16 +67,78 @@ export function activeModifierGroups(groups: ModifierGroupView[]): ModifierGroup
     .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
 }
 
+export function peekMealModifierGroups(mealId: string): ModifierGroupView[] | undefined {
+  return groupsCache.get(mealId)
+}
+
+async function fetchJsonOnce<T>(url: string): Promise<T> {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`Request failed (${res.status})`)
+  return (await res.json()) as T
+}
+
+async function fetchWithRetryOnce<T>(url: string): Promise<T> {
+  try {
+    return await fetchJsonOnce<T>(url)
+  } catch {
+    return await fetchJsonOnce<T>(url)
+  }
+}
+
 export async function fetchMealModifierGroups(mealId: string): Promise<ModifierGroupView[]> {
   if (!mealId) return []
   const cached = groupsCache.get(mealId)
   if (cached) return cached
-  const res = await fetch(`/api/meal-modifiers?meal_id=${encodeURIComponent(mealId)}`)
-  if (!res.ok) return []
-  const body = (await res.json()) as { data?: ModifierGroupView[] }
-  const data = body.data ?? []
-  groupsCache.set(mealId, data)
-  return data
+  const inflight = groupsInflight.get(mealId)
+  if (inflight) return inflight
+
+  const request = (async () => {
+    try {
+      const body = await fetchWithRetryOnce<{ data?: ModifierGroupView[] }>(
+        `/api/meal-modifiers?meal_id=${encodeURIComponent(mealId)}`,
+      )
+      const data = body.data ?? []
+      groupsCache.set(mealId, data)
+      return data
+    } finally {
+      groupsInflight.delete(mealId)
+    }
+  })()
+
+  groupsInflight.set(mealId, request)
+  return request
+}
+
+export function prefetchMealModifierGroups(mealId: string): Promise<ModifierGroupView[]> {
+  return fetchMealModifierGroups(mealId)
+}
+
+export function peekRecipeAddons(mealId: string): RecipeAddonOption[] | undefined {
+  return addonsCache.get(mealId)
+}
+
+export async function fetchRecipeAddons(mealId: string): Promise<RecipeAddonOption[]> {
+  if (!mealId) return []
+  const cached = addonsCache.get(mealId)
+  if (cached) return cached
+  const inflight = addonsInflight.get(mealId)
+  if (inflight) return inflight
+
+  const request = (async () => {
+    try {
+      const body = await fetchWithRetryOnce<{ data?: RecipeAddonOption[] }>(
+        `/api/recipe-addons?meal_id=${encodeURIComponent(mealId)}`,
+      )
+      const data = body.data ?? []
+      addonsCache.set(mealId, data)
+      return data
+    } finally {
+      addonsInflight.delete(mealId)
+    }
+  })()
+
+  addonsInflight.set(mealId, request)
+  return request
 }
 
 export function formatAddonAed(cents: number): string | null {

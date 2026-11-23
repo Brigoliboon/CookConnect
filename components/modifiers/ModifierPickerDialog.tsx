@@ -10,6 +10,7 @@ import {
   fetchMealModifierGroups,
   formatAddonAed,
   localizedName,
+  peekMealModifierGroups,
   picksFromSelection,
   unitPriceAed,
   type CartModifier,
@@ -117,11 +118,22 @@ function PickerBody({
   onConfirm: (picks: CartModifier[]) => void
 }) {
   const copy = locale === "ar" ? PICKER_COPY.ar : PICKER_COPY.en
-  const [groups, setGroups] = useState<ModifierGroupView[] | null>(null)
+  const cached = peekMealModifierGroups(target.recipeId)
+  const cachedActive = cached ? activeModifierGroups(cached) : null
+  const [groups, setGroups] = useState<ModifierGroupView[] | null>(cachedActive)
   const [error, setError] = useState("")
-  const [selected, setSelected] = useState<Record<string, string>>({})
+  const [selected, setSelected] = useState<Record<string, string>>(() => {
+    if (!cachedActive) return {}
+    if (initialPicks?.length) {
+      const fromPicks: Record<string, string> = {}
+      for (const pick of initialPicks) fromPicks[pick.groupId] = pick.optionId
+      return { ...defaultSelection(cachedActive), ...fromPicks }
+    }
+    return defaultSelection(cachedActive)
+  })
 
   useEffect(() => {
+    if (cached) return
     let cancelled = false
     fetchMealModifierGroups(target.recipeId)
       .then((data) => {
@@ -145,7 +157,7 @@ function PickerBody({
     return () => {
       cancelled = true
     }
-  }, [target.recipeId, copy.loadError, initialPicks])
+  }, [cached, target.recipeId, copy.loadError, initialPicks])
 
   const loading = groups === null
   const unavailable = !!groups && groups.some((group) => group.options.length === 0)

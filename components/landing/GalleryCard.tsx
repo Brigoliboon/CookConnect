@@ -5,6 +5,7 @@ import Image from "next/image"
 import { ShoppingCart, Check, Flame, Sun, Moon } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useAddMealToCart } from "@/components/modifiers/ModifierPickerProvider"
+import { useModifierPrefetch } from "@/hooks/useModifierPrefetch"
 import { imageVariant } from "@/lib/images"
 
 interface GalleryCardProps {
@@ -22,16 +23,19 @@ interface GalleryCardProps {
   className?: string
   onClick?: () => void
   onAdd?: (name: string, price: number, image: string) => void
+  has_modifiers?: boolean
+  has_addons?: boolean
 }
 
-export function GalleryCard({ id, name, price, calories, protein, carbs, fats, description, image, variant = "order", timeSlot, className, onClick, onAdd }: GalleryCardProps) {
+export function GalleryCard({ id, name, price, calories, protein, carbs, fats, description, image, variant = "order", timeSlot, className, onClick, onAdd, has_modifiers = false, has_addons = false }: GalleryCardProps) {
   const t = useTranslations("meals")
   const tg = useTranslations("gallery")
   const addMealToCart = useAddMealToCart()
+  const { elementRef, prefetch } = useModifierPrefetch<HTMLDivElement>(id, variant === "order" && Boolean(has_modifiers) && Boolean(id))
   const [added, setAdded] = useState(false)
 
   async function handleAdd() {
-    const addedOk = await addMealToCart({ recipeId: id ?? "", name, price, image })
+    const addedOk = await addMealToCart({ recipeId: id ?? "", name, price, image, hasModifiers: has_modifiers, hasAddons: has_addons })
     if (!addedOk) return
     setAdded(true)
     setTimeout(() => setAdded(false), 1500)
@@ -39,7 +43,10 @@ export function GalleryCard({ id, name, price, calories, protein, carbs, fats, d
 
   return (
     <div
+      ref={elementRef}
       onClick={onClick}
+      onMouseEnter={prefetch}
+      onTouchStart={prefetch}
       className={`flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl bg-white drop-shadow-md transition-all duration-300 hover:drop-shadow-lg ${className ?? ""}`}
     >
       <div className="relative h-40 overflow-hidden">

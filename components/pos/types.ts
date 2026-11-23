@@ -13,6 +13,8 @@ export interface PosItem {
   image: string
   price: number
   calories: number
+  has_addons: boolean
+  has_modifiers: boolean
   servings: PosServing[]
 }
 

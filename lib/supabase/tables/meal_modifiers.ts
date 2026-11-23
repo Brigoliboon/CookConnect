@@ -107,6 +107,69 @@ function mapGroup(row: Record<string, unknown>, includeInactive: boolean): MealM
 const OPTION_SELECT = "*, recipe:recipes!meal_modifier_options_recipe_id_fkey(name)"
 const GROUP_SELECT = `*, options:meal_modifier_options(${OPTION_SELECT})`
 
+
+/** Meal IDs that have at least one active linked group with at least one active option. One batched lookup, not N+1. */
+export async function listMealIdsWithActiveModifiers(
+  supabase: SupabaseClient,
+  mealIds: string[],
+): Promise<Set<string>> {
+  const ids = [...new Set(mealIds.filter(Boolean))]
+  const flagged = new Set<string>()
+  if (ids.length === 0) return flagged
+
+  const chunkSize = 200
+  for (let i = 0; i < ids.length; i += chunkSize) {
+    const chunk = ids.slice(i, i + chunkSize)
+    const { data: links, error: linkError } = await supabase
+      .from("meal_modifier_group_links")
+      .select("meal_recipe_id, group_id, group:meal_modifier_groups!inner(id, is_active)")
+      .in("meal_recipe_id", chunk)
+      .eq("group.is_active", true)
+
+    if (linkError) {
+      const message = String((linkError as { message?: string }).message ?? "")
+      const code = (linkError as { code?: string }).code
+      if (code === "PGRST200" || /meal_modifier_/i.test(message)) return flagged
+      throw linkError
+    }
+
+    const groupIds = [
+      ...new Set(
+        ((links as { meal_recipe_id?: string; group_id?: string }[] | null) ?? [])
+          .map((row) => row.group_id)
+          .filter((id): id is string => !!id),
+      ),
+    ]
+    if (groupIds.length === 0) continue
+
+    const { data: options, error: optionError } = await supabase
+      .from("meal_modifier_options")
+      .select("group_id")
+      .in("group_id", groupIds)
+      .eq("is_active", true)
+
+    if (optionError) {
+      const message = String((optionError as { message?: string }).message ?? "")
+      const code = (optionError as { code?: string }).code
+      if (code === "PGRST200" || /meal_modifier_/i.test(message)) return flagged
+      throw optionError
+    }
+
+    const activeGroups = new Set(
+      ((options as { group_id?: string }[] | null) ?? [])
+        .map((row) => row.group_id)
+        .filter((id): id is string => !!id),
+    )
+    for (const row of (links as { meal_recipe_id?: string; group_id?: string }[] | null) ?? []) {
+      if (row.meal_recipe_id && row.group_id && activeGroups.has(row.group_id)) {
+        flagged.add(row.meal_recipe_id)
+      }
+    }
+  }
+
+  return flagged
+}
+
 export async function listModifierGroups(
   supabase: SupabaseClient,
   includeInactive: boolean,
