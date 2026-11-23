@@ -5,7 +5,7 @@ import { Flame, Beef, Wheat, ChevronDown, ShoppingCart, Check } from "lucide-rea
 import { useTranslations } from "next-intl"
 import { imageSrcSet, imageVariant } from "@/lib/images"
 import { DirhamSign } from "@/components/ui/DirhamSign"
-import { addCartItem } from "@/utils/cart"
+import { useAddMealToCart } from "@/components/modifiers/ModifierPickerProvider"
 import type { MenuItem } from "./MenuClient"
 
 export type MenuCardVariant = "list" | "compact"
@@ -67,24 +67,17 @@ export function MenuMealCard({
   item,
   name,
   description,
-  hasAddons = false,
   variant = "list",
-  onAdd,
   onClick,
 }: {
   item: MenuItem
   name: string
   description: string
-  hasAddons?: boolean
   variant?: MenuCardVariant
-  /**
-   * Called when "Add" is pressed. Return `true` to signal the parent handled
-   * the add (e.g. it opened the addon sheet); otherwise the card adds directly.
-   */
-  onAdd?: (target: AddonTargetState, hasAddons: boolean) => boolean | void
   onClick: () => void
 }) {
   const mt = useTranslations("meals")
+  const addMealToCart = useAddMealToCart()
   const [servingIndex, setServingIndex] = useState(0)
   const [servingOpen, setServingOpen] = useState(false)
   const [added, setAdded] = useState(false)
@@ -98,18 +91,18 @@ export function MenuMealCard({
   const imgSrc = item.image || "/drink_sample.svg"
   const compact = variant === "compact"
 
-  function handleAdd() {
+  async function handleAdd() {
     const key = activeServing
       ? `${name} (${activeServing.name ?? mt("servingFallback", { index: servingIndex + 1 })})`
       : name
 
-    const handled = onAdd?.(
-      { recipeId: item.id, name: key, price: displayPrice, image: imgSrc },
-      hasAddons,
-    )
-    if (handled === true) return
-
-    addCartItem({ name: key, price: displayPrice, image: imgSrc, recipeId: item.id })
+    const addedOk = await addMealToCart({
+      recipeId: item.id,
+      name: key,
+      price: displayPrice,
+      image: imgSrc,
+    })
+    if (!addedOk) return
     setAdded(true)
     setTimeout(() => setAdded(false), 1500)
   }

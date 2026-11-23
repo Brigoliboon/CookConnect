@@ -1,3 +1,8 @@
+import type { CartModifier } from "@/lib/modifiers"
+import { modifierOptionKey, unitPriceAed } from "@/lib/modifiers"
+
+export type { CartModifier }
+
 export interface CartItem {
   /** Stable per-line id so two lines of the same meal with different sides stay independent. */
   lineId?: string
@@ -11,6 +16,7 @@ export interface CartItem {
   addonRecipeId?: string | null
   addonName?: string | null
   addonExtra?: number
+  modifiers?: CartModifier[]
 }
 
 export const CART_KEY = "cookconnect_cart"
@@ -48,40 +54,60 @@ export interface AddCartItemInput {
   addonName?: string | null
   /** Extra price in cents. */
   addonExtra?: number
+  modifiers?: CartModifier[]
+}
+
+function sameLine(item: CartItem, input: AddCartItemInput): boolean {
+  if (item.name !== input.name) return false
+  if ((item.addonRecipeId ?? null) !== (input.addonRecipeId ?? null)) return false
+  return modifierOptionKey(item.modifiers) === modifierOptionKey(input.modifiers)
 }
 
 /**
  * Adds one unit to the cart, merging with an existing line only when both the
- * meal/serving name and the selected addon match. Returns the updated cart.
+ * meal/serving name and the selected modifiers (or legacy addon) match.
+ * Returns the updated cart.
  */
 export function addCartItem(input: AddCartItemInput): CartItem[] {
   const cart = getCart()
-  const addonRecipeId = input.addonRecipeId ?? null
-  const existing = cart.find(
-    (item) => item.name === input.name && (item.addonRecipeId ?? null) === addonRecipeId,
-  )
+  const existing = cart.find((item) => sameLine(item, input))
 
   if (existing) {
     existing.qty += 1
   } else {
-    const extra = (input.addonExtra ?? 0) / 100
+    const addonExtra = input.addonExtra ?? 0
+    const modifiers = input.modifiers?.length ? input.modifiers : undefined
     cart.push({
       lineId: newLineId(),
       name: input.name,
-      price: Math.round((input.price + extra) * 100) / 100,
+      price: unitPriceAed(input.price, modifiers, addonExtra),
       qty: 1,
       image: input.image,
       recipeId: input.recipeId,
       basePrice: input.price,
-      addonRecipeId,
+      addonRecipeId: input.addonRecipeId ?? null,
       addonName: input.addonName ?? null,
-      addonExtra: input.addonExtra ?? 0,
+      addonExtra,
+      modifiers,
     })
   }
 
   setCart(cart)
   if (typeof window !== "undefined") window.dispatchEvent(new Event("cart-changed"))
   return cart
+}
+
+export function applyModifiersToLine(item: CartItem, modifiers: CartModifier[]): CartItem {
+  const base = item.basePrice ?? item.price
+  return {
+    ...item,
+    basePrice: base,
+    modifiers,
+    addonRecipeId: null,
+    addonName: null,
+    addonExtra: 0,
+    price: unitPriceAed(base, modifiers, 0),
+  }
 }
 
 function newLineId(): string {

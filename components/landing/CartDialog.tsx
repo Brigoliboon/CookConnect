@@ -3,8 +3,11 @@
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Trash2, Minus, Plus, X, CheckCircle2, User, Mail, Phone, MapPin, Check, MessageCircle } from "lucide-react"
-import { useTranslations } from "next-intl"
-import { cartLineKey, getCart, setCart, type CartItem } from "@/utils/cart"
+import { useLocale, useTranslations } from "next-intl"
+import { applyModifiersToLine, cartLineKey, getCart, setCart, type CartItem } from "@/utils/cart"
+import { modifierOptionKey } from "@/lib/modifiers"
+import { ModifierPicks } from "@/components/modifiers/ModifierPicks"
+import { usePickModifiers } from "@/components/modifiers/ModifierPickerProvider"
 import { LocationPicker, type Coordinates } from "@/components/ui/LocationPicker"
 import { FloatingInput } from "@/components/ui/FloatingInput"
 import { CartSidePicker } from "@/components/landing/CartSidePicker"
@@ -13,6 +16,8 @@ import { resolveDeliveryAddress, formatPrice } from "@/utils/mapbox"
 
 export function CartDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const t = useTranslations("cart")
+  const locale = useLocale()
+  const pickModifiers = usePickModifiers()
   const [cart, setCartState] = useState<CartItem[]>(() => getCart())
   const [submitted, setSubmitted] = useState(false)
   const [location, setLocation] = useState<Coordinates | null>(null)
@@ -112,6 +117,46 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
     )
   }
 
+  async function changeItemModifiers(key: string) {
+    const item = cart.find((entry) => cartLineKey(entry) === key)
+    if (!item?.recipeId) return
+    const picks = await pickModifiers(
+      {
+        recipeId: item.recipeId,
+        name: item.name,
+        price: item.basePrice ?? item.price,
+        image: item.image,
+      },
+      { initialPicks: item.modifiers },
+    )
+    if (!picks) return
+    const next = cart.map((entry) =>
+      cartLineKey(entry) === key ? applyModifiersToLine(entry, picks) : entry,
+    )
+    const updated = next.find((entry) => cartLineKey(entry) === key)
+    const duplicate = next.find(
+      (entry) =>
+        cartLineKey(entry) !== key &&
+        updated &&
+        entry.name === updated.name &&
+        (entry.addonRecipeId ?? null) === (updated.addonRecipeId ?? null) &&
+        modifierOptionKey(entry.modifiers) === modifierOptionKey(updated.modifiers),
+    )
+    if (updated && duplicate) {
+      commit(
+        next
+          .map((entry) =>
+            cartLineKey(entry) === cartLineKey(duplicate)
+              ? { ...entry, qty: entry.qty + updated.qty }
+              : entry,
+          )
+          .filter((entry) => cartLineKey(entry) !== key),
+      )
+      return
+    }
+    commit(next)
+  }
+
   function handleConfirmLocation() {
     if (!location) {
       setLocationError(t("locError"))
@@ -172,6 +217,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
           items: cart.map((item) => ({
             recipe_id: item.recipeId ?? "",
             addon_recipe_id: item.addonRecipeId ?? null,
+            option_ids: (item.modifiers ?? []).map((pick) => pick.optionId),
             qty: item.qty,
             note: item.note?.trim() || null,
           })),
@@ -278,7 +324,23 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                         </button>
                       </div>
                     </div>
-                    {item.recipeId && (
+                    {item.modifiers && item.modifiers.length > 0 ? (
+                      <div className="mt-2 border-t border-neutral-100 pt-2">
+                        <div className="mb-1.5 flex items-center justify-between gap-2">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+                            {t("modifiersTitle")}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => void changeItemModifiers(cartLineKey(item))}
+                            className="text-[11px] font-semibold text-brand-900 hover:underline"
+                          >
+                            {t("changeModifiers")}
+                          </button>
+                        </div>
+                        <ModifierPicks modifiers={item.modifiers} locale={locale} />
+                      </div>
+                    ) : item.recipeId ? (
                       <div className="mt-2 border-t border-neutral-100 pt-2">
                         <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
                           {t("sidesTitle")}
@@ -295,7 +357,7 @@ export function CartDialog({ open, onClose }: { open: boolean; onClose: () => vo
                           </p>
                         )}
                       </div>
-                    )}
+                    ) : null}
                     <div className="mt-2 border-t border-neutral-100 pt-2">
                         <div className="flex items-center gap-1.5">
                           <MessageCircle size={12} className="text-neutral-400" />

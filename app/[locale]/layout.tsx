@@ -6,6 +6,7 @@ import { getMessages } from "next-intl/server";
 import { routing } from "@/i18n/routing";
 import { fontVariables } from "@/lib/fonts";
 import { Providers } from "../providers";
+import { ModifierPickerProvider } from "@/components/modifiers/ModifierPickerProvider";
 import { GEO, SITE_META, SITE_URL, localeUrl, ogImage } from "@/lib/seo";
 import { GoogleTag } from "@/components/seo/GoogleTag";
 import "../globals.css";
@@ -99,7 +100,7 @@ export default async function LocaleLayout({
     >
       <body className="min-h-full flex flex-col">
         <Providers>
-          <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>
+          <NextIntlClientProvider messages={messages}><ModifierPickerProvider>{children}</ModifierPickerProvider></NextIntlClientProvider>
         </Providers>
         <GoogleTag />
       </body>

@@ -203,7 +203,9 @@
     "pickupNote": "Pickup order — no delivery address needed.",
     "orderCode": "Your verification code",
     "trackLink": "Track your order",
-    "codeHint": "Show this code when receiving your order."
+    "codeHint": "Show this code when receiving your order.",
+    "modifiersTitle": "Your options",
+    "changeModifiers": "Change"
   },
   "gallery": {
     "morning": "Morning",
