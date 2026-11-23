@@ -148,6 +148,7 @@ These were unverified in the 2026-11-17 audit. Do not tick them from memory; con
 
 Newest first. Times are Asia/Manila (UTC+8).
 
+- 2026-11-23 23:43: Landing plan cards on `feat/landing-subscription-gallery`: on phones the plans are a snap gallery with the centered card at full scale, a peek of the neighbouring cards, invisible tap zones on both sides that slide to the previous/next plan, and dot navigation underneath; the Healthy plan is the initial focus (centered on load); the desktop grid is unchanged. `SUBSCRIPTION_PLANS` still backs the section (FR-2); FR-4 live plans remain open.
 - 2026-11-22 18:36: Employee Subscriptions redesign on `feat/employee-subscriptions`: Active and Inquiries tabs with counts; one row per subscription (plan, days left, Renewal due soon from `expires_at`); details open in a side panel (bottom sheet on phone); pause, resume, cancel, payments, invite, CSV, and approve/decline kept. No new APIs or migrations.
 - 2026-11-22 18:30: Employee Chef redesign on `feat/employee-chef`: week strip, To Cook Today stats and time-of-day tabs, amber Avoids chips, Still to pick shows 5 names plus Show all, and Done / Reopen all still use `chef_schedules.done_at` through `PATCH /api/chef-schedules`. No migration.
 - 2026-11-22 18:10: Employee Meals redesign on `feat/employee-meals`: one row per meal with an enable switch and a ⋯ menu (view, edit, delete); category chips, search, and CSV tools kept; New Meal and existing recipe APIs unchanged (`is_active` already backed the toggle).
