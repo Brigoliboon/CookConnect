@@ -1,7 +1,7 @@
 import { MENU_CATEGORIES } from "@/constants"
 import type { MenuCategory, MenuItem, MealServingOption } from "@/constants"
 
-export type MealListItem = MenuItem & { is_active?: boolean }
+export type MealListItem = MenuItem & { is_active?: boolean; is_subscription_included?: boolean }
 
 export type StatusFilter = "all" | "enabled" | "disabled"
 
@@ -69,5 +69,6 @@ export function mapRecipeToItem(r: Record<string, unknown>): MealListItem {
     ingredients,
     servings,
     is_active: (r.is_active as boolean) ?? true,
+    is_subscription_included: (r.is_subscription_included as boolean) ?? false,
   }
 }

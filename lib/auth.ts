@@ -30,3 +30,22 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     role: account.role,
   }
 }
+
+export function isEmployeeOrAdminRole(role: string): boolean {
+  return role === "employee" || role === "admin"
+}
+
+export async function requireEmployeeOrAdmin(): Promise<
+  | { ok: true; user: AuthUser }
+  | { ok: false; response: Response }
+> {
+  const user = await getCurrentUser()
+  if (!user) {
+    return { ok: false, response: Response.json({ error: "Unauthorized" }, { status: 401 }) }
+  }
+  if (!isEmployeeOrAdminRole(user.role)) {
+    return { ok: false, response: Response.json({ error: "Forbidden" }, { status: 403 }) }
+  }
+  return { ok: true, user }
+}
+

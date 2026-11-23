@@ -56,7 +56,7 @@ One system where customers order and subscribe, and staff handle orders, subscri
 - FR-9 [Done]: Server recalculates prices and VAT (VAT-inclusive).
 - FR-10 [Done]: Public order tracking by code with verification.
 - FR-11 [Partial]: Arabic meal names stored in the database (currently a dictionary in code).
-- FR-50 [Todo]: Meal modifiers. Reusable groups attached to meals (for example "Choose your side"). v1 is single-select and required when attached; the add-on price is set per option and is independent of the side's menu price (0 = free). English and Arabic labels. Server validates the selection and charges it. Orders snapshot the chosen group, option, price, side recipe id, and Arabic names. A meal with an attached group that has no active options cannot be ordered. v1 applies to regular orders, the cart, and POS only: groups cannot be attached to subscription-included meals (FR-48 stays separate). Meal CSV import has no modifier columns in v1. The experimental `recipe_addons` / `order_item_addons` tables stay until a later follow-up copies historical rows and drops them.
+- FR-50 [Todo]: Meal modifiers. Reusable groups attached to meals, for sides (for example "Choose your side") or other pick-one choices such as spice level ("Spicy / Not spicy"). v1 is single-select and required when attached; the add-on price is set per option and is independent of any linked side's menu price (0 = free). An option's side recipe is optional, so a spice-level choice does not need a recipe. English and Arabic labels. Server validates the selection and charges it. Orders snapshot the chosen group, option, price, side recipe id (when present), and Arabic names. A meal with an attached group that has no active options cannot be ordered. When a meal with attached groups is added to the cart or a POS order, a dialog asks the customer or staff to pick one option per group (later PR). v1 applies to regular orders, the cart, and POS only: groups cannot be attached to subscription-included meals (FR-48 stays separate). Meal CSV import has no modifier columns in v1. The experimental `recipe_addons` / `order_item_addons` tables stay until a later follow-up copies historical rows and drops them.
 
 ### 6.3 Subscriptions
 - FR-12 [Done]: Sign-up wizard: plan, details, preferences, meals, delivery, review.
@@ -164,7 +164,7 @@ Resolved 2026-11-21: Sharjah AED 100; customer dashboard (FR-37 to FR-39) stays 
 Newest first. Times are Asia/Manila (UTC+8).
 
 ### 2026-11-24
-- Added FR-50 meal modifiers (approved by Boon): reusable single-select required groups, add-on price independent of menu price, EN/AR labels, server-validated and snapshotted on orders.
+- Added FR-50 meal modifiers (approved by Boon): reusable single-select required groups for sides or other choices such as spice level, add-on price independent of menu price, optional option recipe, EN/AR labels, server-validated and snapshotted on orders. A picker dialog at add-to-cart / POS is a later step.
 - Boon confirmed v1 decisions: pick-one and required only; subscriptions left out for now (no groups on `is_subscription_included` meals); the order snapshot also stores the side recipe id and its Arabic name. The old `recipe_addons` / `order_item_addons` tables stay until a later follow-up. Meal CSV is out of v1.
 
 ### 2026-11-21

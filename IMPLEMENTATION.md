@@ -144,14 +144,14 @@ These were unverified in the 2026-11-17 audit. Do not tick them from memory; con
 
 ## M16: Meal modifiers (FR-50)
 
-Added 2026-11-24 at Boon's request. Reusable single-select required groups replace the experimental per-meal `recipe_addons` sides for regular orders, the cart, and POS. Subscriptions, Chef, macros, and meal CSV are out of v1 (no groups on `is_subscription_included` meals). FR-48 stays a separate open item.
+Added 2026-11-24 at Boon's request. Reusable single-select required groups replace the experimental per-meal `recipe_addons` sides for regular orders, the cart, and POS. A group can be a side ("Choose your side") or any other pick-one choice such as spice level ("Spicy / Not spicy"). Option `recipe_id` is optional: set it for a side dish, leave it empty for a non-recipe choice. `price_cents` may be 0. Subscriptions, Chef, macros, and meal CSV are out of v1 (no groups on `is_subscription_included` meals). FR-48 stays a separate open item.
 
-Boon confirmed 2026-11-24: v1 is pick-one and required only; subscriptions are left out for now; the order snapshot also stores the side recipe id and its Arabic name.
+Boon confirmed 2026-11-24: v1 is pick-one and required only; subscriptions are left out for now; the order snapshot also stores the side recipe id and its Arabic name. Boon also confirmed that when a meal with attached groups is added to the cart or a POS order, a dialog should appear so the customer or staff can pick one option per group. That dialog is the next PR; this milestone's editor only manages and attaches groups.
 
-- [ ] Migration `20261124000000_meal_modifiers.sql`: tables, RLS, default-option swap trigger, `create_order_with_modifiers` RPC (server-priced, VAT 5% of subtotal in AED cents), and a block on attaching groups to subscription meals. Boon applies this on the live Supabase project.
-- [ ] Server model and API: public read of active groups/options; employee-only writes (including inactive rows); checkout and POS call the RPC; client prices are ignored
-- [ ] Employee meal editor: manage groups/options and attach groups to meals (not to subscription meals)
-- [ ] Customer menu, landing cart, and POS use one modifier picker; cart line key includes the chosen options
+- [x] Migration `20261124000000_meal_modifiers.sql`: tables, RLS, default-option swap trigger, `create_order_with_modifiers` RPC (server-priced, VAT 5% of subtotal in AED cents), and a block on attaching groups to subscription meals. Boon applied this on the live Supabase project. `recipe_id` on options is already nullable, so no follow-up migration was needed for non-side choices.
+- [x] Employee API: public read of active groups/options; employee-only writes (including inactive rows). Checkout and POS still use the existing add-on path until the picker PR; they do not call the RPC yet.
+- [x] Employee meal editor: manage groups/options and attach groups to meals (not to subscription meals). The old `recipe_addons` reads stay in place.
+- [ ] Customer menu, landing cart, and POS: a dialog appears when adding a meal that has attached groups, so the customer or staff picks one option per group (sides, spice level, or other modifiers). Cart line key includes the chosen options. Checkout and POS then call `create_order_with_modifiers`.
 - [ ] Order details, staff email, thermal receipt, and public tracking show snapshotted modifier labels, plus a compatibility read of existing `order_item_addons` rows. The old add-on tables stay until a later follow-up migrates historical rows and drops them.
 - [ ] Run `tests/MEAL_MODIFIERS_TESTCASE.md` and tick this milestone
 
@@ -161,6 +161,7 @@ Boon confirmed 2026-11-24: v1 is pick-one and required only; subscriptions are l
 
 Newest first. Times are Asia/Manila (UTC+8).
 
+- 2026-11-24 02:39: Employee meal-modifier editor on `feat/meal-modifiers-editor`: staff can create and edit reusable groups and options (EN/AR names, optional side recipe, add-on price in AED, default, active) under Meals → Modifiers, and attach groups on New Meal / Edit Meal. Attaching to subscription-included meals is blocked. The add-to-cart / POS picker dialog is left for the next PR. No new migration; option `recipe_id` is already nullable.
 - 2026-11-24 02:24: Fixed the meal-modifier migration on `feat/meal-modifiers-schema`: removed `is_staff_account()` so role checks use only existing `user_role` values `'employee'` and `'admin'` (no `'chef'` or `'rider'`). Snapshot staff reads use `is_employee_or_admin()`. The script is safe to re-run (`if not exists` / `create or replace` / `drop … if exists`).
 - 2026-11-24 02:13: Meal-modifier schema on `feat/meal-modifiers-schema`: FR-50, M16, the migration and the testcase aligned to Boon's v1 decisions (single-select required groups; subscriptions out of v1; snapshots include side `recipe_id` and `name_ar`). Adds `create_order_with_modifiers`, tighter RLS, and leaves `recipe_addons` in place. Docs and SQL only.
 - 2026-11-23 23:43: Landing plan cards on `feat/landing-subscription-gallery`: on phones the plans are a snap gallery with the centered card at full scale, a peek of the neighbouring cards, invisible tap zones on both sides that slide to the previous/next plan, and dot navigation underneath; the Healthy plan is the initial focus (centered on load); the desktop grid is unchanged. `SUBSCRIPTION_PLANS` still backs the section (FR-2); FR-4 live plans remain open.

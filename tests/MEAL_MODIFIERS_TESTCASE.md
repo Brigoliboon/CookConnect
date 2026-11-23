@@ -44,6 +44,8 @@ Role checks in this migration use only the `user_role` values `employee` and `ad
 - [ ] **S11** Public/anon reads do not see inactive groups, inactive options, or links to inactive groups; an employee read does
 - [ ] **S12** A meal with an attached active group that has zero active options cannot be ordered (`create_order_with_modifiers` errors, no partial order)
 
+Groups may be sides or non-recipe choices such as spice level; option `recipe_id` may be null and `price_cents` may be 0. The add-to-cart / POS picker dialog is covered in later C / POS cases, not this editor PR.
+
 ## G — Groups and options (employee)
 
 - [ ] **G1** `POST /api/meal-modifiers/groups` as employee → 201 with `id`
