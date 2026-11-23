@@ -7,6 +7,7 @@ import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
 } from "recharts"
 import { MENU_CATEGORIES, type MenuItem } from "@/constants"
+import { MealModifierAttachField } from "@/components/meals/MealModifierAttachField"
 
 const COLORS = {
   protein: "#FA6868",
@@ -98,7 +99,7 @@ function parseSearchDescription(desc: string) {
 interface EditMealDialogProps {
   open: boolean
   onClose: () => void
-  item: MenuItem
+  item: MenuItem & { is_subscription_included?: boolean }
 }
 
 export function EditMealDialog({ open, onClose, item }: EditMealDialogProps) {
@@ -127,6 +128,9 @@ export function EditMealDialog({ open, onClose, item }: EditMealDialogProps) {
   const [servingsLoading, setServingsLoading] = useState(false)
   const [activeServingIndex, setActiveServingIndex] = useState(0)
   const removedServingIds = useRef<string[]>([])
+  const [selectedModifierGroupIds, setSelectedModifierGroupIds] = useState<string[]>([])
+  const [subscriptionIncluded, setSubscriptionIncluded] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -153,6 +157,17 @@ export function EditMealDialog({ open, onClose, item }: EditMealDialogProps) {
     setServings([])
     setActiveServingIndex(0)
     removedServingIds.current = []
+    setSaveError(null)
+    setSubscriptionIncluded(Boolean(item.is_subscription_included))
+    setSelectedModifierGroupIds([])
+    fetch(`/api/meal-modifiers?meal_id=${item.id}`)
+      .then(async (res) => {
+        const payload = await res.json().catch(() => ({}))
+        if (!res.ok) return []
+        return ((payload as { data?: { id: string }[] }).data ?? [])
+      })
+      .then((groups) => setSelectedModifierGroupIds(groups.map((group) => group.id)))
+      .catch((e) => console.error("[EDIT_MEAL] Failed to load modifier groups:", e))
     setServingsLoading(true)
     fetch(`/api/recipe/${item.id}/servings`)
       .then(async (res) => {
@@ -500,6 +515,7 @@ export function EditMealDialog({ open, onClose, item }: EditMealDialogProps) {
   async function handleSave() {
     if (!mealName.trim()) return
     setSaving(true)
+    setSaveError(null)
     try {
       await saveActiveServing()
 
@@ -526,9 +542,28 @@ export function EditMealDialog({ open, onClose, item }: EditMealDialogProps) {
       })
       if (!res.ok) {
         const err = await res.json()
-        console.error("[EDIT_MEAL] Save failed:", err.error)
+        const message = err.error ?? "Failed to save meal"
+        console.error("[EDIT_MEAL] Save failed:", message)
+        setSaveError(message)
         return
       }
+
+      if (!subscriptionIncluded) {
+        const linksRes = await fetch("/api/meal-modifiers/links", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            meal_recipe_id: item.id,
+            group_ids: selectedModifierGroupIds,
+          }),
+        })
+        if (!linksRes.ok) {
+          const linksErr = await linksRes.json().catch(() => ({}))
+          setSaveError((linksErr as { error?: string }).error ?? "Meal saved, but updating modifier groups failed.")
+          return
+        }
+      }
+
       handleClose()
     } catch (e) {
       console.error("[EDIT_MEAL] Save error:", e)
@@ -573,6 +608,9 @@ export function EditMealDialog({ open, onClose, item }: EditMealDialogProps) {
     setActiveServingIndex(0)
     setServingsLoading(false)
     removedServingIds.current = []
+    setSelectedModifierGroupIds([])
+    setSubscriptionIncluded(false)
+    setSaveError(null)
     onClose()
   }
 
@@ -760,6 +798,13 @@ export function EditMealDialog({ open, onClose, item }: EditMealDialogProps) {
                   )}
                 </div>
 
+                <MealModifierAttachField
+                  selectedIds={selectedModifierGroupIds}
+                  onChange={setSelectedModifierGroupIds}
+                  subscriptionIncluded={subscriptionIncluded}
+                  disabled={saving}
+                />
+
                 <div>
                   <label className="mb-1.5 block text-base font-semibold text-neutral-800">Description</label>
                   <textarea
@@ -944,6 +989,9 @@ export function EditMealDialog({ open, onClose, item }: EditMealDialogProps) {
                   </div>
                 </div>
 
+                {saveError && (
+                  <p className="text-sm text-red-600">{saveError}</p>
+                )}
                 <div className="flex justify-end gap-3 border-t border-neutral-200 pt-5">
                   <button onClick={handleClose} className="text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-700">
                     Cancel

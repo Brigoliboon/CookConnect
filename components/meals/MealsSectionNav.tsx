@@ -2,10 +2,11 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { CalendarDays, Utensils } from "lucide-react"
+import { CalendarDays, Layers, Utensils } from "lucide-react"
 
 const TABS = [
   { href: "/employee/meals", label: "Menu", icon: Utensils },
+  { href: "/employee/meals/modifiers", label: "Modifiers", icon: Layers },
   { href: "/employee/meals/subscription", label: "Subscription plans", icon: CalendarDays },
 ] as const
 

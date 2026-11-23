@@ -277,3 +277,36 @@ export interface AppNotification {
   read_at: string | null;
   created_at: string;
 }
+
+export interface MealModifierGroup {
+  id: UUID;
+  name: string;
+  name_ar: string | null;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MealModifierOption {
+  id: UUID;
+  group_id: UUID;
+  recipe_id: UUID | null;
+  name: string;
+  name_ar: string | null;
+  price_cents: number;
+  is_default: boolean;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MealModifierGroupLink {
+  id: UUID;
+  meal_recipe_id: UUID;
+  group_id: UUID;
+  sort_order: number;
+  created_at: string;
+}
+
