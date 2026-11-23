@@ -14,14 +14,12 @@ interface ModifierGroupSummary {
 interface MealModifierAttachFieldProps {
   selectedIds: string[]
   onChange: (ids: string[]) => void
-  subscriptionIncluded?: boolean
   disabled?: boolean
 }
 
 export function MealModifierAttachField({
   selectedIds,
   onChange,
-  subscriptionIncluded = false,
   disabled = false,
 }: MealModifierAttachFieldProps) {
   const [groups, setGroups] = useState<ModifierGroupSummary[]>([])
@@ -60,17 +58,6 @@ export function MealModifierAttachField({
     } else {
       onChange(selectedIds.filter((value) => value !== id))
     }
-  }
-
-  if (subscriptionIncluded) {
-    return (
-      <div>
-        <label className="mb-1.5 block text-base font-semibold text-neutral-800">Modifier groups</label>
-        <p className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-600">
-          Modifier groups cannot be attached to meals included in subscriptions.
-        </p>
-      </div>
-    )
   }
 
   return (
