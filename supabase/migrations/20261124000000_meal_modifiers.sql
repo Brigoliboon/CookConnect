@@ -31,6 +31,11 @@
 -- order_item_addons. Drop those tables in a later follow-up after rows are
 -- copied into order_item_modifiers.
 
+-- Role checks use only values on public.user_role: employee and admin.
+-- There is no chef or rider value on that enum; customer reads go through
+-- order.customer_id, not a role literal.
+drop function if exists public.is_staff_account();
+
 create or replace function public.is_employee_or_admin()
 returns boolean
 language sql
@@ -46,25 +51,8 @@ as $$
   );
 $$;
 
-create or replace function public.is_staff_account()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select exists (
-    select 1
-    from public.accounts a
-    where a.id = (select auth.uid())
-      and a.role in ('employee', 'admin', 'chef', 'rider')
-  );
-$$;
-
 revoke all on function public.is_employee_or_admin() from public;
-revoke all on function public.is_staff_account() from public;
 grant execute on function public.is_employee_or_admin() to anon, authenticated;
-grant execute on function public.is_staff_account() to anon, authenticated;
 
 create table if not exists public.meal_modifier_groups (
   id uuid primary key default gen_random_uuid(),
@@ -291,7 +279,7 @@ create policy meal_modifier_group_links_staff_write on public.meal_modifier_grou
   with check (public.is_employee_or_admin());
 
 -- Snapshots: no direct insert/update/delete for anon or authenticated.
--- Reads follow the parent order (staff, or the customer who owns the order).
+-- Reads follow the parent order (employee/admin, or the customer who owns the order).
 -- Public tracking goes through the Next.js API with a server client, not anon RLS.
 drop policy if exists order_item_modifiers_insert on public.order_item_modifiers;
 drop policy if exists order_item_modifiers_read on public.order_item_modifiers;
@@ -299,7 +287,7 @@ drop policy if exists order_item_modifiers_read on public.order_item_modifiers;
 drop policy if exists order_item_modifiers_staff_read on public.order_item_modifiers;
 create policy order_item_modifiers_staff_read on public.order_item_modifiers
   for select to authenticated
-  using (public.is_staff_account());
+  using (public.is_employee_or_admin());
 
 drop policy if exists order_item_modifiers_customer_read on public.order_item_modifiers;
 create policy order_item_modifiers_customer_read on public.order_item_modifiers

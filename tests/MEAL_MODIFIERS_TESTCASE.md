@@ -29,6 +29,8 @@ on later API and UI pull requests.
 
 ## S — Schema and RPC (this migration)
 
+Role checks in this migration use only the `user_role` values `employee` and `admin`. There is no `chef` or `rider` value on that enum. Snapshot staff reads use `is_employee_or_admin()`; customer reads use `orders.customer_id`, not a role literal.
+
 - [ ] **S1** `meal_modifier_groups` has no `selection_type` or `is_required` column
 - [ ] **S2** Attaching a group to a recipe with `is_subscription_included = true` is rejected
 - [ ] **S3** Setting `is_subscription_included = true` on a meal that already has a group is rejected
