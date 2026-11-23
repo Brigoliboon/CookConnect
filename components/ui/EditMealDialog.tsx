@@ -129,7 +129,6 @@ export function EditMealDialog({ open, onClose, item }: EditMealDialogProps) {
   const [activeServingIndex, setActiveServingIndex] = useState(0)
   const removedServingIds = useRef<string[]>([])
   const [selectedModifierGroupIds, setSelectedModifierGroupIds] = useState<string[]>([])
-  const [subscriptionIncluded, setSubscriptionIncluded] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -158,7 +157,6 @@ export function EditMealDialog({ open, onClose, item }: EditMealDialogProps) {
     setActiveServingIndex(0)
     removedServingIds.current = []
     setSaveError(null)
-    setSubscriptionIncluded(Boolean(item.is_subscription_included))
     setSelectedModifierGroupIds([])
     fetch(`/api/meal-modifiers?meal_id=${item.id}`)
       .then(async (res) => {
@@ -548,20 +546,18 @@ export function EditMealDialog({ open, onClose, item }: EditMealDialogProps) {
         return
       }
 
-      if (!subscriptionIncluded) {
-        const linksRes = await fetch("/api/meal-modifiers/links", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            meal_recipe_id: item.id,
-            group_ids: selectedModifierGroupIds,
-          }),
-        })
-        if (!linksRes.ok) {
-          const linksErr = await linksRes.json().catch(() => ({}))
-          setSaveError((linksErr as { error?: string }).error ?? "Meal saved, but updating modifier groups failed.")
-          return
-        }
+      const linksRes = await fetch("/api/meal-modifiers/links", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          meal_recipe_id: item.id,
+          group_ids: selectedModifierGroupIds,
+        }),
+      })
+      if (!linksRes.ok) {
+        const linksErr = await linksRes.json().catch(() => ({}))
+        setSaveError((linksErr as { error?: string }).error ?? "Meal saved, but updating modifier groups failed.")
+        return
       }
 
       handleClose()
@@ -609,7 +605,6 @@ export function EditMealDialog({ open, onClose, item }: EditMealDialogProps) {
     setServingsLoading(false)
     removedServingIds.current = []
     setSelectedModifierGroupIds([])
-    setSubscriptionIncluded(false)
     setSaveError(null)
     onClose()
   }
@@ -801,7 +796,6 @@ export function EditMealDialog({ open, onClose, item }: EditMealDialogProps) {
                 <MealModifierAttachField
                   selectedIds={selectedModifierGroupIds}
                   onChange={setSelectedModifierGroupIds}
-                  subscriptionIncluded={subscriptionIncluded}
                   disabled={saving}
                 />
 

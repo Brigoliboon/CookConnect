@@ -7,9 +7,10 @@ are not in v1. The charged price is the option's add-on price (`price_cents`,
 0 = free), not the option recipe's menu price. Orders snapshot the chosen group,
 option, price, side `recipe_id`, and English and Arabic names.
 
-v1 applies to regular orders, the cart, and POS only. Groups cannot be attached
-to `is_subscription_included` meals. Subscriptions, Chef, macros, and meal CSV
-import are out of v1 (FR-48 stays separate).
+Modifiers apply to regular orders, the cart, and POS. Groups may be attached to
+`is_subscription_included` meals. Subscription and Chef flows ignore those groups
+and use the base meal with no add-ons. Meal CSV import is out of v1 (FR-48 stays
+separate).
 
 A meal with an attached active group that has no active options cannot be ordered
 until an active option is added or the group is detached or deactivated.
@@ -32,8 +33,8 @@ on later API and UI pull requests.
 Role checks in this migration use only the `user_role` values `employee` and `admin`. There is no `chef` or `rider` value on that enum. Snapshot staff reads use `is_employee_or_admin()`; customer reads use `orders.customer_id`, not a role literal.
 
 - [ ] **S1** `meal_modifier_groups` has no `selection_type` or `is_required` column
-- [ ] **S2** Attaching a group to a recipe with `is_subscription_included = true` is rejected
-- [ ] **S3** Setting `is_subscription_included = true` on a meal that already has a group is rejected
+- [ ] **S2** Attaching a group to a recipe with `is_subscription_included = true` succeeds
+- [ ] **S3** Setting `is_subscription_included = true` on a meal that already has a group succeeds
 - [ ] **S4** A second `is_default = true` in the same group clears the previous default in the same transaction (trigger `meal_modifier_options_one_default`)
 - [ ] **S5** Two active options in the same group with the same name, differing only by case, are rejected; an inactive option does not block reusing the name
 - [ ] **S6** Deleting a recipe still referenced by `meal_modifier_options.recipe_id` is rejected until the option is unlinked or removed
@@ -69,7 +70,7 @@ Groups may be sides or non-recipe choices such as spice level; option `recipe_id
 - [ ] **A4** Deleting a group removes it from every attached meal
 - [ ] **A5** `GET /api/meal-modifiers?meal_id=<meal_id>` returns active groups and active options in `sort_order`, public
 - [ ] **A6** `GET` without `meal_id` → 400; unknown meal → `{ data: [] }`
-- [ ] **A7** Attaching a group to an `is_subscription_included` meal → 400
+- [ ] **A7** Attaching a group to an `is_subscription_included` meal succeeds; subscription flows still ignore the group
 
 ## P — Server pricing and validation (`create_order_with_modifiers`)
 

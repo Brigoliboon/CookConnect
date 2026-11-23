@@ -19,11 +19,14 @@ export function isUuid(value: string): boolean {
 
 export function mapPgError(err: unknown): ApiError | null {
   const message = err instanceof Error ? err.message : String(err ?? "")
-  if (message.includes("Modifier groups cannot be attached to subscription meals")) {
-    return new ApiError(400, "Modifier groups cannot be attached to meals included in subscriptions.")
-  }
-  if (message.includes("Detach modifier groups before marking a meal as subscription-included")) {
-    return new ApiError(400, "Detach modifier groups before marking a meal as subscription-included.")
+  if (
+    message.includes("Modifier groups cannot be attached to subscription meals")
+    || message.includes("Detach modifier groups before marking a meal as subscription-included")
+  ) {
+    return new ApiError(
+      400,
+      "This database still has the old subscription-meal block. Run supabase/migrations/20261124010000_meal_modifiers_allow_subscription_meals.sql, then try again.",
+    )
   }
   if (
     message.includes("idx_meal_modifier_options_active_name")
@@ -376,14 +379,11 @@ export async function replaceMealModifierLinks(
 
   const { data: meal, error: mealError } = await supabase
     .from("recipes")
-    .select("id, is_subscription_included")
+    .select("id")
     .eq("id", mealRecipeId)
     .maybeSingle()
   if (mealError) throw mealError
   if (!meal) throw new ApiError(404, "Meal not found")
-  if (meal.is_subscription_included && groupIds.length > 0) {
-    throw new ApiError(400, "Modifier groups cannot be attached to meals included in subscriptions.")
-  }
 
   const unique: string[] = []
   for (const raw of groupIds) {
