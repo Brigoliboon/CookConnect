@@ -94,7 +94,7 @@ Optional (have defaults or fallbacks in code):
 
 ## Conventions
 
-- **Migrations:** every schema change is a new file in `supabase/migrations/`. Never edit the live database by hand. Apply the migration to the live Supabase project in the same change (or immediately after merge). Call out unverified live migrations in `IMPLEMENTATION.md` M16.
+- **Migrations:** every schema change is a new file in `supabase/migrations/`. Never edit the live database by hand. Apply the migration to the live Supabase project in the same change (or immediately after merge). Call out unverified live migrations in `IMPLEMENTATION.md` M15.
 - **Pricing and VAT:** always recalculate on the server (NFR-2). Don't trust amounts from the client.
 - **i18n:** public pages use next-intl with `en` and `ar` (`localePrefix: "as-needed"`, default `en`). Authenticated dashboards stay English only and are not under `app/[locale]/`.
 - **Bot routes:** authenticate with `getBotClient()` in `lib/bot-auth.ts`. Compare `x-bot-secret` to `WHATSAPP_BOT_SECRET`. Don't add a new bot endpoint without that check.
