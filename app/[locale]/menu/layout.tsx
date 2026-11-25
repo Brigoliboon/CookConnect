@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { localeUrl } from "@/lib/seo";
+import { localeUrl, ogImage } from "@/lib/seo";
 
 export async function generateMetadata({
   params,
@@ -8,13 +8,16 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const isAr = locale === "ar";
-  const title = isAr ? "قائمة مطعم كوك كونكت عجمان" : "Restaurant Menu | CookConnect Ajman";
+  const title = isAr
+    ? "قائمة الأكل الصحي والأسعار في عجمان | كوك كونكت"
+    : "Healthy Food Menu & Prices in Ajman | CookConnect";
   const description = isAr
-    ? "تصفح قائمة مطعم كوك كونكت في عجمان — dine-in وتوصيل واستلام واشتراكات. رشّح حسب الفئة والسعرات والسعر."
-    : "Browse the CookConnect Restaurant menu in Ajman — dine-in, delivery & pickup, plus subscriptions. Filter by category, calories and price.";
+    ? "تصفّح قائمة كوك كونكت وأسعارها: وجبات رئيسية وسلطات وباستا وراب وبيتزا وبرجر وحلويات ومشروبات. تناول في المطعم أو توصيل أو استلام في عجمان."
+    : "See CookConnect's menu with prices: meals, salads, pasta, wraps, pizza, burgers, desserts and drinks. Dine in, delivery or pickup in Ajman.";
   const canonical = localeUrl(locale, "/menu");
+  const image = ogImage(locale);
   return {
-    title,
+    title: { absolute: title },
     description,
     alternates: {
       canonical,
@@ -24,7 +27,11 @@ export async function generateMetadata({
         "x-default": localeUrl("en", "/menu"),
       },
     },
-    openGraph: { title, description, url: canonical, type: "website" },
+    openGraph: {
+      title, description, url: canonical, type: "website", siteName: "CookConnect",
+      images: [{ url: image, width: 1200, height: 630, alt: title }],
+    },
+    twitter: { card: "summary_large_image", title, description, images: [image] },
   };
 }
 

@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "CookConnect Restaurant Ajman - Dine-In, Delivery & Meal Plans",
+    name: "CookConnect Restaurant Ajman",
     short_name: "CookConnect",
     description:
       "Healthy dine-in restaurant in Ajman with fresh menu, delivery & pickup, plus subscription meal plans.",

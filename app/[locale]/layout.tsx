@@ -34,7 +34,6 @@ export async function generateMetadata({
     metadataBase: new URL(SITE_URL),
     title: { default: meta.title, template: `%s | CookConnect` },
     description: meta.description,
-    keywords: [...meta.keywords],
     authors: [{ name: "Cook Connect Restaurant LLC" }],
     creator: "CookConnect",
     publisher: "Cook Connect Restaurant LLC",

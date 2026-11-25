@@ -1,13 +1,13 @@
-export const SITE_URL = "https://cookconnectae.com";
+export const SITE_URL = "https://www.cookconnectae.com";
 
 export const SITE_NAME_EN = "CookConnect";
 export const SITE_NAME_AR = "كوك كونكت";
 
 export const SITE_META = {
   en: {
-    title: "CookConnect Restaurant Ajman | Dine-In, Delivery & Meal Plans",
+    title: "Healthy Restaurant & Meal Plans in Ajman | CookConnect",
     description:
-      "Cook Connect Restaurant in Al Hamidiya, Ajman — healthy dine-in restaurant, fresh menu, delivery & pickup, plus flexible subscription meal plans. Sat–Thu 8AM–10PM.",
+      "Healthy restaurant in Al Hamidiya, Ajman. Dine in, order delivery or pickup, or join a flexible 15 to 45 day meal plan. Explore our fresh menu.",
     keywords: [
       "restaurant Ajman",
       "healthy restaurant Ajman",
@@ -20,9 +20,9 @@ export const SITE_META = {
     ],
   },
   ar: {
-    title: "مطعم كوك كونكت عجمان | dine-in وتوصيل واشتراكات",
+    title: "مطعم صحي واشتراك وجبات في عجمان | كوك كونكت"
     description:
-      "مطعم كوك كونكت في الحميدية، عجمان — مطعم صحي dine-in وقائمة طازجة وتوصيل واستلام، بالإضافة لخطط اشتراك مرنة. السبت–الخميس 8ص–10م.",
+      "مطعم صحي في الحميدية بعجمان. تناول طعامك في المطعم أو اطلب التوصيل أو الاستلام، أو اشترك في خطة وجبات مرنة من 15 إلى 45 يوماً. تصفّح قائمتنا.",
     keywords: [
       "مطعم عجمان",
       "مطعم صحي عجمان",
@@ -99,7 +99,7 @@ export function restaurantJsonLd(locale: string) {
       "@type": "PostalAddress",
       streetAddress: NAP.street,
       addressLocality: NAP.city,
-      addressCountry: NAP.country,
+      addressCountry: GEO.country,
     },
     geo: {
       "@type": "GeoCoordinates",

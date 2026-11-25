@@ -1,9 +1,11 @@
 "use client"
 
-import { useTranslations } from "next-intl"
+import { useTranslations, useLocale } from "next-intl"
+import { Link } from "@/i18n/navigation"
 
 export function Footer() {
   const t = useTranslations("footer")
+  const isArabic = useLocale() === "ar"
 
   return (
     <footer className="border-t border-neutral-200 bg-white px-6 py-10">
@@ -18,10 +20,25 @@ export function Footer() {
           <div>
             <p className="font-nunito text-sm font-semibold text-black">{t("quickLinks")}</p>
             <div className="font-nunito mt-3 space-y-2 text-sm text-black/50">
-              <a href="#meals" className="block transition-colors hover:text-black">{t("menu")}</a>
-              <a href="#subscription" className="block transition-colors hover:text-black">{t("pricing")}</a>
-              <a href="#about" className="block transition-colors hover:text-black">{t("about")}</a>
-              <a href="#contact" className="block transition-colors hover:text-black">{t("contact")}</a>
+              <Link href="/menu" className="block transition-colors hover:text-black">{t("menu")}</Link>
+              {[
+                ["meals", "Meals", "الوجبات"],
+                ["salad", "Salads", "سلطات"],
+                ["rice-sides", "Rice & Sides", "أرز وأطباق جانبية"],
+                ["platters", "Platters", "أطباق"],
+                ["pasta", "Pasta", "باستا"],
+                ["wraps", "Wraps", "راب"],
+                ["pizza", "Pizza", "بيتزا"],
+                ["burgers", "Burgers", "برجر وساندويتشات"],
+                ["desserts", "Desserts", "كيك وحلويات"],
+                ["drinks", "Drinks", "مشروبات"],
+              ].map(([slug, en, ar]) => (
+                <Link key={slug} href={`/menu/${slug}`} className="block transition-colors hover:text-black">
+                  {isArabic ? ar : en}
+                </Link>
+              ))}
+              <Link href="/terms" className="block transition-colors hover:text-black">{isArabic ? "الشروط والأحكام" : "Terms"}</Link>
+              <Link href="/privacy" className="block transition-colors hover:text-black">{isArabic ? "سياسة الخصوصية" : "Privacy"}</Link>
             </div>
           </div>
           <div>

@@ -14,23 +14,23 @@ const MealDetailDialog = dynamic(
 
 export function CategoryClient({
   items,
+  title,
   emptyLabel,
 }: {
   items: MenuItem[];
+  title: string;
   emptyLabel: string;
 }) {
   const [selected, setSelected] = useState<DialogMeal | null>(null);
 
-  if (items.length === 0) {
-    return (
-      <p className="font-nunito mt-8 border border-neutral-200 bg-neutral-50 p-8 text-center text-sm text-neutral-500">
-        {emptyLabel}
-      </p>
-    );
-  }
-
   return (
     <>
+      <h1 className="font-playfair text-3xl font-semibold text-neutral-900 sm:text-4xl">{title}</h1>
+      {items.length === 0 ? (
+        <p className="font-nunito mt-8 border border-neutral-200 bg-neutral-50 p-8 text-center text-sm text-neutral-500">
+          {emptyLabel}
+        </p>
+      ) : (
       <ul className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {items.map((item) => (
           <CategoryMealCard
@@ -46,7 +46,7 @@ export function CategoryClient({
           />
         ))}
       </ul>
-
+      )}
       {selected && <MealDetailDialog item={selected} onClose={() => setSelected(null)} />}
     </>
   );
