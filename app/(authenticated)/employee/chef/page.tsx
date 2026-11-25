@@ -19,6 +19,7 @@ import { imageThumb } from "@/lib/images"
 import { proteinBuckets, type ProteinAllowance } from "@/lib/chef/credits"
 import { autoFillDay, type AutoFillResult, type SuggestedStandard } from "@/lib/chef/autoFill"
 import { pickAddonsForDay, type AddonSub } from "@/lib/chef/addons"
+import { matchesSearch } from "@/lib/chef/search"
 import {
   recipePassesRestrictions,
   restrictionDisplayLabels,
@@ -203,11 +204,13 @@ function addonIdsIn(picks: PickRow[], subscriptionId?: string): string[] {
 function CookListGrid({ dishes }: { dishes: CookDish[] }) {
   if (dishes.length === 0) return null
   return (
-    <div className="grid grid-cols-1 divide-y divide-neutral-100 sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-3">
+    // The review dialog is a 420px side drawer from md up, so the column count follows the dialog's
+    // width (two columns only while it is a wide bottom sheet), not the viewport's.
+    <div className="grid grid-cols-1 divide-y divide-neutral-100 sm:grid-cols-2 sm:divide-y-0 md:grid-cols-1 md:divide-y">
       {dishes.map((d) => (
         <div
           key={`${d.kind}:${d.recipeId}`}
-          className="flex items-center gap-3 bg-white py-3 sm:pr-6"
+          className="flex items-center gap-3 bg-white py-3 sm:pr-6 md:pr-0"
         >
           <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-neutral-200">
             {d.image_path ? (
@@ -223,7 +226,7 @@ function CookListGrid({ dishes }: { dishes: CookDish[] }) {
             {d.kind === "addon" && (
               <p className="text-[10px] font-semibold uppercase tracking-wider text-sky-700">Add-on</p>
             )}
-            <p className="truncate text-base font-semibold text-neutral-900">{d.name}</p>
+            <p className="line-clamp-2 break-words text-base font-semibold text-neutral-900">{d.name}</p>
             <p className="mt-0.5 text-xs text-neutral-400">
               {d.count} portion{d.count !== 1 ? "s" : ""}
             </p>
@@ -267,6 +270,8 @@ export default function EmployeeChefPage() {
   const [reviewStandards, setReviewStandards] = useState<SuggestedStandard[]>([])
   const [reviewFridayStandards, setReviewFridayStandards] = useState<SuggestedStandard[]>([])
   const [reviewAddons, setReviewAddons] = useState<Map<string, string[]>>(new Map())
+  const [reviewSearch, setReviewSearch] = useState("")
+  const [plateSearch, setPlateSearch] = useState("")
   const [autofilling, setAutofilling] = useState(false)
   const [applying, setApplying] = useState(false)
   const [doneBusy, setDoneBusy] = useState<Set<string>>(new Set())
@@ -326,6 +331,12 @@ export default function EmployeeChefPage() {
   }, [tab, today])
 
   const daySubs = useMemo(() => subs.filter((s) => activeOn(s, selected)), [subs, selected])
+
+  /** Plates list after the subscriber search; the day's real set (daySubs) is untouched. */
+  const visibleSubs = useMemo(
+    () => daySubs.filter((s) => matchesSearch(plateSearch, [customerName(s), s.customer?.email])),
+    [daySubs, plateSearch],
+  )
 
   /** Meals + breakfast per customer for the selected day (add-on rows excluded), in saved order. */
   const planPicksBySub = useMemo(() => {
@@ -398,6 +409,13 @@ export default function EmployeeChefPage() {
           (r.recipeIds.length > 0 || r.breakfastRecipeIds.length > 0 || (reviewAddons.get(r.subscriptionId) ?? []).length > 0),
       ).length
     : 0
+
+  /** Review dialog plates after its subscriber search. Only the list is filtered: Apply still saves the whole batch. */
+  const visibleReview = useMemo(() => {
+    if (!review) return []
+    const byId = new Map(subs.map((s) => [s.id, s]))
+    return review.filter((r) => matchesSearch(reviewSearch, [r.customerName, byId.get(r.subscriptionId)?.customer?.email]))
+  }, [review, reviewSearch, subs])
 
   const recipeProtein = useMemo(
     () => new Map(recipes.map((r) => [r.id, r.primary_protein_ingredient_id])),
@@ -673,6 +691,7 @@ export default function EmployeeChefPage() {
         cookedToday: addonIdsIn(picks),
       })
       setReviewAddons(new Map([...addonOutput].map(([id, r]) => [id, r.recipeIds])))
+      setReviewSearch("")
       setReview(
         output.results.map((r) => {
           const issues = addonOutput.get(r.subscriptionId)?.issues ?? []
@@ -976,8 +995,35 @@ export default function EmployeeChefPage() {
               <p className="mt-1 mb-3 text-sm text-[#475569]">
                 Each customer gets a slice of the batch. Edit only when a plate needs a swap.
               </p>
+              <div className="relative mb-3 md:max-w-sm">
+                <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748B]" />
+                <input
+                  type="text"
+                  value={plateSearch}
+                  onChange={(e) => setPlateSearch(e.target.value)}
+                  placeholder="Search subscribers..."
+                  aria-label="Search subscribers"
+                  autoComplete="off"
+                  className="h-11 w-full rounded-xl border border-[#E2E8F0] bg-white pl-10 pr-10 text-sm text-[#0F172A] outline-none placeholder:text-[#94A3B8] focus:border-[#0F172A]"
+                />
+                {plateSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setPlateSearch("")}
+                    aria-label="Clear search"
+                    className="absolute right-1.5 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#64748B] hover:bg-[#F1F5F9]"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
               <div className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.06)]">
-                {daySubs.map((sub) => {
+                {visibleSubs.length === 0 && (
+                  <p className="px-4 py-6 text-center text-sm text-[#475569]">
+                    No subscribers match &ldquo;{plateSearch.trim()}&rdquo;.
+                  </p>
+                )}
+                {visibleSubs.map((sub) => {
                   const details = (sub.details ?? {}) as Record<string, unknown>
                   const need = assignmentNeed(sub, selected)
                   const { picked: done, target, over, complete } = planPickProgress(planPicksBySub.get(sub.id) ?? [], need)
@@ -1055,7 +1101,7 @@ export default function EmployeeChefPage() {
               </div>
               <p className="mt-2 flex items-center gap-2 text-sm text-[#475569]">
                 <Users size={16} />
-                {daySubs.length} plate{daySubs.length !== 1 ? "s" : ""}
+                {plateSearch.trim() ? `${visibleSubs.length} of ${daySubs.length}` : daySubs.length} plate{daySubs.length !== 1 ? "s" : ""}
               </p>
             </div>
           )}
@@ -1280,8 +1326,38 @@ export default function EmployeeChefPage() {
               </div>
               <div>
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-500">Plates</p>
+                <div className="relative mb-3">
+                  <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                  <input
+                    type="text"
+                    value={reviewSearch}
+                    onChange={(e) => setReviewSearch(e.target.value)}
+                    placeholder="Search subscribers..."
+                    aria-label="Search subscribers in this batch"
+                    autoComplete="off"
+                    className="w-full rounded-xl border border-neutral-200 py-2.5 pl-9 pr-9 text-sm outline-none focus:border-neutral-900"
+                  />
+                  {reviewSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setReviewSearch("")}
+                      aria-label="Clear search"
+                      className="absolute right-1.5 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-lg text-neutral-400 hover:bg-neutral-100"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+                {reviewSearch.trim() && (
+                  <p className="mb-2 text-xs text-neutral-500">
+                    Showing {visibleReview.length} of {review.length} customers. Apply batch still saves all {reviewReadyCount}.
+                  </p>
+                )}
                 <div className="divide-y divide-neutral-100">
-                  {review.map((r) => {
+                  {reviewSearch.trim() && visibleReview.length === 0 && (
+                    <p className="py-4 text-center text-sm text-neutral-500">No customers match &ldquo;{reviewSearch.trim()}&rdquo;.</p>
+                  )}
+                  {visibleReview.map((r) => {
                     const notable = r.issues.filter((i) => i.kind !== "suggested" && i.kind !== "skipped")
                     const blocking = notable.filter((i) => i.kind === "no-replacement" || i.kind === "no-standard" || i.kind === "depleted")
                     const addonIds = reviewAddons.get(r.subscriptionId) ?? []
