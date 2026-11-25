@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useTheme } from "@/hooks/useTheme"
 import { Sun, Moon, Menu, X } from "lucide-react"
 import { useTranslations, useLocale } from "next-intl"
-import { Link, usePathname, useRouter } from "@/i18n/navigation"
+import { Link, usePathname } from "@/i18n/navigation"
 import { CartButton } from "@/components/landing/CartButton"
 
 const CartDialog = dynamic(() => import("@/components/landing/CartDialog").then((mod) => mod.CartDialog), {
@@ -17,7 +17,6 @@ function LangSwitch({ compact = false, switching = false, onSwitch }: { compact?
   const lang = useTranslations("lang")
   const locale = useLocale()
   const pathname = usePathname()
-  const router = useRouter()
   const currentIndex = locale === "en" ? 0 : 1
   return (
     <div
@@ -33,27 +32,23 @@ function LangSwitch({ compact = false, switching = false, onSwitch }: { compact?
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
           className="absolute inset-y-0 left-0 w-1/2 rounded-full bg-white shadow-sm"
         />
-        {(["EN", "AR"] as const).map((code, i) => (
-          <button
-            key={code}
-            disabled={switching}
-            onClick={() => {
-              const target = i === 0 ? "en" : "ar"
-              if (target !== locale) {
-                onSwitch?.()
-                router.replace(pathname, { locale: target, scroll: false })
-              }
-            }}
-            aria-pressed={currentIndex === i}
-            className={`relative z-10 py-1 text-center text-[11px] font-bold tracking-wider transition-colors disabled:cursor-wait ${compact ? "w-9" : "w-11"}`}
-          >
-            {switching ? (
-              <span className="mx-auto block size-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-            ) : (
-              <span className={currentIndex === i ? "text-black" : "text-white/60"}>{code}</span>
-            )}
-          </button>
-        ))}
+        {(["EN", "AR"] as const).map((code, i) => {
+          const target = i === 0 ? "en" : "ar"
+          const active = currentIndex === i
+          const className = `relative z-10 py-1 text-center text-[11px] font-bold tracking-wider transition-colors ${compact ? "w-9" : "w-11"}`
+          const content = switching ? (
+            <span className="mx-auto block size-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+          ) : (
+            <span className={active ? "text-black" : "text-white/60"}>{code}</span>
+          )
+          return active ? (
+            <span key={code} aria-current="true" className={className}>{content}</span>
+          ) : (
+            <Link key={code} href={pathname} locale={target} onClick={() => onSwitch?.()} className={className}>
+              {content}
+            </Link>
+          )
+        })}
       </div>
     </div>
   )
@@ -84,11 +79,12 @@ export function Nav({ showShadowOnScroll = true }: { showShadowOnScroll?: boolea
     return () => window.removeEventListener("open-cart", openCart)
   }, [])
 
+  const onHomePage = pathname === "/"
   const links = [
-    { href: "#meals", label: t("menu") },
-    { href: "#subscription", label: t("pricing") },
-    { href: "#about", label: t("about") },
-    { href: "#contact", label: t("contact") },
+    { href: onHomePage ? "#meals" : "/menu", label: t("menu") },
+    { href: onHomePage ? "#subscription" : "/#subscription", label: t("pricing") },
+    { href: onHomePage ? "#about" : "/#about", label: t("about") },
+    { href: onHomePage ? "#contact" : "/#contact", label: t("contact") },
   ]
 
   return (

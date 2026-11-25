@@ -5,7 +5,7 @@ import dynamic from "next/dynamic"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import Link from "next/link"
+import { Link } from "@/i18n/navigation"
 import { useTranslations, useLocale } from "next-intl"
 import { translateContent } from "@/constants/translations"
 import type { MenuCategory, MenuItem } from "@/constants"
@@ -270,7 +270,7 @@ export function HealthyCampaign() {
           </div>
           <div className="mt-10 flex justify-center max-sm:mt-6">
             <Link
-              href="/employee/meals"
+              href="/menu"
               className="font-nunito inline-flex items-center gap-2 rounded-xl border border-brand-900/30 px-6 py-3 text-sm font-semibold text-brand-900 drop-shadow-md transition-all hover:bg-brand-900/5 max-sm:px-5 max-sm:py-2.5 max-sm:text-xs"
             >
               {t("viewMenu")}

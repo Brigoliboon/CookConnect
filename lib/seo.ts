@@ -1,37 +1,18 @@
-export const SITE_URL = "https://cookconnectae.com";
+export const SITE_URL = "https://www.cookconnectae.com";
 
 export const SITE_NAME_EN = "CookConnect";
 export const SITE_NAME_AR = "كوك كونكت";
 
 export const SITE_META = {
   en: {
-    title: "CookConnect Restaurant Ajman | Dine-In, Delivery & Meal Plans",
+    title: "Healthy Restaurant & Meal Plans in Ajman | CookConnect",
     description:
-      "Cook Connect Restaurant in Al Hamidiya, Ajman — healthy dine-in restaurant, fresh menu, delivery & pickup, plus flexible subscription meal plans. Sat–Thu 8AM–10PM.",
-    keywords: [
-      "restaurant Ajman",
-      "healthy restaurant Ajman",
-      "dine-in Ajman",
-      "food delivery Ajman",
-      "meal plans Ajman",
-      "meal subscription UAE",
-      "CookConnect",
-      "diet meals UAE",
-    ],
+      "Healthy restaurant in Al Hamidiya, Ajman. Dine in, order delivery or pickup, or join a flexible 15 to 45 day meal plan. Explore our fresh menu.",
   },
   ar: {
-    title: "مطعم كوك كونكت عجمان | dine-in وتوصيل واشتراكات",
+    title: "مطعم صحي واشتراك وجبات في عجمان | كوك كونكت",
     description:
-      "مطعم كوك كونكت في الحميدية، عجمان — مطعم صحي dine-in وقائمة طازجة وتوصيل واستلام، بالإضافة لخطط اشتراك مرنة. السبت–الخميس 8ص–10م.",
-    keywords: [
-      "مطعم عجمان",
-      "مطعم صحي عجمان",
-      "dine-in عجمان",
-      "توصيل طعام عجمان",
-      "خطط وجبات عجمان",
-      "اشتراك وجبات الإمارات",
-      "كوك كونكت",
-    ],
+      "مطعم صحي في الحميدية بعجمان. تناول طعامك في المطعم أو اطلب التوصيل أو الاستلام، أو اشترك في خطة وجبات مرنة من 15 إلى 45 يوماً. تصفّح قائمتنا.",
   },
 } as const;
 
@@ -63,10 +44,25 @@ export const SOCIALS = {
   whatsapp: "https://wa.me/971563356051",
 } as const;
 
-export const OG_IMAGE_EN = `${SITE_URL}/ogg-banner_en.png`;
-export const OG_IMAGE_AR = `${SITE_URL}/ogg-banner_ar.png`;
+export const OG_IMAGE_EN = `${SITE_URL}/ogg-banner_en.jpg`;
+export const OG_IMAGE_AR = `${SITE_URL}/ogg-banner_ar.jpg`;
 export const OG_IMAGE = OG_IMAGE_EN;
-export const LOGO = `${SITE_URL}/favicon.png`;
+export const LOGO = `${SITE_URL}/icon-512.png`;
+
+export function nutritionJsonLd(item: {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+}): Record<string, string> | undefined {
+  const nutrition: Record<string, string> = {};
+  if (item.calories > 0) nutrition.calories = `${item.calories} calories`;
+  if (item.protein > 0) nutrition.proteinContent = `${item.protein}g`;
+  if (item.carbs > 0) nutrition.carbohydrateContent = `${item.carbs}g`;
+  if (item.fats > 0) nutrition.fatContent = `${item.fats}g`;
+  if (Object.keys(nutrition).length === 0) return undefined;
+  return { "@type": "NutritionInformation", ...nutrition };
+}
 
 export function ogImage(locale: string): string {
   return locale === "ar" ? OG_IMAGE_AR : OG_IMAGE_EN;
@@ -99,7 +95,7 @@ export function restaurantJsonLd(locale: string) {
       "@type": "PostalAddress",
       streetAddress: NAP.street,
       addressLocality: NAP.city,
-      addressCountry: NAP.country,
+      addressCountry: GEO.country,
     },
     geo: {
       "@type": "GeoCoordinates",

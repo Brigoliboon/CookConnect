@@ -1,14 +1,29 @@
 "use client"
 
 import { useTranslations } from "next-intl"
+import { Link } from "@/i18n/navigation"
+
+const CATEGORY_SLUGS = [
+  "meals",
+  "salad",
+  "rice-sides",
+  "platters",
+  "pasta",
+  "wraps",
+  "pizza",
+  "burgers",
+  "desserts",
+  "drinks",
+] as const
 
 export function Footer() {
   const t = useTranslations("footer")
+  const tc = useTranslations("featured")
 
   return (
     <footer className="border-t border-neutral-200 bg-white px-6 py-10">
       <div className="mx-auto max-w-6xl">
-        <div className="grid gap-8 sm:grid-cols-3">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <p className="font-playfair text-lg font-bold text-black">{t("brand")}</p>
             <p className="font-nunito mt-2 text-sm text-black/50">
@@ -18,10 +33,22 @@ export function Footer() {
           <div>
             <p className="font-nunito text-sm font-semibold text-black">{t("quickLinks")}</p>
             <div className="font-nunito mt-3 space-y-2 text-sm text-black/50">
-              <a href="#meals" className="block transition-colors hover:text-black">{t("menu")}</a>
-              <a href="#subscription" className="block transition-colors hover:text-black">{t("pricing")}</a>
-              <a href="#about" className="block transition-colors hover:text-black">{t("about")}</a>
-              <a href="#contact" className="block transition-colors hover:text-black">{t("contact")}</a>
+              <Link href="/menu" className="block transition-colors hover:text-black">{t("menu")}</Link>
+              <Link href="/#subscription" className="block transition-colors hover:text-black">{t("pricing")}</Link>
+              <Link href="/#about" className="block transition-colors hover:text-black">{t("about")}</Link>
+              <Link href="/#contact" className="block transition-colors hover:text-black">{t("contact")}</Link>
+              <Link href="/terms" className="block transition-colors hover:text-black">{t("terms")}</Link>
+              <Link href="/privacy" className="block transition-colors hover:text-black">{t("privacy")}</Link>
+            </div>
+          </div>
+          <div>
+            <p className="font-nunito text-sm font-semibold text-black">{t("categories")}</p>
+            <div className="font-nunito mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-black/50">
+              {CATEGORY_SLUGS.map((slug) => (
+                <Link key={slug} href={`/menu/${slug}`} className="transition-colors hover:text-black">
+                  {tc(`cats.${slug}`)}
+                </Link>
+              ))}
             </div>
           </div>
           <div>

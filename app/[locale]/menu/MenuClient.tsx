@@ -7,6 +7,7 @@ import useSWRInfinite from "swr/infinite"
 import { motion } from "framer-motion"
 import { Search, X, ArrowUp, ArrowUpDown } from "lucide-react"
 import { useTranslations, useLocale } from "next-intl"
+import { Link } from "@/i18n/navigation"
 import { translateContent } from "@/constants/translations"
 import { Nav } from "@/components/landing/Nav"
 import { Footer } from "@/components/landing/Footer"
@@ -319,6 +320,31 @@ function CatalogContent({
 
       <section id="catalog" className="min-h-screen bg-white pt-20 pb-16">
         <div className="px-4 sm:px-6 lg:px-8">
+          <h1 className="font-playfair mb-6 text-3xl font-semibold text-neutral-900 sm:text-4xl">
+            {locale === "ar" ? "قائمة الأكل الصحي في عجمان" : "Healthy Food Menu in Ajman"}
+          </h1>
+          <nav aria-label={locale === "ar" ? "فئات القائمة" : "Menu categories"} className="mb-6">
+            <ul className="flex flex-wrap gap-2">
+              {[
+                ["meals", "Meals", "الوجبات"],
+                ["salad", "Salads", "سلطات"],
+                ["rice-sides", "Rice & Sides", "أرز وأطباق جانبية"],
+                ["platters", "Platters", "أطباق"],
+                ["pasta", "Pasta", "باستا"],
+                ["wraps", "Wraps", "راب"],
+                ["pizza", "Pizza", "بيتزا"],
+                ["burgers", "Burgers", "برجر وساندويتشات"],
+                ["desserts", "Desserts", "كيك وحلويات"],
+                ["drinks", "Drinks", "مشروبات"],
+              ].map(([slug, en, ar]) => (
+                <li key={slug}>
+                  <Link href={`/menu/${slug}`} className="inline-flex rounded-full border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:border-brand-900 hover:text-brand-900">
+                    {locale === "ar" ? ar : en}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
           <motion.div
             initial="hidden"
             animate="visible"

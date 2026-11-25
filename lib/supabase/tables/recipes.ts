@@ -45,6 +45,8 @@ export interface ListRecipesFilters {
   ids?: string[]
   search?: string
   category?: string
+  /** Match any of the supplied recipe categories at the database level. */
+  categories?: string[]
   isActive?: boolean
   isSubscriptionIncluded?: boolean
   minCalories?: number
@@ -164,6 +166,9 @@ export async function listRecipes(
     }
     if (filters.category) {
       query = query.eq("category", filters.category)
+    }
+    if (filters.categories && filters.categories.length > 0) {
+      query = query.in("category", filters.categories)
     }
     if (filters.isActive !== undefined) {
       query = query.eq("is_active", filters.isActive)
