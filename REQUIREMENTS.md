@@ -83,7 +83,7 @@ One system where customers order and subscribe, and staff handle orders, subscri
 - FR-30 [Todo]: Deliveries page (currently mock): change today's time and location, manage statuses.
 
 ### 6.5 Chef
-- FR-31 [Done]: Daily cook schedules from subscriber entitlements (protein credits, remaining meals, paused or used-up subscriptions skipped, breakfast extras).
+- FR-31 [Done]: Daily cook schedules from subscriber entitlements (protein credits, remaining meals, paused or used-up subscriptions skipped, breakfast extras). A chef can manually pick more or fewer meals than the plan covers; extras are deducted from remaining meals and protein credits like normal picks.
 - FR-32 [Partial]: Shared kitchen batch suggestion, chicken-first with occasional seafood. Revision: exclude on-call-only meals from suggestions.
 - FR-33 [Done]: Daily standards and plan protein credits.
 
@@ -162,6 +162,9 @@ Resolved 2026-11-21: Sharjah AED 100; customer dashboard (FR-37 to FR-39) stays 
 ## 13. Change log
 
 Newest first. Times are Asia/Manila (UTC+8).
+
+### 2026-11-26
+- Boon clarified FR-31 manual picking: the plan's meals per day is a default, not a limit. A chef may pick more or fewer meals than the plan covers, and every extra is deducted like a normal pick, from the remaining meals and the protein credits.
 
 ### 2026-11-25
 - Boon clarified FR-48 scheduling: one item per selected add-on type, not the whole list. Drinks and cakes can both be selected, giving at most two add-on items per subscriber.

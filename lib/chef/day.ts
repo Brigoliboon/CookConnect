@@ -1,4 +1,8 @@
-import { subscriptionAddonKeys, type SubscriptionAddonKey } from "@/constants/subscription-addons"
+import {
+  subscriptionAddonKeyOfRecipe,
+  subscriptionAddonKeys,
+  type SubscriptionAddonKey,
+} from "@/constants/subscription-addons"
 
 export const MIN_MEALS_PER_DAY = 1
 export const MAX_MEALS_PER_DAY = 5
@@ -118,6 +122,32 @@ export interface AssignmentNeed {
   totalCount: number
   isFridayMoved: boolean
   isDoubleThursday: boolean
+}
+
+export interface PlanPickProgress {
+  /** meals + breakfast saved for the day; drinks/cakes add-ons are not part of the plan */
+  picked: number
+  /** what the plan covers that day (a default, not a limit) */
+  target: number
+  /** picks beyond the plan; the chef may override, and these are deducted like any other pick */
+  over: number
+  complete: boolean
+}
+
+/**
+ * How a customer's saved picks for one day compare with what the plan covers.
+ * `rows` = every chef_schedules row for that subscription on that day.
+ * The real count is kept (not clamped to the target) so a manual override stays visible.
+ */
+export function planPickProgress(rows: { recipe_id: string }[], need: AssignmentNeed): PlanPickProgress {
+  const picked = rows.filter((r) => subscriptionAddonKeyOfRecipe(r.recipe_id) === null).length
+  const target = need.totalCount
+  return {
+    picked,
+    target,
+    over: target > 0 ? Math.max(0, picked - target) : 0,
+    complete: target > 0 ? picked >= target : picked > 0,
+  }
 }
 
 export function assignmentNeed(sub: DaySub, date: string): AssignmentNeed {

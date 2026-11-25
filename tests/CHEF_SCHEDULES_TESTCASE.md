@@ -20,10 +20,15 @@
 - [ ] C9: `npx tsc --noEmit` clean; eslint clean on chef files.
 - [ ] C10: Header has Schedule / To Cook Today tabs (same switcher style as orders POS/Orders).
 - [ ] C11: To Cook Today shows portion/meal/customer totals, per-meal ×count rows with customers, and a Still-to-pick list for active subscribers without picks today.
-- [ ] C12: Picker dialog shows plan counter card (plan name, meals/day allowance, selected count) + over-allowance warning when draft exceeds the plan.
+- [ ] C12: Picker dialog shows plan counter card (plan name, meals/day allowance, selected count) + over-allowance warning when draft exceeds the plan. The warning does not block saving.
 - [ ] C13: Card delivery line shows `slots` joined (legacy `slot`/`time` fallback); breakfast badge on card + "+ breakfast" note in dialog counter.
 - [ ] C14: Today tab has All/Morning/Noon/Evening pills below stats; meal list, totals, and still-to-pick all narrow to subscriptions carrying that slot (unknown slots show everywhere).
 - [ ] C15: Paused subscriptions are excluded from Schedule/Today/Still-to-pick lists.
 - [ ] C16: Picker dialog shows protein credit buckets with remaining counts (derived from whole-period picks); exhausted buckets render red.
 - [ ] C17: Day setup card lists per-plan standards; Set/Edit standard saves the day's set; Auto-fill fills unpicked customers, swaps on restriction/credit conflicts, trims to remaining entitlement, and never overwrites existing picks; review dialog shows issues + Edit; Apply persists via batch.
 - [ ] C18: Today meal rows show x/y cooked progress; per-row check toggles done with spinner; Mark-all/Reopen-all works.
+- [ ] C19: Manual override above the plan: on a 3/day plan, pick 5 and save. The Plates list shows `5/3 set` (blue, tooltip "2 over the plan allowance"), not `3/3`. Re-opening Edit shows all 5 selected.
+- [ ] C20: The 2 extra meals are deducted like normal picks: `remaining_meal_count` drops by 5 in total (not 3), and the protein credit buckets in the picker reflect all 5 after reopening.
+- [ ] C21: Picking fewer than the plan (2/3) saves and the list shows `2/3 set` (amber, not complete). Auto-fill still skips any customer who already has picks.
+- [ ] C22: Customer with a breakfast extra (3 meals + breakfast): Edit shows the breakfast already selected, saving without touching it keeps the breakfast row, and the list reads `4/4 set`. Drinks/cakes add-ons are not counted in x/y.
+- [ ] C23: When the draft would take remaining meals below 0, the picker shows the red "Only N meals remain overall" note. Record whether the save succeeds or the database rejects it.

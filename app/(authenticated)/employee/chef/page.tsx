@@ -29,6 +29,7 @@ import {
   addCalendarDays,
   addonKeys,
   assignmentNeed,
+  planPickProgress,
   BREAKFAST_CATEGORY,
   deliverySlots,
   isDoubleThursday,
@@ -326,6 +327,17 @@ export default function EmployeeChefPage() {
 
   const daySubs = useMemo(() => subs.filter((s) => activeOn(s, selected)), [subs, selected])
 
+  /** Meals + breakfast per customer for the selected day (add-on rows excluded), in saved order. */
+  const planPicksBySub = useMemo(() => {
+    const map = new Map<string, PickRow[]>()
+    for (const p of picks) {
+      if (ADDON_RECIPE_IDS.includes(p.recipe_id)) continue
+      if (!map.has(p.subscription_id)) map.set(p.subscription_id, [])
+      map.get(p.subscription_id)!.push(p)
+    }
+    return map
+  }, [picks])
+
   const picksBySub = useMemo(() => {
     const map = new Map<string, Set<string>>()
     for (const p of picks) {
@@ -457,7 +469,7 @@ export default function EmployeeChefPage() {
 
   function openPicker(subId: string, preset?: string[]) {
     setExpanded(subId)
-    setDraft(preset ?? [...(picksBySub.get(subId) ?? [])])
+    setDraft(preset ?? (planPicksBySub.get(subId) ?? []).map((p) => p.recipe_id))
     setSearch("")
     setCategory("")
     setCategoryQuery("")
@@ -966,12 +978,9 @@ export default function EmployeeChefPage() {
               </p>
               <div className="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.06)]">
                 {daySubs.map((sub) => {
-                  const picked = picksBySub.get(sub.id) ?? new Set<string>()
                   const details = (sub.details ?? {}) as Record<string, unknown>
                   const need = assignmentNeed(sub, selected)
-                  const target = need.totalCount
-                  const done = picked.size
-                  const complete = target > 0 ? done >= target : done > 0
+                  const { picked: done, target, over, complete } = planPickProgress(planPicksBySub.get(sub.id) ?? [], need)
                   const restrictions = restrictionLabels(sub.details)
                   const remaining = sub.remaining_meal_count ?? null
                   const depleted = remaining !== null && remaining <= 0
@@ -1021,13 +1030,16 @@ export default function EmployeeChefPage() {
                           )}
                         </div>
                       </div>
-                      <span className={`inline-flex h-7 shrink-0 items-center rounded-full px-2.5 text-xs font-semibold ${
+                      <span
+                        title={over > 0 ? `${over} over the plan allowance (chef override)` : undefined}
+                        className={`inline-flex h-7 shrink-0 items-center rounded-full px-2.5 text-xs font-semibold ${
                         depleted ? "bg-[#E2E8F0] text-[#64748B]"
+                        : over > 0 ? "bg-[#E0F2FE] text-[#075985]"
                         : complete ? "bg-[#DCFCE7] text-[#14532D]"
                         : done > 0 ? "bg-[#FEF3C7] text-[#92400E]"
                         : "bg-[#F1F5F9] text-[#334155]"
                       }`}>
-                        {depleted ? "Depleted" : target > 0 ? `${Math.min(done, target)}/${target} set` : done > 0 ? `${done} set` : "0 set"}
+                        {depleted ? "Depleted" : target > 0 ? `${done}/${target} set` : done > 0 ? `${done} set` : "0 set"}
                       </span>
                       <button
                         type="button"
@@ -1350,7 +1362,7 @@ export default function EmployeeChefPage() {
               <div>
                 <h2 className="text-lg font-semibold tracking-tight text-[#0F172A]">{customerName(activeSub)}</h2>
                 <p className="mt-1 text-sm text-[#475569]">
-                  {formatLongDate(selected)}{activeTarget > 0 ? ` · pick ${activeTarget}` : ""}
+                  {formatLongDate(selected)}{activeTarget > 0 ? ` · plan covers ${activeTarget}` : ""}
                 </p>
               </div>
               <button
@@ -1391,7 +1403,14 @@ export default function EmployeeChefPage() {
               </div>
               {activeTarget > 0 && draft.length > activeTarget && (
                 <p className="rounded-xl bg-amber-50 px-4 py-2.5 text-xs font-medium text-amber-700 ring-1 ring-amber-200">
-                  Over plan allowance by {draft.length - activeTarget} — today covers {activeTarget} meals.
+                  {draft.length - activeTarget} over the plan allowance ({activeTarget} today). You can still save: extras are
+                  deducted like normal picks, from the remaining meals and protein credits.
+                </p>
+              )}
+              {projectedRemaining !== null && projectedRemaining < 0 && (
+                <p className="rounded-xl bg-red-50 px-4 py-2.5 text-xs font-medium text-red-700 ring-1 ring-red-200">
+                  Only {activeRemaining} meal{activeRemaining !== 1 ? "s" : ""} remain overall. Saving takes this
+                  subscription to {projectedRemaining}.
                 </p>
               )}
               {activeBuckets.length > 0 && (
