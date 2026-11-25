@@ -44,7 +44,8 @@ export function subscriptionAddonTotalCents(details: Record<string, unknown>): n
 }
 
 export function subscriptionAddonRecipeIds(details: Record<string, unknown>): string[] {
-  return SUBSCRIPTION_ADDON_KEYS.flatMap((key) =>
-    details[key] === true ? SUBSCRIPTION_ADDON_ITEMS[key].map((item) => item.recipeId) : [],
-  )
+  return SUBSCRIPTION_ADDON_KEYS.flatMap((key) => {
+    const item = SUBSCRIPTION_ADDON_ITEMS[key][0]
+    return details[key] === true && item ? [item.recipeId] : []
+  })
 }

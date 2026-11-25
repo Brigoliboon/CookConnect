@@ -735,10 +735,10 @@ export default function EmployeeSubscriptionsPage() {
               <div className="flex justify-between gap-3"><span className="inline-flex items-center gap-1.5 font-medium text-neutral-700"><Coffee size={14} /> Breakfast</span><span className="font-semibold">Included (extra)</span></div>
             )}
             {selectedInquiry.details?.drinks && (
-              <div className="flex justify-between gap-3"><span className="inline-flex items-center gap-1.5 font-medium text-neutral-700"><CupSoda size={14} /> Drinks add-on</span><span className="font-semibold">AED 100 — full bundle</span></div>
+              <div className="flex justify-between gap-3"><span className="inline-flex items-center gap-1.5 font-medium text-neutral-700"><CupSoda size={14} /> Drinks add-on</span><span className="font-semibold">AED 100 — one item</span></div>
             )}
             {selectedInquiry.details?.cakes && (
-              <div className="flex justify-between gap-3"><span className="inline-flex items-center gap-1.5 font-medium text-neutral-700"><CakeSlice size={14} /> Cakes add-on</span><span className="font-semibold">AED 100 — full bundle</span></div>
+              <div className="flex justify-between gap-3"><span className="inline-flex items-center gap-1.5 font-medium text-neutral-700"><CakeSlice size={14} /> Cakes add-on</span><span className="font-semibold">AED 100 — one item</span></div>
             )}
             {restrictionDisplayItems(selectedInquiry.details).length > 0 && (
               <div>

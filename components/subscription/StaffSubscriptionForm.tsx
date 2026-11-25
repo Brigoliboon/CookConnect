@@ -232,7 +232,7 @@ export function StaffSubscriptionForm({ onCreated }: { onCreated?: () => void })
         </label>
       </div>
       <p className="-mt-2 text-xs text-neutral-500">
-        Drinks and cakes are fixed bundles for the whole plan and are added on top of the total entered below.
+        Drinks and cakes are AED 100 each for the whole plan. One item from each selected list is scheduled, on top of the total entered below.
       </p>
 
       <div>

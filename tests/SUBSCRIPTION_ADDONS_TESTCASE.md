@@ -8,7 +8,7 @@ Reference lists: `/home/devxploit/Desktop/POS Menu Matrix - CookConnect Restaura
 
 ## A — Public onboarding
 
-- [ ] **A1** Preferences step shows two optional add-ons: Drinks (AED 100) and Cakes (AED 100), each described as fixed bundles for the whole plan.
+- [ ] **A1** Preferences step shows two optional add-ons: Drinks (AED 100) and Cakes (AED 100), each described as one item from its list for the whole plan.
 - [ ] **A2** Neither add-on is selected by default; breakfast remains unchanged.
 - [ ] **A3** Public copy is available in English and Arabic.
 - [ ] **A4** Review screen shows each selected add-on, its AED 100 price, and the add-ons total; invited plans also show the final total (agreed plan price + add-ons).
@@ -47,16 +47,17 @@ Reference lists: `/home/devxploit/Desktop/POS Menu Matrix - CookConnect Restaura
 ## E — Staff visibility and email
 
 - [ ] **E1** Employee subscription list shows badges for selected add-ons.
-- [ ] **E2** Inquiry detail sheet shows selected add-ons and the fixed bundle lists.
+- [ ] **E2** Inquiry detail sheet shows selected add-ons and that each includes one item from its list.
 - [ ] **E3** New-inquiry email to opted-in staff lists selected add-ons.
 
 ## F — Chef cook sheet
 
-- [ ] **F1** When an active subscription has an add-on, its fixed items appear on the relevant day's cook sheet.
+- [ ] **F1** When an active subscription has an add-on, exactly one item from that add-on's list appears on the relevant day's cook sheet.
 - [ ] **F2** Add-on items are marked as extras and do not consume meal credits or entitlement counts.
 - [ ] **F3** Drinks and cakes do not alter the main meal count or daily standards.
 - [ ] **F4** Add-on items do not appear for subscriptions without the add-on.
 - [ ] **F5** On-call subscriptions remain outside the daily cook sheet today; add-ons follow the same rule and do not create a separate on-call list.
+- [ ] **F6** Both add-ons selected → at most two add-on rows (one drink, one cake) for that subscriber, with readable recipe names.
 
 ## G — Verification
 
