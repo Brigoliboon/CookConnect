@@ -37,7 +37,6 @@ export async function generateMetadata({
     authors: [{ name: "Cook Connect Restaurant LLC" }],
     creator: "CookConnect",
     publisher: "Cook Connect Restaurant LLC",
-    robots: { index: true, follow: true },
     alternates: {
       canonical,
       languages: {
@@ -62,7 +61,14 @@ export async function generateMetadata({
       description: meta.description,
       images: [ogImage(locale)],
     },
-    icons: { icon: "/favicon.svg", apple: "/logo-horizontal.png" },
+    icons: {
+      icon: [
+        { url: "/favicon.svg", type: "image/svg+xml" },
+        { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+        { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+      ],
+      apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    },
     manifest: "/manifest.webmanifest",
     category: "food",
     other: {

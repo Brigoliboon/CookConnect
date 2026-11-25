@@ -18,15 +18,23 @@ const PUBLIC_PATHS = [
   ["/privacy", 0.5],
 ] as const;
 
+const LAST_MODIFIED: Record<string, string> = {
+  "/": "2026-11-25",
+  "/menu": "2026-11-25",
+  "/terms": "2026-08-20",
+  "/privacy": "2026-08-20",
+};
+
 export default function sitemap(): MetadataRoute.Sitemap {
   return PUBLIC_PATHS.flatMap(([path, priority]) => {
     const en = localeUrl("en", path);
     const ar = localeUrl("ar", path);
     const languages = { en, ar, "x-default": en };
     const changeFrequency = path === "/" ? "daily" as const : "weekly" as const;
+    const lastModified = new Date(LAST_MODIFIED[path] ?? LAST_MODIFIED["/menu"]);
     return [
-      { url: en, changeFrequency, priority, alternates: { languages } },
-      { url: ar, changeFrequency, priority, alternates: { languages } },
+      { url: en, lastModified, changeFrequency, priority, alternates: { languages } },
+      { url: ar, lastModified, changeFrequency, priority, alternates: { languages } },
     ];
   });
 }

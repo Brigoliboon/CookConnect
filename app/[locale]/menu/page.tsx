@@ -3,7 +3,7 @@ import { setRequestLocale } from "next-intl/server";
 import { createClient } from "@/utils/supabase/server";
 import { listRecipes } from "@/lib/supabase/tables/recipes";
 import { decodeRecipeIds } from "@/utils/catalogShare";
-import { SITE_URL, localeUrl } from "@/lib/seo";
+import { SITE_URL, localeUrl, nutritionJsonLd } from "@/lib/seo";
 import { toMenuItem } from "@/lib/menu-map";
 import type { RecipeListResponse } from "@/hooks/useRecipes";
 import MenuClient, { type MenuItem } from "./MenuClient";
@@ -68,13 +68,7 @@ export default async function MenuPage({
             priceCurrency: "AED",
             availability: "https://schema.org/InStock",
           },
-          nutrition: {
-            "@type": "NutritionInformation",
-            calories: `${item.calories} calories`,
-            proteinContent: `${item.protein}g`,
-            carbohydrateContent: `${item.carbs}g`,
-            fatContent: `${item.fats}g`,
-          },
+          nutrition: nutritionJsonLd(item),
         },
       })),
     },

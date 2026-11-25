@@ -143,14 +143,24 @@
     "emailLabel": "Email",
     "hoursLabel": "Hours"
   },
+  "notFound": {
+    "metaTitle": "Page Not Found | CookConnect",
+    "title": "This page is off the menu.",
+    "description": "The page you are looking for does not exist or has moved.",
+    "backHome": "Back to home",
+    "browseMenu": "Browse the menu"
+  },
   "footer": {
     "brand": "CookConnect",
     "tagline": "Healthy restaurant and meal plans in Al Hamidiya, Ajman.",
     "quickLinks": "Quick Links",
+    "categories": "Menu Categories",
     "contact": "Contact",
     "menu": "Menu",
     "pricing": "Pricing",
     "about": "About",
+    "terms": "Terms",
+    "privacy": "Privacy",
     "copyright": "CookConnect. All rights reserved.",
     "loveWhatYouSee": "Love what you see?",
     "contactDev": "Contact the developer"

@@ -1,16 +1,29 @@
 "use client"
 
-import { useTranslations, useLocale } from "next-intl"
+import { useTranslations } from "next-intl"
 import { Link } from "@/i18n/navigation"
+
+const CATEGORY_SLUGS = [
+  "meals",
+  "salad",
+  "rice-sides",
+  "platters",
+  "pasta",
+  "wraps",
+  "pizza",
+  "burgers",
+  "desserts",
+  "drinks",
+] as const
 
 export function Footer() {
   const t = useTranslations("footer")
-  const isArabic = useLocale() === "ar"
+  const tc = useTranslations("featured")
 
   return (
     <footer className="border-t border-neutral-200 bg-white px-6 py-10">
       <div className="mx-auto max-w-6xl">
-        <div className="grid gap-8 sm:grid-cols-3">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <p className="font-playfair text-lg font-bold text-black">{t("brand")}</p>
             <p className="font-nunito mt-2 text-sm text-black/50">
@@ -21,24 +34,21 @@ export function Footer() {
             <p className="font-nunito text-sm font-semibold text-black">{t("quickLinks")}</p>
             <div className="font-nunito mt-3 space-y-2 text-sm text-black/50">
               <Link href="/menu" className="block transition-colors hover:text-black">{t("menu")}</Link>
-              {[
-                ["meals", "Meals", "الوجبات"],
-                ["salad", "Salads", "سلطات"],
-                ["rice-sides", "Rice & Sides", "أرز وأطباق جانبية"],
-                ["platters", "Platters", "أطباق"],
-                ["pasta", "Pasta", "باستا"],
-                ["wraps", "Wraps", "راب"],
-                ["pizza", "Pizza", "بيتزا"],
-                ["burgers", "Burgers", "برجر وساندويتشات"],
-                ["desserts", "Desserts", "كيك وحلويات"],
-                ["drinks", "Drinks", "مشروبات"],
-              ].map(([slug, en, ar]) => (
-                <Link key={slug} href={`/menu/${slug}`} className="block transition-colors hover:text-black">
-                  {isArabic ? ar : en}
+              <Link href="/#subscription" className="block transition-colors hover:text-black">{t("pricing")}</Link>
+              <Link href="/#about" className="block transition-colors hover:text-black">{t("about")}</Link>
+              <Link href="/#contact" className="block transition-colors hover:text-black">{t("contact")}</Link>
+              <Link href="/terms" className="block transition-colors hover:text-black">{t("terms")}</Link>
+              <Link href="/privacy" className="block transition-colors hover:text-black">{t("privacy")}</Link>
+            </div>
+          </div>
+          <div>
+            <p className="font-nunito text-sm font-semibold text-black">{t("categories")}</p>
+            <div className="font-nunito mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-black/50">
+              {CATEGORY_SLUGS.map((slug) => (
+                <Link key={slug} href={`/menu/${slug}`} className="transition-colors hover:text-black">
+                  {tc(`cats.${slug}`)}
                 </Link>
               ))}
-              <Link href="/terms" className="block transition-colors hover:text-black">{isArabic ? "الشروط والأحكام" : "Terms"}</Link>
-              <Link href="/privacy" className="block transition-colors hover:text-black">{isArabic ? "سياسة الخصوصية" : "Privacy"}</Link>
             </div>
           </div>
           <div>

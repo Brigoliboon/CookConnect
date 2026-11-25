@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 import { createClient } from "@/utils/supabase/server";
 import { listRecipes } from "@/lib/supabase/tables/recipes";
-import { SITE_URL, localeUrl, ogImage } from "@/lib/seo";
+import { SITE_URL, localeUrl, ogImage, nutritionJsonLd } from "@/lib/seo";
 import { toMenuItem } from "@/lib/menu-map";
 import { Nav } from "@/components/landing/Nav";
 import { Footer } from "@/components/landing/Footer";
@@ -147,6 +147,7 @@ export default async function CategoryPage({
           priceCurrency: "AED",
           availability: "https://schema.org/InStock",
         },
+        nutrition: nutritionJsonLd(item),
       },
     })),
   };
