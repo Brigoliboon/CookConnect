@@ -9,6 +9,7 @@ import { createSubscription, setSubscriptionRemainingMealCount } from "@/lib/sup
 import { recordSubscriptionPayment } from "@/lib/supabase/tables/subscription_payments"
 import { createClient } from "@/utils/supabase/server"
 import { indexIngredientsByName } from "@/lib/subscription/restrictions"
+import { subscriptionAddonTotalCents } from "@/constants/subscription-addons"
 
 const MAX_ROWS = 500
 
@@ -105,13 +106,24 @@ export async function POST(request: Request) {
           throw new Error(`No active subscription plan matching "${parsed.planId}" (${validityDays} days)`)
         }
 
+        const details = subscriptionDetailsFromCsvRow(parsed)
+        const addonCents = subscriptionAddonTotalCents(details)
+        const baseTotalCents =
+          typeof details.total_cents === "number" ? details.total_cents : null
+        const totalCents = baseTotalCents === null ? null : baseTotalCents + addonCents
+        if (totalCents !== null) details.total_cents = totalCents
+        if (addonCents > 0) details.addon_total_cents = addonCents
+        if (parsed.paid_cents > 0 && (totalCents === null || parsed.paid_cents > totalCents)) {
+          throw new Error("paid_aed cannot exceed total_aed plus add-ons")
+        }
+
         const subscription = await createSubscription(supabase, {
           customer_id: null,
           subscription_plan_id: planRow.id,
           started_at: parsed.started_at,
           expires_at: parsed.expires_at,
           paused_at: parsed.paused ? new Date().toISOString() : null,
-          details: subscriptionDetailsFromCsvRow(parsed),
+          details,
         })
 
         if (parsed.remaining_meals !== undefined) {

@@ -1,3 +1,5 @@
+import { SUBSCRIPTION_ADDON_ITEMS, SUBSCRIPTION_ADDON_KEYS } from "@/constants/subscription-addons"
+
 export const MIN_MEALS_PER_DAY = 1
 export const MAX_MEALS_PER_DAY = 5
 export const LOOKBACK_DAYS = 7
@@ -51,6 +53,13 @@ export function deliverySlots(details: SubDetails): string[] {
 
 export function hasBreakfast(details: SubDetails): boolean {
   return (details ?? {}).breakfast === true
+}
+
+export function addonRecipeIds(details: SubDetails): string[] {
+  const d = details ?? {}
+  return SUBSCRIPTION_ADDON_KEYS.flatMap((key) =>
+    d[key] === true ? SUBSCRIPTION_ADDON_ITEMS[key].map((item) => item.recipeId) : [],
+  )
 }
 
 export function mealsPerDayOf(details: SubDetails): number {

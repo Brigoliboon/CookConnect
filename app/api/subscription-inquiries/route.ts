@@ -35,6 +35,8 @@ export async function POST(request: Request) {
     restrictedCategories?: string[]
     mealsPerDay?: number
     breakfast?: boolean
+    drinks?: boolean
+    cakes?: boolean
     includedMeals?: string[]
     days?: string[]
     slots?: string[]
@@ -83,6 +85,8 @@ export async function POST(request: Request) {
         restrictedCategories: body.restrictedCategories ?? [],
         mealsPerDay: Math.min(5, Math.max(1, Math.round(body.mealsPerDay ?? 1))),
         breakfast: body.breakfast ?? false,
+        drinks: body.drinks === true,
+        cakes: body.cakes === true,
         includedMeals: body.includedMeals ?? [],
         days: body.days ?? [],
         slots: (body.slots ?? ["morning"]).filter((s) => ["morning", "noon", "evening"].includes(s)),

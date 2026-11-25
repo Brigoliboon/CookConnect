@@ -36,6 +36,8 @@ export function StaffSubscriptionForm({ onCreated }: { onCreated?: () => void })
   const [mode, setMode] = useState<"normal" | "flexible">("normal")
   const [mealsPerDay, setMealsPerDay] = useState("1")
   const [breakfast, setBreakfast] = useState(false)
+  const [drinks, setDrinks] = useState(false)
+  const [cakes, setCakes] = useState(false)
   const [onCall, setOnCall] = useState(true)
   const [days, setDays] = useState<string[]>([])
   const [slots, setSlots] = useState<("morning" | "noon" | "evening")[]>(["morning"])
@@ -132,6 +134,8 @@ export function StaffSubscriptionForm({ onCreated }: { onCreated?: () => void })
             ...restrictionPayload,
             mealsPerDay: meals,
             breakfast,
+            drinks,
+            cakes,
             includedMeals: [],
             days: onCall ? [] : days,
             slots: onCall ? [] : slots,
@@ -218,7 +222,18 @@ export function StaffSubscriptionForm({ onCreated }: { onCreated?: () => void })
           <input type="checkbox" checked={breakfast} onChange={(e) => setBreakfast(e.target.checked)} />
           Breakfast extra
         </label>
+        <label className="flex items-end gap-2 pb-2 text-sm font-medium text-neutral-800">
+          <input type="checkbox" checked={drinks} onChange={(e) => setDrinks(e.target.checked)} />
+          Drinks add-on (AED 100)
+        </label>
+        <label className="flex items-end gap-2 pb-2 text-sm font-medium text-neutral-800">
+          <input type="checkbox" checked={cakes} onChange={(e) => setCakes(e.target.checked)} />
+          Cakes add-on (AED 100)
+        </label>
       </div>
+      <p className="-mt-2 text-xs text-neutral-500">
+        Drinks and cakes are fixed bundles for the whole plan and are added on top of the total entered below.
+      </p>
 
       <div>
         <label className="mb-2 flex items-center gap-2 text-sm font-medium text-neutral-800">

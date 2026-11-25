@@ -11,7 +11,7 @@ Tracks build progress by milestone. See `REQUIREMENTS.md` for what each item mea
 - `tests/`: manual test plans (markdown). There is no automated test runner in `package.json`.
 - `docs/`: older working notes (schema, menu population, push, campaign). `REQUIREMENTS.md` and this file are the source of truth.
 
-**Status (21 Nov 2026):** M1 to M8 are done on `main` at `e44d9de` (code audit of 2026-11-17; the app was not run). Remaining work is M9 to M15, in Boon's priority order: meals, ordering and subscribing, employee, rider, customer, then email and verification. The customer pages, `/employee/deliveries`, and `/employee/customers/[id]` are still mock. Open questions in `REQUIREMENTS.md`: Dubai delivery fee (code uses AED 200); FR-48 (whether 100 is AED or a count, and the drinks/cakes lists). FR-49 is answered: emails go out on a new order and a new subscription inquiry, to staff who opt in.
+**Status (21 Nov 2026):** M1 to M8 are done on `main` at `e44d9de` (code audit of 2026-11-17; the app was not run). Remaining work is M9 to M15, in Boon's priority order: meals, ordering and subscribing, employee, rider, customer, then email and verification. The customer pages, `/employee/deliveries`, and `/employee/customers/[id]` are still mock. Open question in `REQUIREMENTS.md`: Dubai delivery fee (code uses AED 200). FR-48 is answered (AED 100 per add-on for the whole plan; fixed CSV item bundles). FR-49 is answered: emails go out on a new order and a new subscription inquiry, to staff who opt in.
 
 ---
 
@@ -98,8 +98,11 @@ The chef page already filters the day's subscribers with `activeOn()`, which ret
 
 - [ ] Plan cards (and any other plan pickers still on constants) read live plans from `GET /api/subscription-plans` instead of hardcoded `SUBSCRIPTION_PLANS` (FR-4)
 - [ ] Staff subscription form saves the delivery location (it currently sends `location: null`) (FR-22)
-- [ ] Subscribers can choose add-on inclusions: drinks (100) and cakes (100), each from an item list (FR-48)
-- [ ] Resolve the open questions before building: is 100 a price in AED or an item count, and what is on each list?
+- [x] Public and staff subscription forms offer drinks and cakes as fixed-bundle add-ons from the CSV lists; public copy is bilingual (FR-48)
+- [x] Add-ons are stored in inquiry/subscription details, invite preferences, and optional CSV import columns (FR-48)
+- [x] AED 100 per selected add-on is added to the approved or staff-created total on top of the negotiated plan price, once for the whole plan (FR-48)
+- [x] Staff views, inquiry emails, and the chef cook sheet show chosen add-ons; cook-sheet items do not consume meal credits (FR-48)
+- [x] Resolve the open questions before building: AED 100 per add-on for the whole plan; exact fixed bundles come from the POS menu matrix CSV; negotiated price covers only the plan (FR-48)
 
 ## M11: Employee (FR-28, FR-30, FR-42, FR-47)
 
@@ -161,6 +164,8 @@ Boon confirmed 2026-11-24: v1 is pick-one and required only; the order snapshot 
 ## Progress log
 
 Newest first. Times are Asia/Manila (UTC+8).
+
+- 2026-11-25 15:19: Subscription add-ons on `feat/m10-subscription-addons`: FR-48 drinks and cakes are fixed bundles from the POS menu matrix CSV, AED 100 each for the whole plan, added on top of the agreed plan price. Added bilingual public toggles and review rows, staff form, invite preferences, inquiry/approval/CSV fields, staff badges/email lines, server-side total enforcement, and chef cook-sheet extras that do not consume meal credits. No migration needed. `tests/SUBSCRIPTION_ADDONS_TESTCASE.md` added; `npm run build` passed and lint is at the existing 17 errors / 33 warnings baseline.
 
 - 2026-11-25 13:18: SEO maintenance on `fix/seo-maintenance`: bilingual titles/descriptions, `www` canonical host, no doubled brand, OG/Twitter on every public page, menu/category H1s, 10 category links from the menu and footer, crawlable language switch, database-side category filtering with the noindex-on-failure fix, bilingual sitemap entries with fixed dates, square icons, compressed share images, JSON-LD nutrition guard, visible hero on first paint, and a branded localized 404. Section F (new meal-plan landing pages) is intentionally excluded. `npm run build` passed; lint still reports pre-existing errors outside these files. Production verification is still pending.
 

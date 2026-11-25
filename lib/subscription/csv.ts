@@ -14,6 +14,8 @@ export const SUBSCRIPTION_CSV_HEADERS = [
   "mode",
   "meals_per_day",
   "breakfast",
+  "drinks",
+  "cakes",
   "restrictions",
   "included_meals",
   "days",
@@ -42,6 +44,8 @@ export const SUBSCRIPTION_CSV_SHORT_LABELS: Record<string, string> = {
   mode: "Mode",
   meals_per_day: "Meals/day",
   breakfast: "Breakfast",
+  drinks: "Drinks",
+  cakes: "Cakes",
   restrictions: "Restrictions",
   included_meals: "Meals",
   days: "Days",
@@ -113,6 +117,8 @@ export type ParsedSubscriptionCsvRow = {
   restrictedCategories: string[]
   mealsPerDay: number
   breakfast: boolean
+  drinks: boolean
+  cakes: boolean
   includedMeals: string[]
   days: string[]
   slots: string[]
@@ -270,6 +276,8 @@ export function parseSubscriptionCsvRow(
   }
 
   const breakfast = parseBool(cell(col, "breakfast"), "breakfast") ?? false
+  const drinks = parseBool(cell(col, "drinks"), "drinks") ?? false
+  const cakes = parseBool(cell(col, "cakes"), "cakes") ?? false
   const restrictionLabels = splitList(cell(col, "restrictions"))
   const includedMealNames = splitList(cell(col, "included_meals"))
 
@@ -348,6 +356,8 @@ export function parseSubscriptionCsvRow(
     restrictedCategories: restrictions.restrictedCategories,
     mealsPerDay,
     breakfast,
+    drinks,
+    cakes,
     includedMeals,
     days: onCall ? [] : days,
     slots: resolvedSlots,
@@ -385,6 +395,8 @@ export function subscriptionDetailsFromCsvRow(row: ParsedSubscriptionCsvRow): Re
     restrictedCategories: row.restrictedCategories,
     mealsPerDay: row.mealsPerDay,
     breakfast: row.breakfast,
+    drinks: row.drinks,
+    cakes: row.cakes,
     includedMeals: row.mode === "flexible" ? row.includedMeals : [],
     days: row.onCall ? [] : row.days,
     slots: row.onCall ? [] : row.slots,

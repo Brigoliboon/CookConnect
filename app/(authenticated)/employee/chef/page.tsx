@@ -26,6 +26,7 @@ import {
 import {
   activeOn,
   addCalendarDays,
+  addonRecipeIds,
   assignmentNeed,
   BREAKFAST_CATEGORY,
   deliverySlots,
@@ -36,10 +37,17 @@ import {
   weekdayOf,
 } from "@/lib/chef/day"
 import type { DailyStandard } from "@/lib/supabase/models"
+import {
+  SUBSCRIPTION_ADDON_ITEMS,
+  SUBSCRIPTION_ADDON_KEYS,
+} from "@/constants/subscription-addons"
 import { CalendarDays, Check, ChefHat, ChevronDown, ChevronLeft, ChevronRight, Clock, CookingPot, Search, Sun, Sunrise, Sunset, TriangleAlert, Users, Utensils, UtensilsCrossed, X } from "lucide-react"
 
 const RECIPE_PAGE = 100
 const SUB_RECIPE_QS = "is_active=true&is_subscription_included=true"
+const ADDON_RECIPE_IDS = SUBSCRIPTION_ADDON_KEYS.flatMap((key) =>
+  SUBSCRIPTION_ADDON_ITEMS[key].map((item) => item.recipeId),
+)
 
 interface SubRow {
   id: string
@@ -92,6 +100,19 @@ async function fetchAllSubRecipes(): Promise<RecipeRow[]> {
   return all
 }
 
+async function fetchAddonRecipes(): Promise<RecipeRow[]> {
+  if (ADDON_RECIPE_IDS.length === 0) return []
+  const q = new URLSearchParams({
+    ids: ADDON_RECIPE_IDS.join(","),
+    limit: String(RECIPE_PAGE),
+    include: "ingredients",
+  })
+  const res = await fetch(`/api/recipe?${q.toString()}`)
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error ?? "Failed to fetch add-on items")
+  return (data.data ?? []) as RecipeRow[]
+}
+
 function toStandardsMap(rows: DailyStandard[]): Map<string, string[]> {
   const map = new Map<string, string[]>()
   for (const st of [...rows].sort((a, b) => a.position - b.position)) {
@@ -111,21 +132,24 @@ function customerName(sub: SubRow): string {
   return (d.name as string) || sub.customer?.name || "Customer"
 }
 
+type CookDishKind = "main" | "breakfast" | "addon"
+
 interface CookDish {
   recipeId: string
   name: string
   image_path: string | null
   count: number
-  breakfast: boolean
+  kind: CookDishKind
 }
 
 function aggregateCookList(
-  items: { recipeId: string; breakfast?: boolean }[],
+  items: { recipeId: string; kind?: CookDishKind; breakfast?: boolean }[],
   recipeById: Map<string, RecipeRow>,
 ): CookDish[] {
   const map = new Map<string, CookDish>()
   for (const item of items) {
-    const key = `${item.breakfast ? "bf:" : ""}${item.recipeId}`
+    const kind: CookDishKind = item.kind ?? (item.breakfast ? "breakfast" : "main")
+    const key = `${kind}:${item.recipeId}`
     const existing = map.get(key)
     if (existing) {
       existing.count += 1
@@ -137,13 +161,24 @@ function aggregateCookList(
       name: recipe?.name ?? item.recipeId.slice(0, 8),
       image_path: recipe?.image_path ?? null,
       count: 1,
-      breakfast: Boolean(item.breakfast),
+      kind,
     })
   }
+  const order: Record<CookDishKind, number> = { main: 0, breakfast: 1, addon: 2 }
   return [...map.values()].sort((a, b) => {
-    if (a.breakfast !== b.breakfast) return a.breakfast ? 1 : -1
+    if (order[a.kind] !== order[b.kind]) return order[a.kind] - order[b.kind]
     return b.count - a.count
   })
+}
+
+function pickKind(pick: PickRow): CookDishKind {
+  if (ADDON_RECIPE_IDS.includes(pick.recipe_id)) return "addon"
+  return pick.counts_toward_entitlement === false ? "breakfast" : "main"
+}
+
+function addonIdsForSubscription(subs: SubRow[], subscriptionId: string): string[] {
+  const sub = subs.find((s) => s.id === subscriptionId)
+  return sub ? addonRecipeIds(sub.details) : []
 }
 
 function CookListGrid({ dishes }: { dishes: CookDish[] }) {
@@ -152,7 +187,7 @@ function CookListGrid({ dishes }: { dishes: CookDish[] }) {
     <div className="grid grid-cols-1 divide-y divide-neutral-100 sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-3">
       {dishes.map((d) => (
         <div
-          key={`${d.breakfast ? "bf:" : ""}${d.recipeId}`}
+          key={`${d.kind}:${d.recipeId}`}
           className="flex items-center gap-3 bg-white py-3 sm:pr-6"
         >
           <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-neutral-200">
@@ -163,15 +198,18 @@ function CookListGrid({ dishes }: { dishes: CookDish[] }) {
             )}
           </div>
           <div className="min-w-0 flex-1">
-            {d.breakfast && (
+            {d.kind === "breakfast" && (
               <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-700">Breakfast</p>
+            )}
+            {d.kind === "addon" && (
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-sky-700">Add-on</p>
             )}
             <p className="truncate text-base font-semibold text-neutral-900">{d.name}</p>
             <p className="mt-0.5 text-xs text-neutral-400">
               {d.count} portion{d.count !== 1 ? "s" : ""}
             </p>
           </div>
-          <span className={`shrink-0 text-xl font-bold tabular-nums ${d.breakfast ? "text-amber-800" : "text-neutral-900"}`}>
+          <span className={`shrink-0 text-xl font-bold tabular-nums ${d.kind === "breakfast" ? "text-amber-800" : d.kind === "addon" ? "text-sky-800" : "text-neutral-900"}`}>
             {d.count}
           </span>
         </div>
@@ -216,10 +254,12 @@ export default function EmployeeChefPage() {
 
   function fetchRecipes() {
     setMealsLoading(true)
-    fetchAllSubRecipes()
-      .then((rows) => {
-        setRecipes(rows)
-        const set = new Set(rows.map((r) => r.category).filter(Boolean) as string[])
+    Promise.all([fetchAllSubRecipes(), fetchAddonRecipes()])
+      .then(([rows, addonRows]) => {
+        const merged = new Map([...rows, ...addonRows].map((r) => [r.id, r]))
+        const all = [...merged.values()]
+        setRecipes(all)
+        const set = new Set(all.map((r) => r.category).filter(Boolean) as string[])
         setCategories(["", ...[...set].sort()])
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load meals"))
@@ -270,6 +310,7 @@ export default function EmployeeChefPage() {
   const picksBySub = useMemo(() => {
     const map = new Map<string, Set<string>>()
     for (const p of picks) {
+      if (p.counts_toward_entitlement === false) continue
       if (!map.has(p.subscription_id)) map.set(p.subscription_id, new Set())
       map.get(p.subscription_id)!.add(p.recipe_id)
     }
@@ -281,7 +322,7 @@ export default function EmployeeChefPage() {
   const dayBatch = useMemo(
     () =>
       aggregateCookList(
-        picks.map((p) => ({ recipeId: p.recipe_id, breakfast: p.counts_toward_entitlement === false })),
+        picks.map((p) => ({ recipeId: p.recipe_id, kind: pickKind(p) })),
         recipeById,
       ),
     [picks, recipeById],
@@ -294,16 +335,21 @@ export default function EmployeeChefPage() {
         r.skipped
           ? []
           : [
-              ...r.recipeIds.map((recipeId) => ({ recipeId, breakfast: false })),
-              ...r.breakfastRecipeIds.map((recipeId) => ({ recipeId, breakfast: true })),
+              ...r.recipeIds.map((recipeId) => ({ recipeId, kind: "main" as const })),
+              ...r.breakfastRecipeIds.map((recipeId) => ({ recipeId, kind: "breakfast" as const })),
+              ...addonIdsForSubscription(subs,r.subscriptionId).map((recipeId) => ({ recipeId, kind: "addon" as const })),
             ],
       ),
       recipeById,
     )
-  }, [review, recipeById])
+  }, [review, recipeById, subs])
 
   const reviewReadyCount = review
-    ? review.filter((r) => !r.skipped && (r.recipeIds.length > 0 || r.breakfastRecipeIds.length > 0)).length
+    ? review.filter(
+        (r) =>
+          !r.skipped &&
+          (r.recipeIds.length > 0 || r.breakfastRecipeIds.length > 0 || addonIdsForSubscription(subs,r.subscriptionId).length > 0),
+      ).length
     : 0
 
   const recipeProtein = useMemo(
@@ -451,6 +497,7 @@ export default function EmployeeChefPage() {
     try {
       const sub = subs.find((s) => s.id === subId)
       const breakfastCount = sub ? assignmentNeed(sub, selected).breakfastCount : 0
+      const addonIds = sub ? addonRecipeIds(sub.details) : []
       const { recipeIds, breakfastRecipeIds } = splitDraft(draft, breakfastCount)
       const res = await fetch("/api/chef-schedules", {
         method: "POST",
@@ -460,6 +507,7 @@ export default function EmployeeChefPage() {
           subscription_id: subId,
           recipe_ids: recipeIds,
           breakfast_recipe_ids: breakfastRecipeIds,
+          addon_recipe_ids: addonIds,
         }),
       })
       if (!res.ok) {
@@ -597,11 +645,16 @@ export default function EmployeeChefPage() {
   async function confirmApply() {
     if (!review) return
     const assignments = review
-      .filter((r) => !r.skipped && (r.recipeIds.length > 0 || r.breakfastRecipeIds.length > 0))
+      .filter(
+        (r) =>
+          !r.skipped &&
+          (r.recipeIds.length > 0 || r.breakfastRecipeIds.length > 0 || addonIdsForSubscription(subs,r.subscriptionId).length > 0),
+      )
       .map((r) => ({
         subscription_id: r.subscriptionId,
         recipe_ids: r.recipeIds,
         breakfast_recipe_ids: r.breakfastRecipeIds,
+        addon_recipe_ids: addonIdsForSubscription(subs,r.subscriptionId),
       }))
     if (assignments.length === 0) {
       setReview(null)
@@ -856,6 +909,8 @@ export default function EmployeeChefPage() {
                   const extras = [
                     preferredRecipeIds(sub.details).length > 0 ? "flexible" : "",
                     need.breakfastCount > 0 ? "breakfast extra" : "",
+                    details.drinks === true ? "drinks add-on" : "",
+                    details.cakes === true ? "cakes add-on" : "",
                     isDoubleThursday(sub, selected) ? "Thu+Fri" : isFridayDelivery(sub, selected) ? "Fri on Thu" : "",
                   ].filter(Boolean)
                   return (
@@ -1145,7 +1200,8 @@ export default function EmployeeChefPage() {
                   {review.map((r) => {
                     const notable = r.issues.filter((i) => i.kind !== "suggested" && i.kind !== "skipped")
                     const blocking = notable.filter((i) => i.kind === "no-replacement" || i.kind === "no-standard" || i.kind === "depleted")
-                    const dishIds = [...r.recipeIds, ...r.breakfastRecipeIds]
+                    const addonIds = addonIdsForSubscription(subs,r.subscriptionId)
+                    const dishIds = [...r.recipeIds, ...r.breakfastRecipeIds, ...addonIds]
                     return (
                       <div key={r.subscriptionId} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
                         <div className="min-w-0 flex-1">
@@ -1157,6 +1213,9 @@ export default function EmployeeChefPage() {
                               {r.recipeIds.map((rid) => recipeById.get(rid)?.name ?? rid.slice(0, 8)).join(" · ")}
                               {r.breakfastRecipeIds.length > 0
                                 ? ` · BF ${r.breakfastRecipeIds.map((rid) => recipeById.get(rid)?.name ?? rid.slice(0, 8)).join(", ")}`
+                                : ""}
+                              {addonIds.length > 0
+                                ? ` · Add-ons ${addonIds.map((rid) => recipeById.get(rid)?.name ?? rid.slice(0, 8)).join(", ")}`
                                 : ""}
                             </p>
                           ) : (

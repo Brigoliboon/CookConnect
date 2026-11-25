@@ -8,9 +8,11 @@ import { Link } from "@/i18n/navigation"
 import {
   ArrowLeft,
   ArrowRight,
+  CakeSlice,
   Check,
   ChefHat,
   Croissant,
+  CupSoda,
   Mail,
   Phone,
   Search,
@@ -20,6 +22,7 @@ import {
 } from "lucide-react"
 import { MENU_CATEGORIES } from "@/constants"
 import { SUBSCRIPTION_PLANS, DELIVERY_DAYS } from "@/constants/subscriptions"
+import { subscriptionAddonTotalCents } from "@/constants/subscription-addons"
 import { FloatingInput } from "@/components/ui/FloatingInput"
 import { LocationPicker, type Coordinates } from "@/components/ui/LocationPicker"
 import { imageVariant } from "@/lib/images"
@@ -62,6 +65,8 @@ type InvitePreferences = {
   restrictionNames?: Record<string, string>
   restrictedCategories?: string[]
   breakfast?: boolean
+  drinks?: boolean
+  cakes?: boolean
   includedMeals?: string[]
   days?: string[]
   slots?: ("morning" | "noon" | "evening")[]
@@ -161,6 +166,8 @@ export function SubscriptionForm() {
   const [days, setDays] = useState<string[]>([])
   const [mealsPerDay, setMealsPerDay] = useState(1)
   const [breakfast, setBreakfast] = useState(false)
+  const [drinks, setDrinks] = useState(false)
+  const [cakes, setCakes] = useState(false)
   const [slots, setSlots] = useState<("morning" | "noon" | "evening")[]>(["morning"])
   const [onCall, setOnCall] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -251,6 +258,8 @@ export function SubscriptionForm() {
             setRestrictedCategories(preferences.restrictedCategories.map((c) => c.trim().toLowerCase()).filter(Boolean))
           }
           if (typeof preferences.breakfast === "boolean") setBreakfast(preferences.breakfast)
+          if (typeof preferences.drinks === "boolean") setDrinks(preferences.drinks)
+          if (typeof preferences.cakes === "boolean") setCakes(preferences.cakes)
           if (Array.isArray(preferences.includedMeals)) setSelectedMeals(preferences.includedMeals)
           if (Array.isArray(preferences.days)) setDays(preferences.days)
           if (Array.isArray(preferences.slots)) setSlots(preferences.slots)
@@ -422,6 +431,8 @@ export function SubscriptionForm() {
           ...restrictionDetailsPayload(restricted, restrictedCategories),
           mealsPerDay,
           breakfast,
+          drinks,
+          cakes,
           includedMeals: mode === "flexible" ? selectedMeals : [],
           days: onCall ? [] : days,
           slots: onCall ? [] : slots,
@@ -493,6 +504,13 @@ export function SubscriptionForm() {
   const deliveryLabel = onCall
     ? "On-call only"
     : `${days.length > 0 ? days.join(", ") : "No days selected"} · ${slots.length > 0 ? slots.join(", ") : "No slots selected"}`
+  const addonCents = subscriptionAddonTotalCents({ drinks, cakes })
+  const addonsLabel = addonCents === 0 ? t("addonNotIncluded") : `AED ${(addonCents / 100).toFixed(2)}`
+  const agreedTotalCents =
+    agreedPriceLabel && invite.status === "valid" && typeof invite.agreedPriceCents === "number"
+      ? invite.agreedPriceCents + addonCents
+      : null
+  const agreedTotalLabel = agreedTotalCents === null ? null : `AED ${(agreedTotalCents / 100).toFixed(2)}`
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -712,6 +730,43 @@ export function SubscriptionForm() {
                   </span>
                 </button>
 
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setDrinks((v) => !v)}
+                    aria-pressed={drinks}
+                    className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition-[background-color,border-color,color,box-shadow,transform] duration-300 ease-out active:scale-[0.99] ${drinks ? "border-brand-900 bg-brand-900 text-white shadow-lg shadow-brand-900/20" : "border-brand-700/40 text-neutral-600 hover:border-brand-400 hover:bg-brand-700/20"}`}
+                  >
+                    <span className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${drinks ? "bg-white/15 text-white" : "bg-brand-700/20 text-brand-900"}`}>
+                      <CupSoda size={20} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-bold">{t("addDrinks")}</span>
+                      <span className={`mt-0.5 block text-[11px] ${drinks ? "text-white/70" : "text-neutral-400"}`}>{t("addonHint")}</span>
+                    </span>
+                    <span className={`flex size-6 shrink-0 items-center justify-center rounded-full border transition-all ${drinks ? "border-white bg-white text-brand-900" : "border-brand-700/60 text-transparent"}`}>
+                      <Check size={14} />
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCakes((v) => !v)}
+                    aria-pressed={cakes}
+                    className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition-[background-color,border-color,color,box-shadow,transform] duration-300 ease-out active:scale-[0.99] ${cakes ? "border-brand-900 bg-brand-900 text-white shadow-lg shadow-brand-900/20" : "border-brand-700/40 text-neutral-600 hover:border-brand-400 hover:bg-brand-700/20"}`}
+                  >
+                    <span className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${cakes ? "bg-white/15 text-white" : "bg-brand-700/20 text-brand-900"}`}>
+                      <CakeSlice size={20} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-bold">{t("addCakes")}</span>
+                      <span className={`mt-0.5 block text-[11px] ${cakes ? "text-white/70" : "text-neutral-400"}`}>{t("addonHint")}</span>
+                    </span>
+                    <span className={`flex size-6 shrink-0 items-center justify-center rounded-full border transition-all ${cakes ? "border-white bg-white text-brand-900" : "border-brand-700/60 text-transparent"}`}>
+                      <Check size={14} />
+                    </span>
+                  </button>
+                </div>
+
                 <RestrictionFields
                   restricted={restricted}
                   onRestrictedChange={setRestricted}
@@ -907,6 +962,10 @@ export function SubscriptionForm() {
                   )}
                   <SummaryRow label="Style" value={mode === "flexible" ? "Flexible — pick your meals" : "Normal — chef's choice"} onEdit={() => goToStep("preferences")} />
                   <SummaryRow label="Breakfast" value={breakfast ? "Included" : "Not included"} onEdit={() => goToStep("preferences")} />
+                  <SummaryRow label={t("drinksAddon")} value={drinks ? t("addonIncluded") : t("addonNotIncluded")} onEdit={() => goToStep("preferences")} />
+                  <SummaryRow label={t("cakesAddon")} value={cakes ? t("addonIncluded") : t("addonNotIncluded")} onEdit={() => goToStep("preferences")} />
+                  <SummaryRow label={t("addonsTotal")} value={addonsLabel} onEdit={() => goToStep("preferences")} />
+                  {agreedTotalLabel && <SummaryRow label={t("total")} value={agreedTotalLabel} onEdit={() => goToStep("plan")} />}
                   <SummaryRow label="Restrictions" value={restrictionNamesList.length > 0 ? restrictionNamesList.join(", ") : "None"} onEdit={() => goToStep("preferences")} />
                   {mode === "flexible" && (
                     <SummaryRow label="Meals" value={selectedMealNames.length > 0 ? selectedMealNames.join(", ") : "None selected"} onEdit={() => goToStep("meals")} />

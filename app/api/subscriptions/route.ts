@@ -3,6 +3,7 @@ import { cookies } from "next/headers"
 import { listActivePlanRows, PLAN_DAYS, resolveActivePlan } from "@/lib/subscription/plan"
 import { listSubscriptions, createSubscription } from "@/lib/supabase/tables/subscriptions"
 import { recordSubscriptionPayment } from "@/lib/supabase/tables/subscription_payments"
+import { subscriptionAddonTotalCents } from "@/constants/subscription-addons"
 
 export async function GET() {
   const cookieStore = await cookies()
@@ -72,6 +73,23 @@ export async function POST(request: Request) {
     return Response.json({ error: "amount_cents is invalid" }, { status: 400 })
   }
 
+  const details = { ...(body.details ?? {}) }
+  const baseTotalCents =
+    body.total_cents !== undefined && body.total_cents !== null
+      ? Math.round(Number(body.total_cents))
+      : details.total_cents !== undefined && details.total_cents !== null
+        ? Math.round(Number(details.total_cents))
+        : null
+  if (baseTotalCents !== null && (!Number.isFinite(baseTotalCents) || baseTotalCents < 0)) {
+    return Response.json({ error: "total_cents is invalid" }, { status: 400 })
+  }
+  const addonCents = subscriptionAddonTotalCents(details)
+  if (baseTotalCents !== null && amountCents > baseTotalCents + addonCents) {
+    return Response.json({ error: "amount_cents cannot exceed the total" }, { status: 400 })
+  }
+  if (baseTotalCents !== null) details.total_cents = baseTotalCents + addonCents
+  if (addonCents > 0) details.addon_total_cents = addonCents
+
   try {
     const data = await createSubscription(supabase, {
       customer_id: body.customer_id ?? null,
@@ -79,7 +97,7 @@ export async function POST(request: Request) {
       status: body.status,
       started_at: body.started_at,
       expires_at: body.expires_at,
-      details: body.details,
+      details,
     })
     if (amountCents > 0) {
       await recordSubscriptionPayment(supabase, {

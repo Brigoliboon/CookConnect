@@ -46,6 +46,7 @@ export async function setChefSchedule(
   subscriptionId: string,
   recipeIds: string[],
   breakfastRecipeIds: string[] = [],
+  addonIds: string[] = [],
 ): Promise<ChefSchedule[]> {
   const { error: delError } = await supabase
     .from("chef_schedules")
@@ -57,6 +58,9 @@ export async function setChefSchedule(
 
   const main = [...new Set(recipeIds.filter(Boolean))]
   const breakfast = [...new Set(breakfastRecipeIds.filter(Boolean))].filter((id) => !main.includes(id))
+  const addons = [...new Set(addonIds.filter(Boolean))].filter(
+    (id) => !main.includes(id) && !breakfast.includes(id),
+  )
   const rows = [
     ...main.map((recipe_id) => ({
       scheduled_date: scheduledDate,
@@ -65,6 +69,12 @@ export async function setChefSchedule(
       counts_toward_entitlement: true,
     })),
     ...breakfast.map((recipe_id) => ({
+      scheduled_date: scheduledDate,
+      subscription_id: subscriptionId,
+      recipe_id,
+      counts_toward_entitlement: false,
+    })),
+    ...addons.map((recipe_id) => ({
       scheduled_date: scheduledDate,
       subscription_id: subscriptionId,
       recipe_id,

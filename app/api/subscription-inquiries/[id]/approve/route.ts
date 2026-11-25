@@ -3,6 +3,7 @@ import { cookies } from "next/headers"
 import { createSubscription } from "@/lib/supabase/tables/subscriptions"
 import { recordSubscriptionPayment } from "@/lib/supabase/tables/subscription_payments"
 import { listActivePlanRows, PLAN_DAYS, resolveActivePlan } from "@/lib/subscription/plan"
+import { subscriptionAddonTotalCents } from "@/constants/subscription-addons"
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -34,24 +35,26 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       ? invite.agreedPriceCents
       : null
 
-  let totalCents: number
-  if (payment.total_cents === undefined || payment.total_cents === null) {
-    if (agreedPriceCents === null) {
-      return Response.json({ error: "total_cents is required" }, { status: 400 })
-    }
-    totalCents = agreedPriceCents
-  } else {
-    totalCents = Math.round(Number(payment.total_cents))
-    if (!Number.isFinite(totalCents) || totalCents < 0) {
-      return Response.json({ error: "total_cents is invalid" }, { status: 400 })
-    }
-    if (agreedPriceCents !== null && totalCents !== agreedPriceCents) {
-      return Response.json(
-        { error: `total_cents must match the agreed price (AED ${(agreedPriceCents / 100).toFixed(2)})` },
-        { status: 400 },
-      )
-    }
+  const suppliedCents =
+    payment.total_cents === undefined || payment.total_cents === null
+      ? null
+      : Math.round(Number(payment.total_cents))
+  if (suppliedCents !== null && (!Number.isFinite(suppliedCents) || suppliedCents < 0)) {
+    return Response.json({ error: "total_cents is invalid" }, { status: 400 })
   }
+  if (suppliedCents === null && agreedPriceCents === null) {
+    return Response.json({ error: "total_cents is required" }, { status: 400 })
+  }
+  if (agreedPriceCents !== null && suppliedCents !== null && suppliedCents !== agreedPriceCents) {
+    return Response.json(
+      { error: `total_cents must match the agreed plan price (AED ${(agreedPriceCents / 100).toFixed(2)}) before add-ons` },
+      { status: 400 },
+    )
+  }
+
+  const baseCents = suppliedCents ?? agreedPriceCents ?? 0
+  const addonCents = subscriptionAddonTotalCents(details)
+  const totalCents = baseCents + addonCents
 
   const amountCents = Math.round(Number(payment.amount_cents ?? 0))
   if (!Number.isFinite(amountCents) || amountCents < 0 || amountCents > totalCents) {
@@ -89,8 +92,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         address: row.address as string,
         mobile_number: row.mobile_number as string,
         location: (row.location as { lat: number; lng: number } | null) ?? null,
-        total_cents: totalCents,
         ...(details as Record<string, unknown>),
+        ...(addonCents > 0 ? { addon_total_cents: addonCents } : {}),
+        total_cents: totalCents,
         ...(agreedPriceCents !== null ? { agreed_price_cents: agreedPriceCents } : {}),
       },
     })
