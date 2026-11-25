@@ -16,9 +16,9 @@ Customers browse the menu, order for delivery or pickup, and sign up for meal su
 - Chef cook schedules from subscriber entitlements, with a shared kitchen batch suggestion
 - Rider deliveries with a 6-digit confirmation code and live GPS
 - API for the WhatsApp bot, protected by a shared secret
-- Web push notifications to staff on new orders
+- Web push and email notifications to staff on new orders
 
-What is still to build (customer dashboard, some employee pages, email notifications, and more) is in `IMPLEMENTATION.md`.
+What is still to build (customer dashboard, some employee pages, live subscription plans, and more) is in `IMPLEMENTATION.md`.
 
 ## Stack
 
@@ -65,7 +65,7 @@ cd CookConnect
 npm install
 ```
 
-There is no `.env.example` in the repo (`.gitignore` ignores `.env*`). Create `.env.local` in the repo root with the variables listed below, then:
+`.env.example` lists the email notification variables; add the rest from the tables below. `.gitignore` ignores every other `.env*` file. Create `.env.local` in the repo root with the variables you need, then:
 
 ```bash
 npm run dev
@@ -104,6 +104,8 @@ Names only. Put values in `.env.local` (local) or in the Vercel project (product
 | `PUSH_VAPID_SUBJECT` | Web push subject |
 | `WHATSAPP_BOT_SECRET` | Shared secret for bot API routes (`x-bot-secret`) |
 | `POS_SECRET` | Shared secret for POS-originated orders |
+| `GMAIL_USER` | Restaurant Gmail address that sends email notifications (server only; emails are skipped if unset) |
+| `GMAIL_APP_PASSWORD` | Gmail App Password for `GMAIL_USER` (server only; emails are skipped if unset) |
 
 **Optional**
 
@@ -112,10 +114,11 @@ Names only. Put values in `.env.local` (local) or in the Vercel project (product
 | `SUBSCRIPTION_INVITE_SECRET` | Signs subscription invite links (falls back to `SUPABASE_SERVICE_ROLE_KEY`) |
 | `DEFAULT_COUNTRY_CODE` | Default country code; falls back to `971` |
 | `IMAGE_CONCURRENCY` | Concurrency for image tools under `tools/`; defaults to `8` |
+| `EMAIL_FROM_NAME` | Sender display name for email notifications; defaults to "Cook Connect" |
 
 ### Database
 
-Schema changes belong in `supabase/migrations/` and must be applied to the live Supabase project. Whether every migration is already applied in production is still unverified; see M16 in `IMPLEMENTATION.md`.
+Schema changes belong in `supabase/migrations/` and must be applied to the live Supabase project. Whether every migration is already applied in production is still unverified; see M15 in `IMPLEMENTATION.md`.
 
 ## Documentation
 
