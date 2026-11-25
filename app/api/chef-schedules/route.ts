@@ -44,6 +44,7 @@ export async function POST(request: Request) {
     subscription_id?: string
     recipe_ids?: string[]
     breakfast_recipe_ids?: string[]
+    addon_recipe_ids?: string[]
   }
   try {
     body = await request.json()
@@ -65,6 +66,7 @@ export async function POST(request: Request) {
       body.subscription_id,
       body.recipe_ids ?? [],
       body.breakfast_recipe_ids ?? [],
+      body.addon_recipe_ids ?? [],
     )
     return Response.json(data, { status: 201 })
   } catch (err) {

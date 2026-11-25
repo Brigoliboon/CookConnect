@@ -5,6 +5,8 @@ import { Button, Select } from "@/components/ui"
 import { RestrictionFields } from "@/components/subscription/RestrictionFields"
 import { restrictionDetailsPayload, type IngredientRef } from "@/lib/subscription/restrictions"
 import { DELIVERY_DAYS, PAYMENT_METHODS, SUBSCRIPTION_PLANS } from "@/constants/subscriptions"
+import { SUBSCRIPTION_ADDON_PRICE_CENTS } from "@/constants/subscription-addons"
+import { DirhamSign } from "@/components/ui/DirhamSign"
 
 const SLOTS: { label: string; value: "morning" | "noon" | "evening" }[] = [
   { label: "Morning", value: "morning" },
@@ -36,6 +38,8 @@ export function StaffSubscriptionForm({ onCreated }: { onCreated?: () => void })
   const [mode, setMode] = useState<"normal" | "flexible">("normal")
   const [mealsPerDay, setMealsPerDay] = useState("1")
   const [breakfast, setBreakfast] = useState(false)
+  const [drinks, setDrinks] = useState(false)
+  const [cakes, setCakes] = useState(false)
   const [onCall, setOnCall] = useState(true)
   const [days, setDays] = useState<string[]>([])
   const [slots, setSlots] = useState<("morning" | "noon" | "evening")[]>(["morning"])
@@ -132,6 +136,8 @@ export function StaffSubscriptionForm({ onCreated }: { onCreated?: () => void })
             ...restrictionPayload,
             mealsPerDay: meals,
             breakfast,
+            drinks,
+            cakes,
             includedMeals: [],
             days: onCall ? [] : days,
             slots: onCall ? [] : slots,
@@ -218,7 +224,26 @@ export function StaffSubscriptionForm({ onCreated }: { onCreated?: () => void })
           <input type="checkbox" checked={breakfast} onChange={(e) => setBreakfast(e.target.checked)} />
           Breakfast extra
         </label>
+        <label className="flex items-end gap-2 pb-2 text-sm font-medium text-neutral-800">
+          <input type="checkbox" checked={drinks} onChange={(e) => setDrinks(e.target.checked)} />
+          Drinks add-on
+          <span className="flex items-center gap-1 text-neutral-500">
+            <DirhamSign className="size-3" />
+            {SUBSCRIPTION_ADDON_PRICE_CENTS / 100}
+          </span>
+        </label>
+        <label className="flex items-end gap-2 pb-2 text-sm font-medium text-neutral-800">
+          <input type="checkbox" checked={cakes} onChange={(e) => setCakes(e.target.checked)} />
+          Cakes add-on
+          <span className="flex items-center gap-1 text-neutral-500">
+            <DirhamSign className="size-3" />
+            {SUBSCRIPTION_ADDON_PRICE_CENTS / 100}
+          </span>
+        </label>
       </div>
+      <p className="-mt-2 text-xs text-neutral-500">
+        Drinks and cakes are AED 100 each for the whole plan. One item from each selected list is scheduled, on top of the total entered below.
+      </p>
 
       <div>
         <label className="mb-2 flex items-center gap-2 text-sm font-medium text-neutral-800">

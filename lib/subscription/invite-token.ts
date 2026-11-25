@@ -8,6 +8,8 @@ export interface SubscriptionInvitePreferences {
   restrictionNames?: Record<string, string>
   restrictedCategories?: string[]
   breakfast?: boolean
+  drinks?: boolean
+  cakes?: boolean
   includedMeals?: string[]
   days?: string[]
   slots?: SubscriptionInviteSlot[]
@@ -135,6 +137,8 @@ function optionalPreferences(value: unknown): SubscriptionInvitePreferences | un
   const restrictionNames = optionalStringMap(input.restrictionNames, "preferences.restrictionNames")
   const restrictedCategories = optionalStringArray(input.restrictedCategories, "preferences.restrictedCategories")
   const breakfast = optionalBoolean(input.breakfast, "preferences.breakfast")
+  const drinks = optionalBoolean(input.drinks, "preferences.drinks")
+  const cakes = optionalBoolean(input.cakes, "preferences.cakes")
   const includedMeals = optionalStringArray(input.includedMeals, "preferences.includedMeals")
   const days = optionalStringArray(input.days, "preferences.days")
   const slots = optionalStringArray(input.slots, "preferences.slots")
@@ -149,6 +153,8 @@ function optionalPreferences(value: unknown): SubscriptionInvitePreferences | un
     ...(restrictionNames ? { restrictionNames } : {}),
     ...(restrictedCategories ? { restrictedCategories } : {}),
     ...(breakfast !== undefined ? { breakfast } : {}),
+    ...(drinks !== undefined ? { drinks } : {}),
+    ...(cakes !== undefined ? { cakes } : {}),
     ...(includedMeals ? { includedMeals } : {}),
     ...(days ? { days } : {}),
     ...(slots ? { slots: slots as SubscriptionInviteSlot[] } : {}),

@@ -69,7 +69,7 @@ One system where customers order and subscribe, and staff handle orders, subscri
 - FR-19 [Done]: Staff pause, resume, cancel, edit contact details and record payments.
 - FR-20 [Done]: CSV import of existing subscribers with preview (leftover meals, pause state, notes, map pins).
 - FR-21 [Done]: Staff choose which meals are available to subscribers.
-- FR-48 [Todo]: Subscribers can choose add-on inclusions: a drinks add-on (100, item list to follow) and a cakes add-on (100, item list to follow).
+- FR-48 [Todo]: Subscribers can add a drinks add-on and a cakes add-on, AED 100 each for the whole plan. The item lists come from `POS Menu Matrix - CookConnect Restaurant - Meal Plan monthly menu.csv`. Customers select only the add-on type; the chef sheet schedules one item from each selected list (no item picking). Add-on prices are fixed and are added on top of the negotiated plan price; they do not repeat per delivery. Add-ons appear in public and staff forms, inquiry and CSV details, staff views, emails, sales totals, and the chef cook sheet as extras that do not consume meal credits. Public add-on copy is bilingual.
 - FR-22 [Partial]: Staff subscription form saves the delivery location (currently sent empty).
 
 ### 6.4 Employee dashboard
@@ -155,13 +155,17 @@ Chef: cook schedule. Rider: deliveries. Customer: dashboard, profile.
 ## 12. Open questions
 
 - Dubai delivery fee: AED 150 or AED 200 (code uses 200)?
-- FR-48: is 100 the price in AED or the item count, and what are the drinks and cakes lists?
+- FR-48 resolved 2026-11-25: 100 is AED 100 per add-on for the whole plan; exact items are the drinks and cakes rows in the POS menu matrix CSV. Each selected add-on type schedules one item from its list.
 
 Resolved 2026-11-21: Sharjah AED 100; customer dashboard (FR-37 to FR-39) stays in scope; no Tabby or card payment; staff dashboards stay English only; FR-49 emails go out on a new order and a new subscription inquiry, to staff who opt in.
 
 ## 13. Change log
 
 Newest first. Times are Asia/Manila (UTC+8).
+
+### 2026-11-25
+- Boon clarified FR-48 scheduling: one item per selected add-on type, not the whole list. Drinks and cakes can both be selected, giving at most two add-on items per subscriber.
+- Boon resolved FR-48: drinks and cakes are add-ons at AED 100 each for the whole plan, using the exact item lists from the POS menu matrix CSV. The negotiated invite price covers only the plan; add-ons are fixed and added on top. Each selected add-on type schedules one item from its list on the chef cook sheet as a non-entitlement extra, and CSV import gets optional add-on columns.
 
 ### 2026-11-24
 - Added FR-50 meal modifiers (approved by Boon): reusable single-select required groups for sides or other choices such as spice level, add-on price independent of menu price, optional option recipe, EN/AR labels, server-validated and snapshotted on orders. A picker dialog at add-to-cart / POS is a later step.

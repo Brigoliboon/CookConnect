@@ -253,7 +253,15 @@
   "subscriptionForm": {
     "termsHint": "Scroll to the bottom to agree and proceed.",
     "cancel": "Cancel",
-    "agreeProceed": "I agree — proceed"
+    "agreeProceed": "I agree — proceed",
+    "drinksAddon": "Drinks add-on",
+    "cakesAddon": "Cakes add-on",
+    "addDrinks": "Add drinks",
+    "addCakes": "Add cakes",
+    "addonIncluded": "Included — AED 100",
+    "addonNotIncluded": "Not included",
+    "addonsTotal": "Add-ons total",
+    "total": "Total"
   },
   "terms": {
     "title": "Service Agreement",

@@ -104,12 +104,17 @@ export function buildSubscriptionInquiryEmail(
   const details = inquiry.details ?? {}
   const mealsPerDay = typeof details.mealsPerDay === "number" ? details.mealsPerDay : null
   const days = Array.isArray(details.days) ? (details.days as string[]) : []
+  const addons = [
+    details.drinks === true ? "Drinks add-on (AED 100)" : null,
+    details.cakes === true ? "Cakes add-on (AED 100)" : null,
+  ].filter((value): value is string => Boolean(value))
   const lines = [
     `New subscription inquiry from ${inquiry.name}.`,
     "",
     `Plan: ${planName ?? inquiry.plan_id}`,
     ...(mealsPerDay !== null ? [`Meals per day: ${mealsPerDay}`] : []),
     ...(days.length ? [`Days: ${days.join(", ")}`] : []),
+    ...(addons.length ? [`Add-ons: ${addons.join(", ")}`] : []),
     `Mobile: ${inquiry.mobile_number}`,
     ...(inquiry.email ? [`Email: ${inquiry.email}`] : []),
     `Address: ${inquiry.address}`,

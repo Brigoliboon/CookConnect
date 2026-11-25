@@ -253,7 +253,15 @@
   "subscriptionForm": {
     "termsHint": "مرر إلى الأسفل للموافقة والمتابعة.",
     "cancel": "إلغاء",
-    "agreeProceed": "أوافق — متابعة"
+    "agreeProceed": "أوافق — متابعة",
+    "drinksAddon": "إضافة المشروبات",
+    "cakesAddon": "إضافة الكيك",
+    "addDrinks": "أضف المشروبات",
+    "addCakes": "أضف الكيك",
+    "addonIncluded": "مشمول — ١٠٠ درهم",
+    "addonNotIncluded": "غير مشمول",
+    "addonsTotal": "إجمالي الإضافات",
+    "total": "الإجمالي"
   },
   "terms": {
     "title": "اتفاقية الخدمة",

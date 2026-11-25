@@ -8,9 +8,11 @@ import { PAYMENT_METHODS, SUBSCRIPTION_PLANS } from "@/constants"
 import {
   Ban,
   Bell,
+  CakeSlice,
   CheckCircle2,
   ChevronRight,
   Coffee,
+  CupSoda,
   Copy,
   Ellipsis,
   FileDown,
@@ -69,6 +71,8 @@ interface InquiryRow {
     restrictedCategories?: string[]
     mealsPerDay?: number
     breakfast?: boolean
+    drinks?: boolean
+    cakes?: boolean
     includedMeals?: string[]
     days?: string[]
     slots?: string[]
@@ -664,6 +668,18 @@ export default function EmployeeSubscriptionsPage() {
                         Breakfast
                       </span>
                     )}
+                    {q.details?.drinks && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#F1F5F9] px-2 py-0.5 text-xs font-semibold text-[#334155]">
+                        <CupSoda size={12} strokeWidth={1.75} />
+                        Drinks +100
+                      </span>
+                    )}
+                    {q.details?.cakes && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#F1F5F9] px-2 py-0.5 text-xs font-semibold text-[#334155]">
+                        <CakeSlice size={12} strokeWidth={1.75} />
+                        Cakes +100
+                      </span>
+                    )}
                     <span className="inline-flex items-center gap-1 rounded-full bg-[#F1F5F9] px-2 py-0.5 text-xs font-semibold text-[#334155]">
                       {q.details?.onCall ? <PhoneCall size={12} strokeWidth={1.75} /> : <Truck size={12} strokeWidth={1.75} />}
                       {q.details?.onCall ? "On-call" : "Scheduled"}
@@ -717,6 +733,12 @@ export default function EmployeeSubscriptionsPage() {
             <div className="flex justify-between gap-3"><span className="inline-flex items-center gap-1.5 font-medium text-neutral-700"><Utensils size={14} /> Meals per day</span><span className="font-semibold">{selectedInquiry.details?.mealsPerDay ?? 1}</span></div>
             {selectedInquiry.details?.breakfast && (
               <div className="flex justify-between gap-3"><span className="inline-flex items-center gap-1.5 font-medium text-neutral-700"><Coffee size={14} /> Breakfast</span><span className="font-semibold">Included (extra)</span></div>
+            )}
+            {selectedInquiry.details?.drinks && (
+              <div className="flex justify-between gap-3"><span className="inline-flex items-center gap-1.5 font-medium text-neutral-700"><CupSoda size={14} /> Drinks add-on</span><span className="font-semibold">AED 100 — one item</span></div>
+            )}
+            {selectedInquiry.details?.cakes && (
+              <div className="flex justify-between gap-3"><span className="inline-flex items-center gap-1.5 font-medium text-neutral-700"><CakeSlice size={14} /> Cakes add-on</span><span className="font-semibold">AED 100 — one item</span></div>
             )}
             {restrictionDisplayItems(selectedInquiry.details).length > 0 && (
               <div>

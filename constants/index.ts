@@ -1,5 +1,6 @@
 export * from "./customers"
 export * from "./subscriptions"
+export * from "./subscription-addons"
 export * from "./deliveries"
 export * from "./navigation"
 export * from "./accounts"

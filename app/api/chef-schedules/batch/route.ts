@@ -12,7 +12,7 @@ export async function POST(request: Request) {
 
   let body: {
     scheduled_date?: string
-    assignments?: { subscription_id?: string; recipe_ids?: string[]; breakfast_recipe_ids?: string[] }[]
+    assignments?: { subscription_id?: string; recipe_ids?: string[]; breakfast_recipe_ids?: string[]; addon_recipe_ids?: string[] }[]
   }
   try {
     body = await request.json()
@@ -40,6 +40,7 @@ export async function POST(request: Request) {
           a.subscription_id,
           a.recipe_ids ?? [],
           a.breakfast_recipe_ids ?? [],
+          a.addon_recipe_ids ?? [],
         ),
       )
     }
