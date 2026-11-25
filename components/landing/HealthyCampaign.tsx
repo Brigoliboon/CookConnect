@@ -61,6 +61,8 @@ export function HealthyCampaign() {
           image_path: (r.image_path as string) ?? null,
           ingredients: (firstServing?.ingredients as MenuItem["ingredients"]) ?? [],
           servings: servings as unknown as MenuItem["servings"],
+          has_addons: recipe.has_addons ?? false,
+          has_modifiers: recipe.has_modifiers ?? false,
         }
       }),
     [data],
@@ -246,6 +248,8 @@ export function HealthyCampaign() {
                         fats={item.fats}
                         description={translateContent(item.description, locale)}
                         image={item.image_path ?? `https://picsum.photos/seed/${item.id}/400/280`}
+                        has_modifiers={item.has_modifiers}
+                        has_addons={item.has_addons}
                         onClick={() => setSelected(item)}
                         className="w-full max-w-[241px]"
                       />

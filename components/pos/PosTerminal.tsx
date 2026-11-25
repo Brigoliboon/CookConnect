@@ -17,8 +17,6 @@ import { CartSidePicker } from "@/components/landing/CartSidePicker"
 import { IsolatedModifierPicker } from "@/components/modifiers/ModifierPickerProvider"
 import { ModifierPicks } from "@/components/modifiers/ModifierPicks"
 import {
-  activeModifierGroups,
-  fetchMealModifierGroups,
   modifierOptionKey,
   modifiersExtraCents,
   type CartModifier,
@@ -120,8 +118,7 @@ export function PosTerminal() {
     const serving = item.servings[Math.min(servingIdx, item.servings.length - 1)] ?? null
     const unitPrice = Number(serving?.price ?? item.price) || 0
     const label = serving?.name ? `${item.name} (${serving.name})` : item.name
-    const groups = activeModifierGroups(await fetchMealModifierGroups(item.id))
-    if (groups.length > 0) {
+    if (item.has_modifiers) {
       setPickerTarget({
         recipeId: item.id,
         name: label,
@@ -141,7 +138,7 @@ export function PosTerminal() {
       ? { id: pickerTarget.servingId, name: pickerTarget.servingName }
       : null
     appendLine(
-      { id: pickerTarget.recipeId, image: pickerTarget.image ?? "", name: pickerTarget.name, category: "", description: "", price: pickerTarget.price, calories: 0, servings: [] },
+      { id: pickerTarget.recipeId, image: pickerTarget.image ?? "", name: pickerTarget.name, category: "", description: "", price: pickerTarget.price, calories: 0, has_addons: false, has_modifiers: true, servings: [] },
       serving,
       pickerTarget.price,
       pickerTarget.name,

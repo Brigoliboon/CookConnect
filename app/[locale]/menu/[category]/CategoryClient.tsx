@@ -40,6 +40,8 @@ export function CategoryClient({
             image={item.image}
             price={item.price}
             calories={item.calories}
+            has_modifiers={item.has_modifiers}
+            has_addons={item.has_addons}
             onClick={() => setSelected(toDialogMeal(item))}
           />
         ))}

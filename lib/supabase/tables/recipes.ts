@@ -1,4 +1,5 @@
 import type { Recipe } from "../models"
+import { listMealIdsWithActiveModifiers } from "./meal_modifiers"
 
 export type CreateRecipeInput = Pick<Recipe, "name"> & Partial<Omit<Recipe, "id" | "name">>
 
@@ -22,8 +23,10 @@ export interface RecipeServing {
 }
 
 export interface RecipeWithServings extends Recipe {
-  /** True when the recipe has at least one active addon (side) linked as the meal. */
+  /** True when the recipe has at least one active addon (side) linked as the meal. From `recipe_addons`, not modifier groups. */
   has_addons: boolean
+  /** True when the meal has at least one active linked modifier group with at least one active option. */
+  has_modifiers: boolean
   servings: RecipeServing[]
 }
 
@@ -194,6 +197,7 @@ export async function listRecipes(
   let data = ((recipes ?? []) as Record<string, unknown>[]).map(mapRecipeWithServings)
 
   if (canPaginateInSql) {
+    await attachHasModifiers(supabase, data)
     return { data, total: count ?? data.length }
   }
 
@@ -218,6 +222,7 @@ export async function listRecipes(
   if (limit !== undefined) data = data.slice(offset, offset + limit)
   else if (offset > 0) data = data.slice(offset)
 
+  await attachHasModifiers(supabase, data)
   return { data, total }
 }
 
@@ -259,13 +264,31 @@ export async function getTopSellersByCategory(
 
   const groups = new Map<string, RecipeWithServings[]>()
   for (const category of wanted) groups.set(category, [])
+  const mapped: RecipeWithServings[] = []
   for (const raw of (recipes ?? []) as Record<string, unknown>[]) {
     const recipe = mapRecipeWithServings(raw)
+    mapped.push(recipe)
     groups.get(recipe.category ?? "")?.push(recipe)
   }
+  await attachHasModifiers(supabase, mapped)
   for (const group of groups.values()) sortRecipes(group, "sales_desc", unitsSold)
 
   return wanted.map((category) => ({ category, recipe: groups.get(category)?.[0] ?? null }))
+}
+
+
+async function attachHasModifiers(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  recipes: RecipeWithServings[],
+): Promise<void> {
+  if (recipes.length === 0) return
+  const flagged = await listMealIdsWithActiveModifiers(
+    supabase,
+    recipes.map((recipe) => recipe.id),
+  )
+  for (const recipe of recipes) {
+    recipe.has_modifiers = flagged.has(recipe.id)
+  }
 }
 
 function mapRecipeWithServings(r: Record<string, unknown>): RecipeWithServings {
@@ -279,6 +302,7 @@ function mapRecipeWithServings(r: Record<string, unknown>): RecipeWithServings {
     image_path: (r.image_path as string | null) ?? null,
     primary_protein_ingredient_id: (r.primary_protein_ingredient_id as string | null) ?? null,
     has_addons: hasActiveAddons(r),
+    has_modifiers: false,
     servings: ((r.servings as Record<string, unknown>[]) ?? [])
       .filter((s) => (s.is_active as boolean) !== false)
       .map((s) => ({
@@ -377,29 +401,9 @@ export async function getRecipe(
     throw error
   }
 
-  const r = data as Record<string, unknown>
-  return {
-    id: r.id as string,
-    name: r.name as string,
-    category: (r.category as string | null) ?? null,
-    description: (r.description as string | null) ?? null,
-    is_active: r.is_active as boolean,
-    is_subscription_included: (r.is_subscription_included as boolean) ?? false,
-    image_path: (r.image_path as string | null) ?? null,
-    primary_protein_ingredient_id: (r.primary_protein_ingredient_id as string | null) ?? null,
-    has_addons: hasActiveAddons(r),
-    servings: ((r.servings as Record<string, unknown>[]) ?? [])
-      .filter((s) => (s.is_active as boolean) !== false)
-      .map((s) => ({
-        id: s.id as string,
-        name: (s.name as string | null) ?? null,
-        price: (s.price as number | null) ?? null,
-        calories: (s.calories as number | null) ?? null,
-        nutrition: (s.nutrition as Record<string, unknown> | null) ?? null,
-        is_active: s.is_active as boolean,
-        ingredients: mapServingIngredients(s.serving_ingredients),
-      })),
-  }
+  const recipe = mapRecipeWithServings(data as Record<string, unknown>)
+  await attachHasModifiers(supabase, [recipe])
+  return recipe
 }
 
 function mapServingIngredients(rows: unknown): RecipeIngredientField[] {

@@ -5,6 +5,7 @@ import Image from "next/image"
 import { Flame, ShoppingCart, Check } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useAddMealToCart } from "@/components/modifiers/ModifierPickerProvider"
+import { useModifierPrefetch } from "@/hooks/useModifierPrefetch"
 import { imageVariant } from "@/lib/images"
 
 interface CategoryMealCardProps {
@@ -14,15 +15,18 @@ interface CategoryMealCardProps {
   price?: number
   calories?: number
   onClick?: () => void
+  has_modifiers?: boolean
+  has_addons?: boolean
 }
 
-export function CategoryMealCard({ id, name, image, price = 0, calories = 0, onClick }: CategoryMealCardProps) {
+export function CategoryMealCard({ id, name, image, price = 0, calories = 0, onClick, has_modifiers = false, has_addons = false }: CategoryMealCardProps) {
   const t = useTranslations("meals")
   const addMealToCart = useAddMealToCart()
+  const { elementRef, prefetch } = useModifierPrefetch<HTMLLIElement>(id, Boolean(has_modifiers))
   const [added, setAdded] = useState(false)
 
   async function handleAdd() {
-    const addedOk = await addMealToCart({ recipeId: id, name, price, image })
+    const addedOk = await addMealToCart({ recipeId: id, name, price, image, hasModifiers: has_modifiers, hasAddons: has_addons })
     if (!addedOk) return
     setAdded(true)
     setTimeout(() => setAdded(false), 1500)
@@ -30,7 +34,10 @@ export function CategoryMealCard({ id, name, image, price = 0, calories = 0, onC
 
   return (
     <li
+      ref={elementRef}
       onClick={onClick}
+      onMouseEnter={prefetch}
+      onTouchStart={prefetch}
       className={`flex flex-col border border-neutral-200 bg-white p-3 ${onClick ? "cursor-pointer transition-shadow hover:shadow-md" : ""}`}
     >
       <Image src={imageVariant(image, 600)} alt={name} width={600} height={600} unoptimized loading="lazy" className="aspect-square w-full object-cover" />

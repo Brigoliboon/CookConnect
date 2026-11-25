@@ -86,12 +86,15 @@ Groups may be sides or non-recipe choices such as spice level; option `recipe_id
 
 ## C — Customer surfaces
 
-- [ ] **C1** Menu meal card: adding a meal with a required group opens the picker and blocks add until one option is chosen
+- [ ] **C1** Menu meal card: adding a meal with a required group opens the picker immediately (no dead button while groups load) and blocks add until one option is chosen
 - [ ] **C2** Picker shows EN labels on `/en` and AR labels on `/ar` (falls back to EN when `name_ar` empty)
 - [ ] **C3** Landing cart: changing the side updates the line total, subtotal, VAT, and total before submit
 - [ ] **C4** Same meal with two different options creates two cart lines; same options merge quantities
 - [ ] **C5** POS line picker uses the same groups/options and includes the add-on price in the line total
-- [ ] **C6** Meal with no attached groups adds directly with no picker
+- [ ] **C6** Meal with `has_modifiers: false` (no active groups) adds directly with no picker and no `/api/meal-modifiers` request
+- [ ] **C7** `/api/recipe` and other catalog payloads include `has_modifiers` (true only when the meal has an active linked group with an active option) and still include `has_addons` from the old `recipe_addons` table
+- [ ] **C8** Groups for `has_modifiers` meals are prefetched when the card enters the viewport or on hover/touch; a later add uses the cache (no second request). If the cache is still empty, the picker opens immediately with a loading state inside the dialog
+- [ ] **C9** On mobile, the old `/api/recipe-addons` request runs only when `has_addons` is true, and the response is cached
 
 ## O — Order display
 

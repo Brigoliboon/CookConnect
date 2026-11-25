@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import Image from "next/image"
 import { motion } from "framer-motion"
 import { ShoppingCart, Check, Flame, ChevronDown, Beef, Wheat, Bubbles } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useAddMealToCart } from "@/components/modifiers/ModifierPickerProvider"
+import { useModifierPrefetch } from "@/hooks/useModifierPrefetch"
 import { imageVariant } from "@/lib/images"
 import type { MealServingOption } from "@/constants"
 
@@ -29,6 +30,8 @@ interface FeaturedMealProps {
   className?: string
   eager?: boolean
   onClick?: () => void
+  has_modifiers?: boolean
+  has_addons?: boolean
 }
 
 export function MealCard({
@@ -47,6 +50,8 @@ export function MealCard({
   className = "",
   eager = false,
   onClick,
+  has_modifiers = false,
+  has_addons = false,
 }: FeaturedMealProps) {
   const t = useTranslations("meals")
   const shortDesc = description.length > 70 ? description.slice(0, 70) + "..." : description
@@ -54,7 +59,7 @@ export function MealCard({
   const [revealed, setRevealed] = useState(false)
   const [added, setAdded] = useState(false)
   const [servingIndex, setServingIndex] = useState(0)
-  const ref = useRef<HTMLDivElement>(null)
+  const revealRef = useRef<HTMLDivElement>(null)
 
   const activeServing = servings && servings.length > 0 ? servings[Math.min(servingIndex, servings.length - 1)] : null
   const displayPrice = activeServing?.price ?? price ?? 0
@@ -64,7 +69,7 @@ export function MealCard({
   const displayFats = activeServing?.nutrition?.fats_g ?? fats
 
   useEffect(() => {
-    const el = ref.current
+    const el = revealRef.current
     if (!el) return
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -81,6 +86,14 @@ export function MealCard({
 
   const shrunk = revealed && !imageHovered
   const addMealToCart = useAddMealToCart()
+  const { elementRef, prefetch } = useModifierPrefetch<HTMLDivElement>(id, Boolean(has_modifiers) && Boolean(id))
+  const setCardRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      revealRef.current = node
+      elementRef.current = node
+    },
+    [elementRef],
+  )
 
   async function handleAdd() {
     const key = activeServing ? `${name} (${activeServing.name ?? t("servingFallback", { index: servingIndex + 1 })})` : name
@@ -89,6 +102,8 @@ export function MealCard({
       name: key,
       price: displayPrice,
       image,
+      hasModifiers: has_modifiers,
+      hasAddons: has_addons,
     })
     if (!addedOk) return
     setAdded(true)
@@ -97,9 +112,11 @@ export function MealCard({
 
   return (
     <div
-      ref={ref}
+      ref={setCardRef}
       style={{ scale }}
       onClick={onClick}
+      onMouseEnter={prefetch}
+      onTouchStart={prefetch}
       className={`relative shrink-0 h-full max-sm:snap-start ${width} ${className} ${onClick ? "cursor-pointer" : ""}`}
     >
       <div className="relative z-10 flex justify-center">

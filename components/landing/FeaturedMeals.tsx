@@ -39,6 +39,8 @@ interface MenuItem {
   fats: number
   image: string
   description: string
+  has_addons: boolean
+  has_modifiers: boolean
   servings: MealServingOption[]
 }
 
@@ -89,6 +91,8 @@ function mapRecipe(r: Record<string, unknown>): MenuItem {
     fats: first?.nutrition?.fats_g ?? 0,
     image: (r.image_path as string) ?? fallbackImages[category] ?? "/drink_sample.svg",
     description: (r.description as string) ?? "",
+    has_addons: r.has_addons === true,
+    has_modifiers: r.has_modifiers === true,
     servings,
   }
 }

@@ -197,7 +197,7 @@ export async function POST(request: Request) {
     }
 
     return Response.json(
-      { ...recipe, has_addons: false, servings: createdServings },
+      { ...recipe, has_addons: false, has_modifiers: false, servings: createdServings },
       { status: 201, headers: NO_STORE_HEADERS },
     )
   } catch (err) {
