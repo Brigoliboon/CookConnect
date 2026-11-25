@@ -5,6 +5,8 @@ import { Button, Select } from "@/components/ui"
 import { RestrictionFields } from "@/components/subscription/RestrictionFields"
 import { restrictionDetailsPayload, type IngredientRef } from "@/lib/subscription/restrictions"
 import { DELIVERY_DAYS, PAYMENT_METHODS, SUBSCRIPTION_PLANS } from "@/constants/subscriptions"
+import { SUBSCRIPTION_ADDON_PRICE_CENTS } from "@/constants/subscription-addons"
+import { DirhamSign } from "@/components/ui/DirhamSign"
 
 const SLOTS: { label: string; value: "morning" | "noon" | "evening" }[] = [
   { label: "Morning", value: "morning" },
@@ -224,11 +226,19 @@ export function StaffSubscriptionForm({ onCreated }: { onCreated?: () => void })
         </label>
         <label className="flex items-end gap-2 pb-2 text-sm font-medium text-neutral-800">
           <input type="checkbox" checked={drinks} onChange={(e) => setDrinks(e.target.checked)} />
-          Drinks add-on (AED 100)
+          Drinks add-on
+          <span className="flex items-center gap-1 text-neutral-500">
+            <DirhamSign className="size-3" />
+            {SUBSCRIPTION_ADDON_PRICE_CENTS / 100}
+          </span>
         </label>
         <label className="flex items-end gap-2 pb-2 text-sm font-medium text-neutral-800">
           <input type="checkbox" checked={cakes} onChange={(e) => setCakes(e.target.checked)} />
-          Cakes add-on (AED 100)
+          Cakes add-on
+          <span className="flex items-center gap-1 text-neutral-500">
+            <DirhamSign className="size-3" />
+            {SUBSCRIPTION_ADDON_PRICE_CENTS / 100}
+          </span>
         </label>
       </div>
       <p className="-mt-2 text-xs text-neutral-500">

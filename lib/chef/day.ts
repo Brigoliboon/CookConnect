@@ -1,4 +1,4 @@
-import { subscriptionAddonRecipeIds } from "@/constants/subscription-addons"
+import { subscriptionAddonKeys, type SubscriptionAddonKey } from "@/constants/subscription-addons"
 
 export const MIN_MEALS_PER_DAY = 1
 export const MAX_MEALS_PER_DAY = 5
@@ -55,8 +55,8 @@ export function hasBreakfast(details: SubDetails): boolean {
   return (details ?? {}).breakfast === true
 }
 
-export function addonRecipeIds(details: SubDetails): string[] {
-  return subscriptionAddonRecipeIds(details ?? {})
+export function addonKeys(details: SubDetails): SubscriptionAddonKey[] {
+  return subscriptionAddonKeys(details ?? {})
 }
 
 export function mealsPerDayOf(details: SubDetails): number {

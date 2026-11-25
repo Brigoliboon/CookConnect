@@ -8,7 +8,7 @@ Reference lists: `/home/devxploit/Desktop/POS Menu Matrix - CookConnect Restaura
 
 ## A — Public onboarding
 
-- [ ] **A1** Preferences step shows two optional add-ons: Drinks (AED 100) and Cakes (AED 100), each described as one item from its list for the whole plan.
+- [ ] **A1** Preferences step shows two optional add-ons: Drinks and Cakes. Each card shows only the Dirham sign (the same icon as the `/menu` price) followed by 100 instead of a description, in English and Arabic, selected and unselected.
 - [ ] **A2** Neither add-on is selected by default; breakfast remains unchanged.
 - [ ] **A3** Public copy is available in English and Arabic.
 - [ ] **A4** Review screen shows each selected add-on, its AED 100 price, and the add-ons total; invited plans also show the final total (agreed plan price + add-ons).
@@ -19,7 +19,7 @@ Reference lists: `/home/devxploit/Desktop/POS Menu Matrix - CookConnect Restaura
 
 ## B — Staff form and invite links
 
-- [ ] **B1** Staff subscription form shows the same two add-ons and can save them with the subscription.
+- [ ] **B1** Staff subscription form shows the same two add-ons, with the Dirham sign and 100 beside each label, and can save them with the subscription.
 - [ ] **B2** Invite links can carry add-on preferences; validation returns them to the public form.
 - [ ] **B3** Negotiated invite price covers only the plan. Add-ons are fixed at AED 100 each and are added on top; staff cannot discount them through the invite.
 - [ ] **B4** Drinks only → total is agreed plan price + AED 100.
@@ -58,6 +58,12 @@ Reference lists: `/home/devxploit/Desktop/POS Menu Matrix - CookConnect Restaura
 - [ ] **F4** Add-on items do not appear for subscriptions without the add-on.
 - [ ] **F5** On-call subscriptions remain outside the daily cook sheet today; add-ons follow the same rule and do not create a separate on-call list.
 - [ ] **F6** Both add-ons selected → at most two add-on rows (one drink, one cake) for that subscriber, with readable recipe names.
+- [ ] **F7** Auto-fill several consecutive days for a subscriber with drinks and cakes: the drink and cake change day to day, never the first item of the list every time.
+- [ ] **F8** A drink the subscriber had in the last 7 days (or among their last three drinks) is not suggested again; with only four cakes, the same cake never lands on back-to-back days and all four are used before one repeats.
+- [ ] **F9** Subscribers on the same day share one drink batch and one cake batch; one who had that item recently or is restricted from it is moved to an item already on the cook list, and the review sheet flags the swap.
+- [ ] **F10** A subscriber with a restricted ingredient or category never gets an add-on item that contains it; if nothing on the list is safe, no add-on is scheduled and the review sheet says to pick manually.
+- [ ] **F11** Saving a day by hand or re-running auto-fill keeps add-ons already saved for that day instead of re-rolling them; unticking an add-on drops its row.
+- [ ] **F12** Auto-fill review shows the add-ons in the cook list and per-customer row, and applying it saves exactly those items.
 
 ## G — Verification
 

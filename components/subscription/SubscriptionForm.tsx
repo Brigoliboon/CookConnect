@@ -22,7 +22,8 @@ import {
 } from "lucide-react"
 import { MENU_CATEGORIES } from "@/constants"
 import { SUBSCRIPTION_PLANS, DELIVERY_DAYS } from "@/constants/subscriptions"
-import { subscriptionAddonTotalCents } from "@/constants/subscription-addons"
+import { SUBSCRIPTION_ADDON_PRICE_CENTS, subscriptionAddonTotalCents } from "@/constants/subscription-addons"
+import { DirhamSign } from "@/components/ui/DirhamSign"
 import { FloatingInput } from "@/components/ui/FloatingInput"
 import { LocationPicker, type Coordinates } from "@/components/ui/LocationPicker"
 import { imageVariant } from "@/lib/images"
@@ -742,7 +743,10 @@ export function SubscriptionForm() {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-bold">{t("addDrinks")}</span>
-                      <span className={`mt-0.5 block text-[11px] ${drinks ? "text-white/70" : "text-neutral-400"}`}>{t("addonHint")}</span>
+                      <span className={`mt-0.5 flex items-center gap-1 text-xs font-semibold ${drinks ? "text-white/70" : "text-neutral-400"}`}>
+                        <DirhamSign className="size-3" />
+                        {SUBSCRIPTION_ADDON_PRICE_CENTS / 100}
+                      </span>
                     </span>
                     <span className={`flex size-6 shrink-0 items-center justify-center rounded-full border transition-all ${drinks ? "border-white bg-white text-brand-900" : "border-brand-700/60 text-transparent"}`}>
                       <Check size={14} />
@@ -759,7 +763,10 @@ export function SubscriptionForm() {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-bold">{t("addCakes")}</span>
-                      <span className={`mt-0.5 block text-[11px] ${cakes ? "text-white/70" : "text-neutral-400"}`}>{t("addonHint")}</span>
+                      <span className={`mt-0.5 flex items-center gap-1 text-xs font-semibold ${cakes ? "text-white/70" : "text-neutral-400"}`}>
+                        <DirhamSign className="size-3" />
+                        {SUBSCRIPTION_ADDON_PRICE_CENTS / 100}
+                      </span>
                     </span>
                     <span className={`flex size-6 shrink-0 items-center justify-center rounded-full border transition-all ${cakes ? "border-white bg-white text-brand-900" : "border-brand-700/60 text-transparent"}`}>
                       <Check size={14} />

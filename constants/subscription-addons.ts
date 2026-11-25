@@ -43,9 +43,15 @@ export function subscriptionAddonTotalCents(details: Record<string, unknown>): n
   )
 }
 
-export function subscriptionAddonRecipeIds(details: Record<string, unknown>): string[] {
-  return SUBSCRIPTION_ADDON_KEYS.flatMap((key) => {
-    const item = SUBSCRIPTION_ADDON_ITEMS[key][0]
-    return details[key] === true && item ? [item.recipeId] : []
-  })
+/** Which add-on lists (drinks, cakes) a subscription bought. */
+export function subscriptionAddonKeys(details: Record<string, unknown>): SubscriptionAddonKey[] {
+  return SUBSCRIPTION_ADDON_KEYS.filter((key) => details[key] === true)
+}
+
+/** Which add-on list a recipe belongs to, or null when it is not an add-on item. */
+export function subscriptionAddonKeyOfRecipe(recipeId: string): SubscriptionAddonKey | null {
+  for (const key of SUBSCRIPTION_ADDON_KEYS) {
+    if (SUBSCRIPTION_ADDON_ITEMS[key].some((item) => item.recipeId === recipeId)) return key
+  }
+  return null
 }

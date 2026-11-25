@@ -165,6 +165,8 @@ Boon confirmed 2026-11-24: v1 is pick-one and required only; the order snapshot 
 
 Newest first. Times are Asia/Manila (UTC+8).
 
+- 2026-11-25 16:45: FR-48 add-on scheduling no longer always picks the first item of each list. New `lib/chef/addons.ts` applies the chef variety rules to drinks and cakes (7-day and last-three recency per subscriber, least-recently-served rotation, one shared batch per day, restriction checks, saved add-ons kept). Wired into chef auto-fill and manual save. Add-on cards on the public and staff subscription forms now show the `/menu` Dirham sign with the price instead of a description. Updated the add-ons testcase (A1, B1, F7 to F12).
+
 - 2026-11-25 16:07: FR-48 scheduling clarified on `feat/m10-subscription-addons`: each selected add-on type schedules exactly one item from its CSV list, so a subscriber with both add-ons gets at most two non-entitlement cook-sheet rows instead of the whole list. Updated public/staff copy, employee display, requirements, and testcase. Also seeded add-on names into the chef catalog so rows show names instead of truncated UUIDs.
 
 - 2026-11-25 15:19: Subscription add-ons on `feat/m10-subscription-addons`: FR-48 drinks and cakes are fixed bundles from the POS menu matrix CSV, AED 100 each for the whole plan, added on top of the agreed plan price. Added bilingual public toggles and review rows, staff form, invite preferences, inquiry/approval/CSV fields, staff badges/email lines, server-side total enforcement, and chef cook-sheet extras that do not consume meal credits. No migration needed. `tests/SUBSCRIPTION_ADDONS_TESTCASE.md` added; `npm run build` passed and lint is at the existing 17 errors / 33 warnings baseline.

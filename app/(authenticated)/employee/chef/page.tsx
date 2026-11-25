@@ -18,6 +18,7 @@ import {
 import { imageThumb } from "@/lib/images"
 import { proteinBuckets, type ProteinAllowance } from "@/lib/chef/credits"
 import { autoFillDay, type AutoFillResult, type SuggestedStandard } from "@/lib/chef/autoFill"
+import { pickAddonsForDay, type AddonSub } from "@/lib/chef/addons"
 import {
   recipePassesRestrictions,
   restrictionDisplayLabels,
@@ -26,7 +27,7 @@ import {
 import {
   activeOn,
   addCalendarDays,
-  addonRecipeIds,
+  addonKeys,
   assignmentNeed,
   BREAKFAST_CATEGORY,
   deliverySlots,
@@ -82,6 +83,7 @@ interface PickRow {
   id: string
   subscription_id: string
   recipe_id: string
+  scheduled_date?: string
   done_at: string | null
   counts_toward_entitlement?: boolean
 }
@@ -181,9 +183,20 @@ function pickKind(pick: PickRow): CookDishKind {
   return pick.counts_toward_entitlement === false ? "breakfast" : "main"
 }
 
-function addonIdsForSubscription(subs: SubRow[], subscriptionId: string): string[] {
-  const sub = subs.find((s) => s.id === subscriptionId)
-  return sub ? addonRecipeIds(sub.details) : []
+function addonSubFrom(sub: SubRow): AddonSub {
+  const restrictions = restrictionMatchFromDetails(sub.details)
+  return {
+    id: sub.id,
+    keys: addonKeys(sub.details),
+    restrictedIngredientIds: restrictions.restrictedIngredientIds,
+    restrictedCategories: restrictions.restrictedCategories,
+  }
+}
+
+function addonIdsIn(picks: PickRow[], subscriptionId?: string): string[] {
+  return picks
+    .filter((p) => (!subscriptionId || p.subscription_id === subscriptionId) && ADDON_RECIPE_IDS.includes(p.recipe_id))
+    .map((p) => p.recipe_id)
 }
 
 function CookListGrid({ dishes }: { dishes: CookDish[] }) {
@@ -252,6 +265,7 @@ export default function EmployeeChefPage() {
   const [review, setReview] = useState<AutoFillResult[] | null>(null)
   const [reviewStandards, setReviewStandards] = useState<SuggestedStandard[]>([])
   const [reviewFridayStandards, setReviewFridayStandards] = useState<SuggestedStandard[]>([])
+  const [reviewAddons, setReviewAddons] = useState<Map<string, string[]>>(new Map())
   const [autofilling, setAutofilling] = useState(false)
   const [applying, setApplying] = useState(false)
   const [doneBusy, setDoneBusy] = useState<Set<string>>(new Set())
@@ -358,18 +372,18 @@ export default function EmployeeChefPage() {
           : [
               ...r.recipeIds.map((recipeId) => ({ recipeId, kind: "main" as const })),
               ...r.breakfastRecipeIds.map((recipeId) => ({ recipeId, kind: "breakfast" as const })),
-              ...addonIdsForSubscription(subs,r.subscriptionId).map((recipeId) => ({ recipeId, kind: "addon" as const })),
+              ...(reviewAddons.get(r.subscriptionId) ?? []).map((recipeId) => ({ recipeId, kind: "addon" as const })),
             ],
       ),
       recipeById,
     )
-  }, [review, recipeById, subs])
+  }, [review, recipeById, reviewAddons])
 
   const reviewReadyCount = review
     ? review.filter(
         (r) =>
           !r.skipped &&
-          (r.recipeIds.length > 0 || r.breakfastRecipeIds.length > 0 || addonIdsForSubscription(subs,r.subscriptionId).length > 0),
+          (r.recipeIds.length > 0 || r.breakfastRecipeIds.length > 0 || (reviewAddons.get(r.subscriptionId) ?? []).length > 0),
       ).length
     : 0
 
@@ -512,13 +526,28 @@ export default function EmployeeChefPage() {
     return { recipeIds, breakfastRecipeIds }
   }
 
+  /** Add-ons for one subscription on the selected day: keeps what is saved, rotates otherwise. */
+  function addonIdsFor(sub: SubRow): string[] {
+    const addonSub = addonSubFrom(sub)
+    if (addonSub.keys.length === 0) return []
+    const out = pickAddonsForDay({
+      date: selected,
+      subs: [addonSub],
+      recipes: recipeById,
+      allPicksBySub: new Map([[sub.id, subAllPicks]]),
+      existingBySub: new Map([[sub.id, addonIdsIn(picks, sub.id)]]),
+      cookedToday: addonIdsIn(picks),
+    })
+    return out.get(sub.id)?.recipeIds ?? []
+  }
+
   async function save(subId: string) {
     setSaving(true)
     setError("")
     try {
       const sub = subs.find((s) => s.id === subId)
       const breakfastCount = sub ? assignmentNeed(sub, selected).breakfastCount : 0
-      const addonIds = sub ? addonRecipeIds(sub.details) : []
+      const addonIds = sub ? addonIdsFor(sub) : []
       const { recipeIds, breakfastRecipeIds } = splitDraft(draft, breakfastCount)
       const res = await fetch("/api/chef-schedules", {
         method: "POST",
@@ -564,16 +593,18 @@ export default function EmployeeChefPage() {
     setError("")
     try {
       const fridayIso = weekdayOf(selected) === "thursday" ? addCalendarDays(selected, 1) : null
-      const [pool, standardsRes, fridayRes, picksRes, creditsRes] = await Promise.all([
+      const [pool, standardsRes, fridayRes, picksRes, creditsRes, addonRows] = await Promise.all([
         fetchAllSubRecipes(),
         fetch(`/api/daily-standards?date=${selected}`).then((r) => r.json()),
         fridayIso ? fetch(`/api/daily-standards?date=${fridayIso}`).then((r) => r.json()) : Promise.resolve([]),
         fetch(`/api/chef-schedules?subscription_ids=${daySubs.map((s) => s.id).join(",")}`).then((r) => r.json()),
         fetch("/api/plan-protein-credits").then((r) => r.json()),
+        fetchAddonRecipes(),
       ])
       if (!Array.isArray(pool)) throw new Error("Failed to load meals")
-      setRecipes(pool)
-      setCategories(["", ...[...new Set(pool.map((r) => r.category).filter(Boolean) as string[])].sort()])
+      const allRecipes = [...new Map([...pool, ...addonRows].map((r) => [r.id, r])).values()]
+      setRecipes(allRecipes)
+      setCategories(["", ...[...new Set(allRecipes.map((r) => r.category).filter(Boolean) as string[])].sort()])
       const standards: DailyStandard[] = Array.isArray(standardsRes) ? standardsRes : []
       const fridayRows: DailyStandard[] = Array.isArray(fridayRes) ? fridayRes : []
       const allPicks = (Array.isArray(picksRes) ? picksRes : []) as PickRow[]
@@ -615,7 +646,27 @@ export default function EmployeeChefPage() {
         allPicksBySub,
         recipeProtein: poolProtein,
       })
-      setReview(output.results)
+      const recipeRows = new Map(allRecipes.map((r) => [r.id, r]))
+      const addonSubs = output.results.flatMap((r) => {
+        const sub = r.skipped ? undefined : daySubs.find((s) => s.id === r.subscriptionId)
+        const addonSub = sub ? addonSubFrom(sub) : null
+        return addonSub && addonSub.keys.length > 0 ? [addonSub] : []
+      })
+      const addonOutput = pickAddonsForDay({
+        date: selected,
+        subs: addonSubs,
+        recipes: recipeRows,
+        allPicksBySub,
+        existingBySub: new Map(addonSubs.map((s) => [s.id, addonIdsIn(picks, s.id)])),
+        cookedToday: addonIdsIn(picks),
+      })
+      setReviewAddons(new Map([...addonOutput].map(([id, r]) => [id, r.recipeIds])))
+      setReview(
+        output.results.map((r) => {
+          const issues = addonOutput.get(r.subscriptionId)?.issues ?? []
+          return issues.length > 0 ? { ...r, issues: [...r.issues, ...issues] } : r
+        }),
+      )
       setReviewStandards(output.suggestedStandards)
       setReviewFridayStandards(output.suggestedFridayStandards)
     } catch (e) {
@@ -669,13 +720,13 @@ export default function EmployeeChefPage() {
       .filter(
         (r) =>
           !r.skipped &&
-          (r.recipeIds.length > 0 || r.breakfastRecipeIds.length > 0 || addonIdsForSubscription(subs,r.subscriptionId).length > 0),
+          (r.recipeIds.length > 0 || r.breakfastRecipeIds.length > 0 || (reviewAddons.get(r.subscriptionId) ?? []).length > 0),
       )
       .map((r) => ({
         subscription_id: r.subscriptionId,
         recipe_ids: r.recipeIds,
         breakfast_recipe_ids: r.breakfastRecipeIds,
-        addon_recipe_ids: addonIdsForSubscription(subs,r.subscriptionId),
+        addon_recipe_ids: reviewAddons.get(r.subscriptionId) ?? [],
       }))
     if (assignments.length === 0) {
       setReview(null)
@@ -1221,7 +1272,7 @@ export default function EmployeeChefPage() {
                   {review.map((r) => {
                     const notable = r.issues.filter((i) => i.kind !== "suggested" && i.kind !== "skipped")
                     const blocking = notable.filter((i) => i.kind === "no-replacement" || i.kind === "no-standard" || i.kind === "depleted")
-                    const addonIds = addonIdsForSubscription(subs,r.subscriptionId)
+                    const addonIds = reviewAddons.get(r.subscriptionId) ?? []
                     const dishIds = [...r.recipeIds, ...r.breakfastRecipeIds, ...addonIds]
                     return (
                       <div key={r.subscriptionId} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
