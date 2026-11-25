@@ -48,6 +48,11 @@ const SUB_RECIPE_QS = "is_active=true&is_subscription_included=true"
 const ADDON_RECIPE_IDS = SUBSCRIPTION_ADDON_KEYS.flatMap((key) =>
   SUBSCRIPTION_ADDON_ITEMS[key].map((item) => item.recipeId),
 )
+const ADDON_NAMES = new Map(
+  SUBSCRIPTION_ADDON_KEYS.flatMap((key) =>
+    SUBSCRIPTION_ADDON_ITEMS[key].map((item) => [item.recipeId, item.recipeName] as const),
+  ),
+)
 
 interface SubRow {
   id: string
@@ -317,7 +322,23 @@ export default function EmployeeChefPage() {
     return map
   }, [picks])
 
-  const recipeById = useMemo(() => new Map(recipes.map((r) => [r.id, r])), [recipes])
+  const recipeById = useMemo(() => {
+    const map = new Map(recipes.map((r) => [r.id, r]))
+    for (const [id, name] of ADDON_NAMES) {
+      if (!map.has(id)) {
+        map.set(id, {
+          id,
+          name,
+          category: null,
+          description: null,
+          image_path: null,
+          primary_protein_ingredient_id: null,
+          servings: [],
+        })
+      }
+    }
+    return map
+  }, [recipes])
 
   const dayBatch = useMemo(
     () =>
