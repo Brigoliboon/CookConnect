@@ -17,7 +17,10 @@
 
 ---
 
-## Subsection 2: "The Fresh Pantry"
+## Subsection 2: "The Fresh Pantry" (removed 2026-11-26)
+
+> Removed at Boon's request along with the category tabs, meal gallery, and "View Full Menu" button under it. The landing Healthy section is now the banner and "Did You Know?" only. Kept below for history.
+
 **Position:** Between banner and category tabs, right above the gallery.
 
 Horizontally scrollable ingredient rail — 5 items:
