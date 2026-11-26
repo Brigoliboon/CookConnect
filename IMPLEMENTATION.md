@@ -125,7 +125,7 @@ In scope (confirmed 2026-11-21). Pages exist but read mock data.
 - [ ] Edit profile and save it (Save currently does nothing) (FR-38)
 - [ ] Change today's delivery time or location before the cutoff (FR-39)
 
-## M14: Email notifications (FR-49)
+## M14: Email notifications (FR-49, FR-51)
 
 Sent from the restaurant Gmail account (`cookconnectrestaurant@gmail.com`) through Gmail SMTP with an App Password (`lib/notifications/email.ts`). The staff invite email in M11 (FR-42) may reuse this Gmail setup.
 
@@ -133,6 +133,7 @@ Sent from the restaurant Gmail account (`cookconnectrestaurant@gmail.com`) throu
 - [x] Choose Gmail SMTP with an App Password, or the Gmail API, and add the needed env vars (names only, never commit values): `GMAIL_USER`, `GMAIL_APP_PASSWORD`, optional `EMAIL_FROM_NAME`
 - [x] Resolve the open questions before building: which events send an email, and who can enable it? Answer: a new order and a new subscription inquiry; active employee accounts that turn on "Email notifications" (off by default)
 - [ ] Apply `20261121000000_accounts_email_notifications.sql` to the live Supabase project and set the Gmail env vars on Vercel
+- [x] Landing page contact form sends email through the same Gmail setup: `POST /api/contact` to `CONTACT_TO_EMAIL` or `GMAIL_USER`, Reply-To the visitor, honeypot, length limits, per-IP rate limit, visible success and error states (FR-51)
 
 ## M15: Verification
 
@@ -164,6 +165,8 @@ Boon confirmed 2026-11-24: v1 is pick-one and required only; the order snapshot 
 ## Progress log
 
 Newest first. Times are Asia/Manila (UTC+8).
+
+- 2026-11-26 17:20: Contact form on `feat/m14-contact-form-email` (FR-51). The landing page Contact form had no submit handler, so nothing was sent. It now posts to a new `POST /api/contact` that emails the restaurant through the existing Gmail SMTP setup (`GMAIL_USER`, `GMAIL_APP_PASSWORD`), to `CONTACT_TO_EMAIL` if set, otherwise to the Gmail account itself, with Reply-To set to the visitor so staff can answer straight from the inbox. Unlike the staff notifications this one reports failure, so the form shows a sent, invalid, too-many or could-not-send message in EN/AR. Checks: required fields and length limits, line breaks stripped from the name (header injection), email validated, hidden honeypot field, 5 messages per 10 minutes per IP (in the memory of one server instance, so it only slows floods). Messages are not stored. New files `lib/contact/message.ts`, `lib/contact/rate-limit.ts`, `app/api/contact/route.ts`; `sendContactEmail` in `lib/notifications/email.ts` (shared `createTransporter`). `npx tsc --noEmit` and eslint clean; the route passed 21 checks against a stubbed mailer and the form was exercised in a browser against a stubbed API. No real email has been sent: not tried against Gmail. Cases are in `tests/CONTACT_FORM_TESTCASE.md`.
 
 - 2026-11-26 05:20: Chef schedule UI on `feat/m9-chef-subscriber-search` (FR-31, FR-32). Added a subscriber search bar above the Plates list and another inside the suggested-meals (Review batch) dialog; both match every typed word against the customer's name and email (new `lib/chef/search.ts`). The dialog search only filters the list: Apply batch still saves the whole batch. Fixed the dialog's "Cook these" grid: it used viewport breakpoints (`lg:grid-cols-3`) inside a 420px side drawer, so on desktop each dish got about 126px and the name was cut to a letter. It is now one column in the drawer (two only while the dialog is a wide bottom sheet), and long names wrap to two lines. `npx tsc --noEmit` clean. Checked the grid in a browser harness at 1280px; the search bars and the full page have not been exercised in a browser against real data.
 

@@ -105,7 +105,7 @@ Names only. Put values in `.env.local` (local) or in the Vercel project (product
 | `WHATSAPP_BOT_SECRET` | Shared secret for bot API routes (`x-bot-secret`) |
 | `POS_SECRET` | Shared secret for POS-originated orders |
 | `GMAIL_USER` | Restaurant Gmail address that sends email notifications (server only; emails are skipped if unset) |
-| `GMAIL_APP_PASSWORD` | Gmail App Password for `GMAIL_USER` (server only; emails are skipped if unset) |
+| `GMAIL_APP_PASSWORD` | Gmail App Password for `GMAIL_USER` (server only; emails are skipped if unset; the landing page contact form returns an error instead) |
 
 **Optional**
 
@@ -115,6 +115,7 @@ Names only. Put values in `.env.local` (local) or in the Vercel project (product
 | `DEFAULT_COUNTRY_CODE` | Default country code; falls back to `971` |
 | `IMAGE_CONCURRENCY` | Concurrency for image tools under `tools/`; defaults to `8` |
 | `EMAIL_FROM_NAME` | Sender display name for email notifications; defaults to "Cook Connect" |
+| `CONTACT_TO_EMAIL` | Inbox that receives landing page contact form messages; defaults to `GMAIL_USER` |
 
 ### Database
 

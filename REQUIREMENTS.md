@@ -106,6 +106,7 @@ One system where customers order and subscribe, and staff handle orders, subscri
 - FR-43 [Done]: Notification bell with unread count and mark-all-read.
 - FR-44 [Done]: Web push to staff on new orders.
 - FR-49 [Done]: Email notifications sent from the restaurant's Gmail account (Gmail SMTP with an App Password) to staff who have email notifications enabled. Triggers: a new order and a new subscription inquiry. Recipients: active employee accounts that turned on "Email notifications" in the notifications menu (off by default).
+- FR-51 [Done]: Website contact form. The landing page Contact form sends the visitor's name, email and message by email through the same Gmail account as FR-49, to the restaurant inbox (`CONTACT_TO_EMAIL`, else `GMAIL_USER`) with Reply-To set to the visitor. Messages are not stored in the database. The form tells the visitor when the send failed, and is protected by a hidden honeypot field, length limits and a per-IP rate limit.
 
 ### 6.10 WhatsApp bot API
 - FR-45 [Done]: Bot can place orders, look up deliveries, create invites and read rates (bot secret).
@@ -164,6 +165,7 @@ Resolved 2026-11-21: Sharjah AED 100; customer dashboard (FR-37 to FR-39) stays 
 Newest first. Times are Asia/Manila (UTC+8).
 
 ### 2026-11-26
+- Added FR-51 (approved by Boon): the landing page contact form now sends email through the existing Gmail SMTP setup (`GMAIL_USER`, `GMAIL_APP_PASSWORD`).
 - Boon clarified FR-31 manual picking: the plan's meals per day is a default, not a limit. A chef may pick more or fewer meals than the plan covers, and every extra is deducted like a normal pick, from the remaining meals and the protein credits.
 
 ### 2026-11-25
