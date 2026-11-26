@@ -54,7 +54,7 @@ export function PosMealCard({
     >
       <div className="relative">
         <Image
-          src={imageVariant(item.image || fallbackImages[item.category] || "/drink_sample.svg", 600)}
+          src={imageVariant(item.image || fallbackImages[item.category] || "/placeholder/empty_plate.svg", 600)}
           alt={item.name}
           width={600}
           height={600}
