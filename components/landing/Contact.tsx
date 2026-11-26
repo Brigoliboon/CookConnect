@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type FormEvent } from "react"
 import dynamic from "next/dynamic"
 import { useTranslations } from "next-intl"
 import { motion } from "framer-motion"
@@ -26,8 +26,12 @@ const fadeUp = {
 const inputClass =
   "font-nunito w-full border-b border-black/10 bg-transparent px-0 py-3 text-sm text-black outline-none transition-colors placeholder:text-black/20 focus:border-black"
 
+type SendState = "idle" | "sending" | "sent" | "error" | "invalid" | "tooMany"
+
 export function Contact() {
   const t = useTranslations("contact")
+  const [form, setForm] = useState({ name: "", email: "", message: "", website: "" })
+  const [sendState, setSendState] = useState<SendState>("idle")
   const mapRef = useRef<HTMLDivElement>(null)
   const [mapInView, setMapInView] = useState(
     () => typeof window === "undefined" || typeof IntersectionObserver === "undefined",
@@ -49,6 +53,34 @@ export function Contact() {
     observer.observe(el)
     return () => observer.disconnect()
   }, [mapInView])
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (sendState === "sending") return
+    setSendState("sending")
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      })
+      if (res.ok) {
+        setForm({ name: "", email: "", message: "", website: "" })
+        setSendState("sent")
+      } else {
+        setSendState(res.status === 400 ? "invalid" : res.status === 429 ? "tooMany" : "error")
+      }
+    } catch {
+      setSendState("error")
+    }
+  }
+
+  const feedback: Partial<Record<SendState, string>> = {
+    sent: t("sent"),
+    invalid: t("invalid"),
+    tooMany: t("tooMany"),
+    error: t("error"),
+  }
 
   const details = [
     { icon: MapPin, label: t("addressLabel"), value: "Sheikh Zayed Street, Al Hamidiya 1, Ajman, UAE" },
@@ -100,16 +132,67 @@ export function Contact() {
           <p className="font-nunito mt-6 text-sm leading-relaxed text-black/50">
             {t("subtitle")}
           </p>
-          <form className="mt-10 space-y-8">
-            <input type="text" placeholder={t("name")} className={inputClass} />
-            <input type="email" placeholder={t("email")} className={inputClass} />
-            <textarea rows={4} placeholder={t("message")} className={`${inputClass} resize-none`} />
+          <form onSubmit={handleSubmit} className="mt-10 space-y-8">
+            <input
+              type="text"
+              name="name"
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              placeholder={t("name")}
+              aria-label={t("name")}
+              autoComplete="name"
+              maxLength={100}
+              required
+              className={inputClass}
+            />
+            <input
+              type="email"
+              name="email"
+              value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              placeholder={t("email")}
+              aria-label={t("email")}
+              autoComplete="email"
+              maxLength={254}
+              required
+              className={inputClass}
+            />
+            <textarea
+              rows={4}
+              name="message"
+              value={form.message}
+              onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
+              placeholder={t("message")}
+              aria-label={t("message")}
+              maxLength={2000}
+              required
+              className={`${inputClass} resize-none`}
+            />
+            {/* Honeypot: hidden from people and screen readers, bots tend to fill it. */}
+            <input
+              type="text"
+              name="website"
+              value={form.website}
+              onChange={(e) => setForm((f) => ({ ...f, website: e.target.value }))}
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+              className="absolute -left-[9999px] h-0 w-0 opacity-0"
+            />
             <button
               type="submit"
-              className="font-nunito w-full rounded-xl bg-black px-8 py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-neutral-800"
+              disabled={sendState === "sending"}
+              className="font-nunito w-full rounded-xl bg-black px-8 py-3.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {t("send")}
+              {sendState === "sending" ? t("sending") : t("send")}
             </button>
+            <p
+              role="status"
+              aria-live="polite"
+              className={`font-nunito text-sm ${sendState === "sent" ? "text-emerald-700" : "text-red-600"}`}
+            >
+              {feedback[sendState]}
+            </p>
           </form>
         </motion.div>
       </div>

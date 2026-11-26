@@ -125,7 +125,7 @@ In scope (confirmed 2026-11-21). Pages exist but read mock data.
 - [ ] Edit profile and save it (Save currently does nothing) (FR-38)
 - [ ] Change today's delivery time or location before the cutoff (FR-39)
 
-## M14: Email notifications (FR-49)
+## M14: Email notifications (FR-49, FR-51)
 
 Sent from the restaurant Gmail account (`cookconnectrestaurant@gmail.com`) through Gmail SMTP with an App Password (`lib/notifications/email.ts`). The staff invite email in M11 (FR-42) may reuse this Gmail setup.
 
@@ -133,6 +133,7 @@ Sent from the restaurant Gmail account (`cookconnectrestaurant@gmail.com`) throu
 - [x] Choose Gmail SMTP with an App Password, or the Gmail API, and add the needed env vars (names only, never commit values): `GMAIL_USER`, `GMAIL_APP_PASSWORD`, optional `EMAIL_FROM_NAME`
 - [x] Resolve the open questions before building: which events send an email, and who can enable it? Answer: a new order and a new subscription inquiry; active employee accounts that turn on "Email notifications" (off by default)
 - [ ] Apply `20261121000000_accounts_email_notifications.sql` to the live Supabase project and set the Gmail env vars on Vercel
+- [x] Landing page contact form sends email through the same Gmail setup: `POST /api/contact` to `CONTACT_TO_EMAIL` or `GMAIL_USER`, Reply-To the visitor, honeypot, length limits, per-IP rate limit, visible success and error states (FR-51)
 
 ## M15: Verification
 
@@ -165,6 +166,7 @@ Boon confirmed 2026-11-24: v1 is pick-one and required only; the order snapshot 
 
 Newest first. Times are Asia/Manila (UTC+8).
 
+- 2026-11-26 17:20: Contact form on `feat/m14-contact-form-email` (FR-51). The landing page Contact form had no submit handler, so nothing was sent. It now posts to a new `POST /api/contact` that emails the restaurant through the existing Gmail SMTP setup (`GMAIL_USER`, `GMAIL_APP_PASSWORD`), to `CONTACT_TO_EMAIL` if set, otherwise to the Gmail account itself, with Reply-To set to the visitor so staff can answer straight from the inbox. Unlike the staff notifications this one reports failure, so the form shows a sent, invalid, too-many or could-not-send message in EN/AR. Checks: required fields and length limits, line breaks stripped from the name (header injection), email validated, hidden honeypot field, 5 messages per 10 minutes per IP (in the memory of one server instance, so it only slows floods). Messages are not stored. New files `lib/contact/message.ts`, `lib/contact/rate-limit.ts`, `app/api/contact/route.ts`; `sendContactEmail` in `lib/notifications/email.ts` (shared `createTransporter`). `npx tsc --noEmit` and eslint clean; the route passed 21 checks against a stubbed mailer and the form was exercised in a browser against a stubbed API. No real email has been sent: not tried against Gmail. Cases are in `tests/CONTACT_FORM_TESTCASE.md`.
 - 2026-11-26 16:30: Landing Healthy section on `fix/landing-healthy-remove-pantry` (FR-2). Removed the "The Fresh Pantry / Real Ingredients, Real Results" subsection, including its category tabs, the meal gallery with paging, the "View Full Menu" button and the meal detail dialog; the banner and "Did You Know?" stay. `HealthyCampaign` no longer fetches recipes. Removed the four unused `healthy` copy keys (`pantryLabel`, `pantryTitle`, `emptyState`, `viewMenu`) from en and ar. `GalleryCard` stays (the customer page uses it). `npx tsc --noEmit` and eslint clean; `npm run build` and a browser look were not run.
 - 2026-11-26 16:10: POS layout on `feat/m11-pos-compact-checkout` (FR-25). Removed the category header card above the items list (its category name and "N items" line), which frees about 74px for the grid. The checkout panel now keeps the order setup short and fixed (order type, then one row of details) so the order lines sit directly under it: dine-in customer fields are folded behind a "Walk-in customer / Add details" row, pickup shows name and mobile on one row, and delivery shows a one-line "Delivery location" row that opens the map in a modal; the totals and Place Order footer stay pinned. No behaviour, pricing or API change. `npx tsc --noEmit` and eslint clean; an old-vs-new render at 1366x768 puts the first delivery order line at 384px instead of 792px (off screen). `npm run build` not run, and the Mapbox map inside the modal and the mobile drawer were not tried; cases are in `tests/POS_CHECKOUT_TESTCASE.md`.
 

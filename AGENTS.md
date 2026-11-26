@@ -81,6 +81,7 @@ Required by the running app (referenced in source):
 | `GMAIL_USER` | Restaurant Gmail address that sends email notifications (server only). Emails are skipped if unset. |
 | `GMAIL_APP_PASSWORD` | Gmail App Password for `GMAIL_USER` (server only). Emails are skipped if unset. |
 | `EMAIL_FROM_NAME` | Optional sender display name for email notifications (defaults to "Cook Connect") |
+| `CONTACT_TO_EMAIL` | Optional inbox for landing page contact form messages (defaults to `GMAIL_USER`) |
 
 Optional (have defaults or fallbacks in code):
 

@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/service"
 import type { OrderWithItems } from "@/lib/supabase/tables/orders"
 import type { SubscriptionInquiry } from "@/lib/supabase/tables/subscription_inquiries"
 import type { RoleTarget } from "./types"
+import { buildContactEmail, type ContactMessage } from "@/lib/contact/message"
 
 // Staff who receive email notifications: the same role that gets in-app and
 // push notifications for new orders, limited to active accounts that opted in.
@@ -17,6 +18,13 @@ interface EmailMessage {
 
 function gmailConfigured() {
   return Boolean(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD)
+}
+
+function createTransporter() {
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: { user: process.env.GMAIL_USER!, pass: process.env.GMAIL_APP_PASSWORD! },
+  })
 }
 
 function formatTotal(cents: number, currency: string) {
@@ -54,10 +62,7 @@ async function sendToOptedInStaff(requestClient: SupabaseClient, message: EmailM
 
   const user = process.env.GMAIL_USER!
   const fromName = process.env.EMAIL_FROM_NAME?.trim() || "Cook Connect"
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: { user, pass: process.env.GMAIL_APP_PASSWORD! },
-  })
+  const transporter = createTransporter()
   try {
     // Recipients go in Bcc so staff don't see each other's addresses.
     await transporter.sendMail({
@@ -150,4 +155,29 @@ export async function emailSubscriptionInquiryCreated(
     console.error("[email] plan lookup failed:", err)
   }
   await sendToOptedInStaff(client, buildSubscriptionInquiryEmail(inquiry, planName, baseUrl))
+}
+
+export class ContactNotConfiguredError extends Error {
+  constructor() {
+    super("GMAIL_USER or GMAIL_APP_PASSWORD missing")
+    this.name = "ContactNotConfiguredError"
+  }
+}
+
+// Website contact form (FR-51). Goes to the restaurant inbox (CONTACT_TO_EMAIL, else the Gmail
+// account itself) and sets Reply-To to the visitor. Unlike the staff notifications above this
+// throws, so the form can tell the visitor when the message was not sent.
+export async function sendContactEmail(contact: ContactMessage): Promise<void> {
+  if (!gmailConfigured()) throw new ContactNotConfiguredError()
+  const user = process.env.GMAIL_USER!
+  const to = process.env.CONTACT_TO_EMAIL?.trim() || user
+  const fromName = process.env.EMAIL_FROM_NAME?.trim() || "Cook Connect"
+  const { subject, text } = buildContactEmail(contact)
+  await createTransporter().sendMail({
+    from: { name: fromName, address: user },
+    to,
+    replyTo: { name: contact.name, address: contact.email },
+    subject,
+    text,
+  })
 }
