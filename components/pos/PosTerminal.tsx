@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  Search, ShoppingCart, Plus, Minus, Trash2, Check, X, User, Phone,
+  Search, ShoppingCart, Plus, Minus, Trash2, Check, X, User, ChevronDown,
   Store, Bike, UtensilsCrossed, MapPin, Receipt,
 } from "lucide-react"
 import { formatPrice, resolveDeliveryAddress } from "@/utils/mapbox"
@@ -58,6 +58,8 @@ export function PosTerminal() {
   const [locationError, setLocationError] = useState("")
   const [unsupported, setUnsupported] = useState(false)
   const [deliveryConfirmed, setDeliveryConfirmed] = useState(false)
+  const [customerOpen, setCustomerOpen] = useState(false) // dine-in: optional contact fields
+  const [locationOpen, setLocationOpen] = useState(false) // delivery map modal
   const [feeCents, setFeeCents] = useState<number | null>(null)
   const [placing, setPlacing] = useState(false)
   const [placeError, setPlaceError] = useState("")
@@ -85,8 +87,6 @@ export function PosTerminal() {
       return matchCat && matchSearch
     })
   }, [menu, category, search])
-
-  const activeCategory = CATEGORY_FILTERS.find((c) => c.id === category) ?? CATEGORY_FILTERS[0]
 
   const cartQtyByRecipe = useMemo(() => {
     const map = new Map<string, number>()
@@ -209,6 +209,7 @@ export function PosTerminal() {
           setFeeCents(resolved.area.feeCents)
           setDeliveryConfirmed(true)
           setUnsupported(false)
+          setLocationOpen(false)
         } else {
           setFeeCents(null)
           setDeliveryConfirmed(false)
@@ -270,6 +271,7 @@ export function PosTerminal() {
       setPlacedOrder({ id: data.id, total: formatPrice(Number(data.subtotal_cents ?? subtotalCents) + Number(data.shipping_cents ?? 0)) })
       setCart([])
       setCustomer({ name: "", mobile: "", address: "" })
+      setCustomerOpen(false)
       setLocation(null)
       setDeliveryConfirmed(false)
       setFeeCents(null)
@@ -282,6 +284,10 @@ export function PosTerminal() {
       setPlacing(false)
     }
   }
+
+  const contactSummary = [customer.name.trim(), customer.mobile ? `+971 ${customer.mobile}` : ""]
+    .filter(Boolean)
+    .join(" · ")
 
   const cartPanel = (
     <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-neutral-200/70 bg-white shadow-sm">
@@ -304,100 +310,102 @@ export function PosTerminal() {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
-        {/* Customer */}
-        <div className="space-y-2">
-          <div className="grid grid-cols-3 gap-2 rounded-2xl bg-neutral-100 p-1.5">
-            {([
-              { id: "dine_in", label: "Dine-in", icon: UtensilsCrossed },
-              { id: "pickup", label: "Pickup", icon: Store },
-              { id: "delivery", label: "Delivery", icon: Bike },
-            ] as { id: OrderType; label: string; icon: typeof Store }[]).map((o) => (
-              <button
-                key={o.id}
-                onClick={() => handleOrderTypeChange(o.id)}
-                className={`flex items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-xs font-bold transition-all sm:text-sm ${
-                  orderType === o.id ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-800"
-                }`}
-              >
-                <o.icon size={15} /> {o.label}
-              </button>
-            ))}
-          </div>
-          <div className="relative">
-            <User size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+      {/* Order setup: compact and fixed, so the order lines below are visible without scrolling */}
+      <div className="shrink-0 space-y-2 border-b border-neutral-100 px-4 py-2.5">
+        <div className="grid grid-cols-3 gap-1 rounded-xl bg-neutral-100 p-1">
+          {([
+            { id: "dine_in", label: "Dine-in", icon: UtensilsCrossed },
+            { id: "pickup", label: "Pickup", icon: Store },
+            { id: "delivery", label: "Delivery", icon: Bike },
+          ] as { id: OrderType; label: string; icon: typeof Store }[]).map((o) => (
+            <button
+              key={o.id}
+              onClick={() => handleOrderTypeChange(o.id)}
+              className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-bold transition-all sm:text-sm ${
+                orderType === o.id ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500 hover:text-neutral-800"
+              }`}
+            >
+              <o.icon size={15} /> {o.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Dine-in: the customer is optional, so the fields stay folded until asked for */}
+        {orderType === "dine_in" && (
+          <button
+            type="button"
+            onClick={() => setCustomerOpen((open) => !open)}
+            aria-expanded={customerOpen}
+            className="flex w-full items-center justify-between gap-2 rounded-xl border border-dashed border-neutral-200 px-3 py-2 text-left text-xs text-neutral-500 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
+          >
+            <span className="flex min-w-0 items-center gap-1.5">
+              <User size={13} className="shrink-0 text-neutral-400" />
+              <span className={`truncate ${contactSummary ? "font-semibold text-neutral-900" : ""}`}>
+                {contactSummary || "Walk-in customer"}
+              </span>
+            </span>
+            <span className="flex shrink-0 items-center gap-1 font-medium text-neutral-400">
+              {customerOpen ? "Hide" : contactSummary ? "Edit" : "Add details"}
+              <ChevronDown size={13} className={`transition-transform ${customerOpen ? "rotate-180" : ""}`} />
+            </span>
+          </button>
+        )}
+
+        {/* Pickup and delivery need a name and mobile, so they show at once, on a single row */}
+        {(needsContact || customerOpen) && (
+          <div className="flex items-stretch gap-1.5">
             <input
               value={customer.name}
               onChange={(e) => setCustomer((p) => ({ ...p, name: e.target.value }))}
-              placeholder={needsContact ? "Customer name *" : "Customer name (optional)"}
-              className="w-full rounded-xl border border-neutral-200 py-2.5 pl-9 pr-3 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-400"
+              placeholder={needsContact ? "Customer name *" : "Customer name"}
+              aria-label="Customer name"
+              autoComplete="off"
+              className="min-w-0 flex-1 rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-400"
             />
-          </div>
-          <div className="flex items-stretch gap-1.5">
-            <span className="flex shrink-0 items-center rounded-xl border border-neutral-200 bg-neutral-50 px-2 py-2.5 text-xs font-semibold text-neutral-900">+971</span>
-            <div className="relative min-w-0 flex-1">
-              <Phone size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+            <div className="flex w-[10.5rem] shrink-0 items-stretch overflow-hidden rounded-xl border border-neutral-200 focus-within:border-neutral-400">
+              <span className="flex items-center bg-neutral-50 px-2 text-xs font-semibold text-neutral-900">+971</span>
               <input
                 value={customer.mobile}
                 onChange={(e) => setCustomer((p) => ({ ...p, mobile: sanitizeUaLocal(e.target.value) }))}
-                placeholder={needsContact ? "5X XXX XXXX *" : "5X XXX XXXX (optional)"}
+                placeholder={needsContact ? "5X XXX XXXX *" : "5X XXX XXXX"}
+                aria-label="Mobile number"
                 inputMode="numeric"
-                className="w-full rounded-xl border border-neutral-200 py-2.5 pl-9 pr-3 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-400"
+                autoComplete="off"
+                className="min-w-0 flex-1 px-2 py-2 text-sm text-neutral-900 outline-none placeholder:text-neutral-400"
               />
             </div>
           </div>
-          {orderType === "delivery" && (
-            <div>
-              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                <MapPin size={13} />
-                Delivery location
-                <span className="text-red-500">*</span>
-              </label>
-              <LocationPicker
-                value={location}
-                onChange={(loc) => {
-                  setLocation(loc)
-                  setDeliveryConfirmed(false)
-                  setFeeCents(null)
-                  setUnsupported(false)
-                  setLocationError("")
-                }}
-              />
-              <button
-                onClick={handleConfirmLocation}
-                disabled={!location || locating}
-                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-900/20 py-2 text-xs font-semibold text-neutral-900 transition-all hover:bg-neutral-900 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {locating ? (
-                  "Resolving address…"
-                ) : deliveryConfirmed ? (
-                  <>
-                    <Check size={14} />
-                    Location confirmed
-                  </>
-                ) : (
-                  "Confirm location"
-                )}
-              </button>
-              {unsupported && (
-                <div className="mt-2 rounded-xl border border-red-200 bg-red-50 p-3">
-                  <p className="text-xs font-bold text-red-600">Outside delivery area</p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-red-500">
-                    This pin is outside our delivery zone. Move the pin or switch to pickup.
-                  </p>
-                </div>
-              )}
-              {locationError && !unsupported && <p className="mt-1.5 text-xs text-red-500">{locationError}</p>}
-              {customer.address && (
-                <input
-                  readOnly
-                  value={customer.address}
-                  className="mt-2 w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-xs text-neutral-900 outline-none"
-                />
-              )}
-            </div>
-          )}
-        </div>
+        )}
+
+        {/* Delivery: one row that opens the map, then shows the confirmed address */}
+        {orderType === "delivery" && (
+          <button
+            type="button"
+            onClick={() => setLocationOpen(true)}
+            className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left text-xs transition-colors ${
+              deliveryConfirmed
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                : unsupported
+                  ? "border-red-200 bg-red-50 text-red-600"
+                  : "border-dashed border-neutral-300 text-neutral-600 hover:bg-neutral-50"
+            }`}
+          >
+            <span className="flex min-w-0 items-center gap-1.5">
+              {deliveryConfirmed ? <Check size={13} className="shrink-0" /> : <MapPin size={13} className="shrink-0" />}
+              <span className="truncate font-semibold">
+                {deliveryConfirmed
+                  ? customer.address || "Location confirmed"
+                  : unsupported
+                    ? "Outside delivery area"
+                    : "Delivery location *"}
+              </span>
+            </span>
+            <span className="shrink-0 font-medium">{deliveryConfirmed ? "Change" : "Set on map"}</span>
+          </button>
+        )}
+      </div>
+
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
 
         {/* Lines */}
         {cart.length === 0 ? (
@@ -580,32 +588,23 @@ export function PosTerminal() {
 
           {/* 2. Menu grid */}
           <section className="flex min-w-0 flex-col lg:h-full lg:min-h-0">
-            <div className="flex shrink-0 items-center justify-between rounded-2xl border border-neutral-200/70 bg-white px-4 py-3 shadow-sm">
-              <div>
-                <h2 className="text-sm font-bold text-neutral-900">{activeCategory.label}</h2>
-                <p className="text-xs text-neutral-400">
-                  {filteredMenu.length} item{filteredMenu.length !== 1 ? "s" : ""}{search && <> for “{search}”</>}
-                </p>
-              </div>
-            </div>
-
             <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1">
             {menuLoading ? (
-              <ul className="mt-3 grid grid-cols-2 gap-3 xl:grid-cols-3 2xl:grid-cols-4">
+              <ul className="grid grid-cols-2 gap-3 xl:grid-cols-3 2xl:grid-cols-4">
                 {Array.from({ length: 8 }).map((_, i) => (
                   <li key={i} className="aspect-[3/4] animate-pulse rounded-2xl bg-neutral-200" />
                 ))}
               </ul>
             ) : menuError ? (
-              <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 p-6 text-center text-sm text-red-600">{menuError}</div>
+              <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center text-sm text-red-600">{menuError}</div>
             ) : filteredMenu.length === 0 ? (
-              <div className="mt-3 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-neutral-200 py-20">
+              <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-neutral-200 py-20">
                 <UtensilsCrossed size={40} className="mb-3 text-neutral-300" />
                 <p className="text-sm font-medium text-neutral-500">No items found</p>
                 <p className="mt-0.5 text-xs text-neutral-400">Try a different search or category</p>
               </div>
             ) : (
-              <ul className="mt-3 grid grid-cols-2 gap-3 xl:grid-cols-3 2xl:grid-cols-4">
+              <ul className="grid grid-cols-2 gap-3 xl:grid-cols-3 2xl:grid-cols-4">
                 {filteredMenu.map((item) => (
                   <PosMealCard
                     key={item.id}
@@ -672,6 +671,55 @@ export function PosTerminal() {
           )}
         </AnimatePresence>
       </>
+
+      {/* Delivery location */}
+      <Modal open={locationOpen} onClose={() => setLocationOpen(false)} title="Delivery location">
+        <div className="max-h-[75dvh] space-y-2 overflow-y-auto">
+          <LocationPicker
+            value={location}
+            onChange={(loc) => {
+              setLocation(loc)
+              setDeliveryConfirmed(false)
+              setFeeCents(null)
+              setUnsupported(false)
+              setLocationError("")
+            }}
+          />
+          <button
+            onClick={handleConfirmLocation}
+            disabled={!location || locating}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-2.5 text-sm font-semibold text-white transition-all hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {locating ? (
+              "Resolving address…"
+            ) : deliveryConfirmed ? (
+              <>
+                <Check size={14} />
+                Location confirmed
+              </>
+            ) : (
+              "Confirm location"
+            )}
+          </button>
+          {unsupported && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+              <p className="text-xs font-bold text-red-600">Outside delivery area</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-red-500">
+                This pin is outside our delivery zone. Move the pin or switch to pickup.
+              </p>
+            </div>
+          )}
+          {locationError && !unsupported && <p className="text-xs text-red-500">{locationError}</p>}
+          {customer.address && (
+            <input
+              readOnly
+              value={customer.address}
+              aria-label="Resolved address"
+              className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-xs text-neutral-900 outline-none"
+            />
+          )}
+        </div>
+      </Modal>
 
       {/* Order success */}
       <Modal open={!!placedOrder} onClose={() => setPlacedOrder(null)} title="Order placed">
