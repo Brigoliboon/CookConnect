@@ -61,7 +61,7 @@ export function mapRecipe(r: Record<string, unknown>): PosItem {
     name: (r.name as string) ?? "",
     category,
     description: (r.description as string) ?? "",
-    image: (r.image_path as string) ?? fallbackImages[category] ?? "/drink_sample.svg",
+    image: (r.image_path as string) ?? fallbackImages[category] ?? "/placeholder/empty_plate.svg",
     price: Number(price) || 0,
     calories: Number(calories) || 0,
     has_addons: r.has_addons === true,

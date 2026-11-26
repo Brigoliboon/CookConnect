@@ -44,7 +44,7 @@ export function toMenuItem(r: RecipeWithServings, locale: string): MenuItem {
     name: translateContent(r.name ?? "", locale),
     category: r.category ?? "",
     description: translateContent(r.description ?? "", locale),
-    image: r.image_path ?? fallbackImages[r.category ?? ""] ?? "/drink_sample.svg",
+    image: r.image_path ?? fallbackImages[r.category ?? ""] ?? "/placeholder/empty_plate.svg",
     price: first?.price ?? 0,
     calories: first?.calories ?? 0,
     protein: nutrition?.protein_g ?? 0,

@@ -90,7 +90,7 @@ export function MenuMealCard({
   const displayCalories = activeServing?.calories ?? item.calories
   const displayProtein = activeServing?.nutrition?.protein_g ?? item.protein
   const displayCarbs = activeServing?.nutrition?.carbs_g ?? item.carbs
-  const imgSrc = item.image || "/drink_sample.svg"
+  const imgSrc = item.image || "/placeholder/empty_plate.svg"
   const compact = variant === "compact"
 
   async function handleAdd() {

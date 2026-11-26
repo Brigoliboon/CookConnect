@@ -102,7 +102,7 @@ function mapRecipe(r: Record<string, unknown>): MenuItem {
     name: (r.name as string) ?? "",
     category,
     description: (r.description as string) ?? "",
-    image: (r.image_path as string) ?? fallbackImages[category] ?? "/drink_sample.svg",
+    image: (r.image_path as string) ?? fallbackImages[category] ?? "/placeholder/empty_plate.svg",
     price: first?.price ?? 0,
     calories: first?.calories ?? 0,
     protein: first?.nutrition?.protein_g ?? 0,
