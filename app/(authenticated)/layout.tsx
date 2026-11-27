@@ -9,6 +9,7 @@ import "../globals.css"
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
+  manifest: "/manifest.webmanifest",
 }
 
 export default function AuthenticatedLayout({ children }: { children: React.ReactNode }) {

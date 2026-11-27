@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "CookConnect",
     description:
       "Healthy dine-in restaurant in Ajman with fresh menu, delivery & pickup, plus subscription meal plans.",
-    start_url: "/",
+    start_url: "/employee",
     display: "standalone",
     background_color: "#ffffff",
     theme_color: "#118B50",
